@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://organisation-bit-character-maui.trycloudflare.com/api/$1" }
+  ]
+}
