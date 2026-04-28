@@ -1395,6 +1395,21 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.wfile.write(json.dumps({"suggestion": "Hola, muchas gracias por tu mensaje. Te atendemos a la brevedad posible."}).encode())
 
+        elif path == "/api/translate":
+            """通用翻译：from_lang -> to_lang (默认 auto->zh 或 es->zh)"""
+            try:
+                from deep_translator import GoogleTranslator
+                text = payload.get("text", "")
+                if not text:
+                    self.send_json({"translated": ""})
+                    return
+                src = payload.get("from", "auto")
+                tgt = payload.get("to", "zh-CN")
+                result = GoogleTranslator(source=src, target=tgt).translate(text)
+                self.send_json({"translated": result})
+            except Exception as e:
+                self.send_json({"translated": "", "error": str(e)})
+
         elif path == "/api/ai/generate-images":
             try:
                 # Real implementation using MiniMax Image Generation

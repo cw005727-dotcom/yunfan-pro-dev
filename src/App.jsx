@@ -88,27 +88,27 @@ const App = () => {
 
     const menuConfig = {
         home: [
-            { id: 'news', label: '最新资讯', icon: 'newspaper' },
-            { id: 'intro', label: '业务介绍', icon: 'info' },
-            { id: 'activity', label: '活动中心', icon: 'star' }
+            { id: 'news', label: '最新资讯', icon: 'newspaper', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
+            { id: 'intro', label: '业务介绍', icon: 'info', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30' },
+            { id: 'activity', label: '活动中心', icon: 'star', color: 'text-amber-500', bg: 'bg-amber-500', shadow: 'shadow-amber-500/30' }
         ],
         data: [
-            { id: 'reputation', label: '店铺声誉', icon: 'shield-check', status: 'pulse' },
-            { id: 'infringement', label: '商品性能表', icon: 'bar-chart-2', count: 0 },
-            { id: 'radar', label: '爆品雷达', icon: 'zap' },
-            { id: 'data-overview', label: '数据概览', icon: 'bar-chart-2' },
-            { id: 'logistics', label: '物流跟踪', icon: 'truck' }
+            { id: 'reputation', label: '店铺声誉', icon: 'shield-check', color: 'text-emerald-500', bg: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', status: 'pulse' },
+            { id: 'infringement', label: '商品性能表', icon: 'bar-chart-2', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', count: 0 },
+            { id: 'radar', label: '爆品雷达', icon: 'zap', color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-500/30' },
+            { id: 'data-overview', label: '数据概览', icon: 'bar-chart-2', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
+            { id: 'logistics', label: '物流跟踪', icon: 'truck', color: 'text-cyan-500', bg: 'bg-cyan-500', shadow: 'shadow-cyan-500/30' }
         ],
         ops: [
-            { id: 'auth', label: '前期准备', icon: 'key' },
-            { id: 'collect', label: '产品采集', icon: 'download-cloud' },
-            { id: 'maintain', label: '商品维护', icon: 'settings' },
-            { id: 'service', label: '售后处理', icon: 'headphones' }
+            { id: 'auth', label: '前期准备', icon: 'key', color: 'text-teal-500', bg: 'bg-teal-500', shadow: 'shadow-teal-500/30' },
+            { id: 'collect', label: '产品采集', icon: 'download-cloud', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
+            { id: 'maintain', label: '商品维护', icon: 'settings', color: 'text-slate-500', bg: 'bg-slate-500', shadow: 'shadow-slate-500/30' },
+            { id: 'service', label: '售后处理', icon: 'headphones', color: 'text-rose-500', bg: 'bg-rose-500', shadow: 'shadow-rose-500/30' }
         ],
         optimize: [
-            { id: 'title', label: '标题优化', icon: 'type' },
-            { id: 'image', label: '视觉图生图', icon: 'image' },
-            { id: 'keyword', label: '关键词衍生', icon: 'hash' }
+            { id: 'title', label: '标题优化', icon: 'type', color: 'text-indigo-600', bg: 'bg-indigo-600', shadow: 'shadow-indigo-600/30' },
+            { id: 'image', label: '视觉图生图', icon: 'image', color: 'text-purple-500', bg: 'bg-purple-500', shadow: 'shadow-purple-500/30' },
+            { id: 'keyword', label: '关键词衍生', icon: 'hash', color: 'text-amber-600', bg: 'bg-amber-600', shadow: 'shadow-amber-600/30' }
         ]
     };
 
@@ -152,17 +152,17 @@ const App = () => {
 
                     <nav className="hidden md:flex items-center gap-2">
                         {[
-                            { id: 'home', label: '首页', icon: 'home' },
-                            { id: 'data', label: '数据中心', icon: 'pie-chart' },
-                            { id: 'ops', label: '运营中心', icon: 'layout' },
-                            { id: 'optimize', label: '优化中心', icon: 'wand-2' }
+                            { id: 'home', label: '首页', icon: 'home', color: 'text-blue-500' },
+                            { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-indigo-500' },
+                            { id: 'ops', label: '运营中心', icon: 'layout', color: 'text-teal-500' },
+                            { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-amber-500' }
                         ].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => handleTopTabChange(tab.id)}
-                                className={`px-6 py-2 rounded-full flex items-center gap-2.5 transition-all whitespace-nowrap ${topTab === tab.id ? 'btn-accent text-white scale-105 font-black' : 'text-slate-500 hover:text-slate-800 font-bold'}`}
+                                className={`px-6 py-2 rounded-full flex items-center gap-2.5 transition-all whitespace-nowrap ${topTab === tab.id ? 'bg-slate-900 text-white scale-105 font-black shadow-lg shadow-slate-200' : 'text-slate-500 hover:text-slate-800 font-bold hover:bg-slate-100'}`}
                             >
-                                <Icon name={tab.icon} className="w-4 h-4" />
+                                <Icon name={tab.icon} className={`w-4 h-4 ${topTab === tab.id ? 'text-white' : tab.color}`} />
                                 <span className="text-[12px] uppercase tracking-[0.2em]">{tab.label}</span>
                             </button>
                         ))}
@@ -183,12 +183,12 @@ const App = () => {
             <div className="w-full flex-1 flex flex-col md:flex-row gap-0 overflow-hidden relative px-0">
                 
                 {/* Sidebar */}
-                <aside className="hidden md:flex w-56 glass-effect rounded-tl-[32px] rounded-bl-none rounded-tr-none rounded-br-none p-3 flex-col z-40 overflow-hidden shadow-[10px_0_30px_-15px_rgba(0,0,0,0.05)] relative border-r border-slate-200/50">
+                <aside className="hidden md:flex w-56 glass-effect rounded-tl-[32px] rounded-bl-none rounded-tr-none rounded-br-none p-3 flex-col z-40 overflow-hidden shadow-[10px_0_30px_-15px_rgba(0,0,0,0.05)] relative border-r border-slate-200/50 bg-gradient-to-b from-white/80 to-slate-50/50">
                     <div className="flex items-center justify-between mb-8 px-5 pt-5">
                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.5em]">{topTab}</p>
                         <div className="flex gap-1">
-                            <div className="w-1 h-1 rounded-full bg-accent/40"></div>
-                            <div className="w-1 h-1 rounded-full bg-accent animate-pulse"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
+                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${topTab === 'home' ? 'bg-blue-500' : topTab === 'data' ? 'bg-indigo-500' : topTab === 'ops' ? 'bg-teal-500' : 'bg-amber-500'}`}></div>
                         </div>
                     </div>
 
@@ -197,16 +197,19 @@ const App = () => {
                             <button
                                 key={item.id}
                                 onClick={() => handleSidebarItemClick(item.id)}
-                                className={`w-full pl-5 py-3.5 rounded-[20px] flex items-center justify-start gap-3.5 transition-all text-left border relative overflow-hidden group ${sidebarItem === item.id ? 'bg-accent-soft text-slate-900 border-accent/20 shadow-md scale-[1.02] z-10' : 'text-slate-400 hover:bg-white/40 hover:text-slate-700 border-transparent'}`}
+                                className={`w-full pl-5 py-3.5 rounded-[20px] flex items-center justify-start gap-3.5 transition-all text-left border relative overflow-hidden group ${sidebarItem === item.id ? `bg-white border-slate-200 shadow-[0_10px_20px_-10px_rgba(0,0,0,0.1)] scale-[1.02] z-10` : 'text-slate-400 hover:bg-white/60 hover:text-slate-700 border-transparent'}`}
                             >
-                                <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center transition-all duration-500 ${sidebarItem === item.id ? 'bg-accent text-white shadow-md shadow-accent/20 rotate-[10deg]' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200'}`}>
+                                {sidebarItem === item.id && (
+                                    <div className={`absolute inset-y-0 left-0 w-1 ${item.bg}`}></div>
+                                )}
+                                <div className={`w-9 h-9 rounded-xl shrink-0 flex items-center justify-center transition-all duration-500 ${sidebarItem === item.id ? `${item.bg} text-white shadow-lg ${item.shadow} rotate-[8deg]` : `bg-slate-100/50 ${item.color} group-hover:bg-white group-hover:shadow-sm`}`}>
                                     <Icon name={item.icon} className="w-5 h-5" />
                                 </div>
                                 <div className="flex flex-col items-start -space-y-0.5">
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-[11px] font-black uppercase tracking-[0.1em] whitespace-nowrap ${sidebarItem === item.id ? 'text-slate-900' : 'text-slate-400'}`} style={{animation: sidebarItem === item.id ? 'none' : 'label-float 3s ease-in-out infinite'}}>{item.label}</span>
+                                        <span className={`text-[11px] font-black uppercase tracking-[0.1em] whitespace-nowrap transition-colors ${sidebarItem === item.id ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>{item.label}</span>
                                         {item.count !== undefined && (
-                                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black tnum transition-all ${sidebarItem === item.id ? 'bg-accent text-white' : 'bg-slate-100 text-slate-400 opacity-50 group-hover:opacity-100'}`}>{item.count}</span>
+                                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black tnum transition-all ${sidebarItem === item.id ? `${item.bg} text-white` : 'bg-slate-100 text-slate-400 opacity-50 group-hover:opacity-100'}`}>{item.count}</span>
                                         )}
                                     </div>
                                 </div>
