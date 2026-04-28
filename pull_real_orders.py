@@ -28,7 +28,6 @@ def pull_real_data():
     final_orders = []
     
     for sid, site, group, master_id in stores:
-        if site != 'MLB': continue # 先只抓巴西站，确保成功
         print(f"Syncing Site: {site}, Seller ID: {sid} (Group: {group})...")
         
         # 搜索订单 (过去 6 个月)

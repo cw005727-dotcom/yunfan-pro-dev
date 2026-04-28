@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../components/Icon.jsx';
 import { useReputation } from '../hooks/useReputation';
+import { useMonitoringLogs } from '../hooks/useMonitoringLogs';
 import { useAppContext } from '../context/AppContext.jsx';
 
 const SITE_COLS = [
@@ -14,367 +15,401 @@ const SITE_COLS = [
 ];
 
 const STATUS_META = {
-    green: { dot: 'bg-emerald-400' },
-    yellow: { dot: 'bg-amber-400' },
-    red: { dot: 'bg-rose-400', pulse: 'animate-pulse' },
+    green: { dot: 'bg-emerald-400', text: 'text-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-200', pulse: '' },
+    yellow: { dot: 'bg-amber-400', text: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200', pulse: 'animate-pulse' },
+    red: { dot: 'bg-rose-400', text: 'text-rose-500', bg: 'bg-rose-50', border: 'border-rose-200', pulse: 'relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40' },
 };
 
-// Strip site suffix from name to get the real store name (all names have -XX or -XXX suffix)
-const getGroupKey = (s) => (s.name || s.account || '').replace(/-(MLB|MLM|MLA|MCO|MLC|MLU|MBT|CBT|MX|BR|AR|CO|CL|UY)$/i, '').trim();
+// 辅助函数：根据指标数值和站点状态计算颜色
+const getMetricColor = (val, siteStatus, newCount = 0) => {
+    const num = parseFloat(val || '0') || 0;
+    // 如果数值为0且无新增，始终显示中性色
+    if (num <= 0 && newCount <= 0) return 'text-slate-800';
+    // 否则跟随站点状态颜色
+    if (siteStatus === 'red') return 'text-rose-500';
+    if (siteStatus === 'yellow') return 'text-amber-500';
+    return 'text-slate-800';
+};
 
 const Tooltip = ({ data, storeName, site, position, onClose }) => {
     if (!data) return null;
     const siteInfo = SITE_COLS.find(c => c.code === site) || { flag: '🌐', name: site };
     const statusLabel = data.status === 'green' ? '健康' : data.status === 'yellow' ? '预警' : '危险';
+    const meta = STATUS_META[data.status] || STATUS_META.green;
+
     return (
         <div
-            className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-4"
-            style={{ 
-                left: position.x, 
-                top: position.y, 
-                position: 'fixed', 
-                transform: 'none',
-                minWidth: '200px'
-            }}
+            className="fixed z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-in zoom-in-95 duration-200"
+            style={{ left: position.x, top: position.y, minWidth: '220px' }}
             onMouseLeave={onClose}
         >
             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
                 <span className="text-xl">{siteInfo.flag}</span>
-                <div>
+                <div className="flex-1">
                     <p className="text-[12px] font-black text-slate-800">{storeName}</p>
                     <p className="text-[10px] text-slate-400">{siteInfo.name}</p>
                 </div>
-                <span className={`ml-auto px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                    data.status === 'green' ? 'bg-emerald-100 text-emerald-600' :
-                    data.status === 'yellow' ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'
-                }`}>{statusLabel}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${meta.bg} ${meta.text}`}>{statusLabel}</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-rose-50">
+                <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.reclamos) > 0 || data.new_claims > 0 ? 'bg-rose-50' : 'bg-slate-50'}`}>
                     <p className="text-[8px] text-slate-400 font-bold">投诉率</p>
-                    <p className="text-sm font-black text-rose-500">{data.reclamos}</p>
-                    <p className="text-[8px] text-slate-400">{data.reclamos_v}单</p>
+                    <p className={`text-sm font-black ${getMetricColor(data.reclamos, data.status, data.new_claims)}`}>{data.reclamos}</p>
                 </div>
-                <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-amber-50">
+                <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.despacho) > 0 || data.new_delayed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
                     <p className="text-[8px] text-slate-400 font-bold">延误率</p>
-                    <p className="text-sm font-black text-amber-500">{data.despacho}</p>
-                    <p className="text-[8px] text-slate-400">{data.despacho_v}单</p>
+                    <p className={`text-sm font-black ${getMetricColor(data.despacho, data.status, data.new_delayed)}`}>{data.despacho}</p>
                 </div>
-                <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-purple-50">
+                <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.cancel) > 0 || data.new_cancel > 0 ? 'bg-purple-50' : 'bg-slate-50'}`}>
                     <p className="text-[8px] text-slate-400 font-bold">取消率</p>
-                    <p className="text-sm font-black text-purple-500">{data.cancel}</p>
-                    <p className="text-[8px] text-slate-400">{data.cancel_v}单</p>
+                    <p className={`text-sm font-black ${getMetricColor(data.cancel, data.status, data.new_cancel)}`}>{data.cancel || '0.00%'}</p>
                 </div>
-            </div>
-            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[8px] text-slate-400">考核基数 {data.total_v} 单</span>
-                <span className="text-[8px] text-slate-400">score {data.score}</span>
             </div>
         </div>
     );
 };
 
 const ShopReputationView = () => {
-    const { activeShop, shopList } = useAppContext();
-    const { reputation: shops, loading, error } = useReputation(activeShop);
+    const { reputation, loading: shopsLoading } = useReputation();
+    const { logs, loading: logsLoading } = useMonitoringLogs(30);
+    const { activeShop, setActiveShop } = useAppContext();
+    
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all'); // all, abnormal, healthy
     const [hoveredCell, setHoveredCell] = useState(null);
     const [hoveredPos, setHoveredPos] = useState({ x: 0, y: 0 });
+    const logEndRef = useRef(null);
 
-    // Group shops by base store name (strip site suffix), but prefer group_label
-    const storeGroups = {};
-    shops.forEach(s => {
-        // [过滤逻辑] 忽略总部的 CBT 虚拟站点，只展示具体国家的物理站点
-        if (s.site === 'CBT') return;
-
-        // Use group_label if available, otherwise fall back to name parsing
-        const key = (s.group_label && s.group_label.trim()) ? s.group_label.trim() : getGroupKey(s);
-        if (!storeGroups[key]) storeGroups[key] = {};
-        
-        // [修复逻辑] 处理同一站点多个子账号的情况 (如 MLM)
-        // 如果该站点已有数据，优先保留“危险(red)”或“预警(yellow)”的数据，确保风险不被覆盖
-        const existing = storeGroups[key][s.site];
-        if (!existing || (s.status === 'red' && existing.status !== 'red') || (s.status === 'yellow' && existing.status === 'green')) {
-            storeGroups[key][s.site] = s;
+    // Auto-scroll logs to bottom
+    useEffect(() => {
+        if (logEndRef.current) {
+            logEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    });
+    }, [logs]);
 
-    const storeNames = Object.keys(storeGroups);
-
-    // 当前选中店铺下各站点的数据（null=显示全量）
-    const activeShopSites = activeShop
-        ? Object.values(storeGroups[activeShop] || {})
-        : Object.values(storeGroups).flatMap(g => Object.values(g));
-
-    // Compute per-store stats
-    const storeStats = {};
-    storeNames.forEach(name => {
-        const siteMap = storeGroups[name];
-        const statuses = Object.values(siteMap).map(s => s.status);
-        const overall = statuses.includes('red') ? 'red' : statuses.includes('yellow') ? 'yellow' : 'green';
-        const counts = {
-            green: statuses.filter(s => s === 'green').length,
-            yellow: statuses.filter(s => s === 'yellow').length,
-            red: statuses.filter(s => s === 'red').length,
-        };
-        storeStats[name] = { overall, counts, siteMap };
-    });
-
-    // Sort: red first, then yellow, then green
-    const sortedStores = [...storeNames].sort((a, b) => {
-        const order = { red: 0, yellow: 1, green: 2 };
-        return (order[storeStats[b]?.overall] || 3) - (order[storeStats[a]?.overall] || 3);
-    });
-
-    const totalGreen = shops.filter(s => s.status === 'green').length;
-    const totalYellow = shops.filter(s => s.status === 'yellow').length;
-    const totalRed = shops.filter(s => s.status === 'red').length;
-
-    const handleCellHover = (e, storeName, site, cell) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setHoveredPos({
-            x: rect.left,
-            y: rect.bottom + 8,
+    // Group shops by account (group_label or part of nickname)
+    const storeGroups = useMemo(() => {
+        const groups = {};
+        (reputation || []).forEach(s => {
+            const key = s.group_label || 'Other';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
         });
-        setHoveredCell({ storeName, site, data: cell });
+        return groups;
+    }, [reputation]);
+
+    const groupNames = Object.keys(storeGroups);
+
+    // Set default active shop if none selected
+    useEffect(() => {
+        if (!activeShop && groupNames.length > 0) {
+            const dajie = groupNames.find(n => n.includes('大姐'));
+            setActiveShop(dajie || groupNames[0]);
+        }
+    }, [groupNames, activeShop, setActiveShop]);
+
+    // Filtered groups
+    const filteredGroups = useMemo(() => {
+        return groupNames.filter(name => {
+            const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+            if (!matchesSearch) return false;
+            
+            if (statusFilter === 'all') return true;
+            const hasAbnormal = storeGroups[name].some(s => s.status !== 'green' || s.is_suspended);
+            return statusFilter === 'abnormal' ? hasAbnormal : !hasAbnormal;
+        });
+    }, [groupNames, searchQuery, statusFilter, storeGroups]);
+
+    const activeShopSites = activeShop ? (storeGroups[activeShop] || []) : (storeGroups[groupNames[0]] || []);
+
+    const handleCellEnter = (e, siteCode, storeName, siteData) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setHoveredPos({ x: rect.right + 10, y: rect.top });
+        setHoveredCell({ site: siteCode, storeName, data: siteData });
     };
 
     const handleCellLeave = () => setHoveredCell(null);
 
-    if (loading) return (
-        <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
-                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">拉取中...</span>
-            </div>
-        </div>
-    );
-
-    if (error) return (
-        <div className="flex items-center justify-center h-64 text-rose-500 text-sm font-medium">
-            数据加载失败：{error}
-        </div>
-    );
+    const handleLogClick = (log) => {
+        // Try to find the shop name in the message (e.g., "[警告] 大姐店-阿根廷站")
+        const match = log.message.match(/\]\s+(.*?)-/);
+        if (match && match[1]) {
+            const groupName = match[1].trim();
+            if (storeGroups[groupName]) {
+                setActiveShop(groupName);
+                // Flash the matrix for feedback
+                const el = document.getElementById(`shop-row-${groupName}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2');
+                    setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2'), 2000);
+                }
+            }
+        }
+    };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">店铺声誉中心</h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                        {shops.length} 个站点 · {sortedStores.length} 个店铺
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    {/* Group filter */}
-                    <select
-                      value={activeShop || ''}
-                      onChange={e => { const v = e.target.value; setActiveShop(v || null); }}
-                      className="text-[10px] font-black rounded-xl px-3 py-2 border border-slate-200 shadow-sm bg-white"
-                    >
-                      <option value="">全部店铺</option>
-                      {shopList.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="flex items-center gap-4 px-4 py-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                            <span className="text-[10px] font-black text-slate-600">{totalGreen} 健康</span>
-                        </div>
-                        <div className="w-px h-3 bg-slate-200" />
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-amber-400" />
-                            <span className="text-[10px] font-black text-slate-600">{totalYellow} 预警</span>
-                        </div>
-                        <div className="w-px h-3 bg-slate-200" />
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-rose-400" />
-                            <span className="text-[10px] font-black text-slate-600">{totalRed} 危险</span>
-                        </div>
-                    </div>
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                </div>
-            </div>
-
-            {/* 跑马灯：违规警告 + 待回消息（只显示待回+新增违规） */}
-            {(() => {
-                const alertItems = [];
-                activeShopSites.forEach(s => {
-                    const siteLabels = { MX: '🇲🇽', BR: '🇧🇷', AR: '🇦🇷', CO: '🇨🇴', CL: '🇨🇱', UY: '🇺🇾' };
-                    const flag = siteLabels[s.site] || s.site;
-                    if ((s.new_violations || 0) > 0) alertItems.push({ icon: '⚠️', text: `${flag}违规+${s.new_violations} (${s.alert_date || ''})`, color: 'text-amber-600' });
-                    if ((s.new_messages || 0) > 0) alertItems.push({ icon: '💬', text: `${flag}待回+${s.new_messages}`, color: 'text-blue-500' });
-                });
-                if (alertItems.length === 0) return null;
-                const repeated = [...alertItems, ...alertItems];
-                return (
-                    <div className="mb-4 overflow-hidden rounded-2xl bg-amber-50 border border-amber-200 px-5 py-3">
-                        <div className="animate-marquee flex gap-8 whitespace-nowrap">
-                            {repeated.map((item, i) => (
-                                <span key={i} className={`text-sm font-bold ${item.color}`}>{item.icon} {item.text}</span>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })()}
-
-            {/* 站点指标卡：始终显示全部6个站点，无数据的显示占位 */}
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-                {SITE_COLS.map(({ code, flag, name }) => {
-                    const siteData = activeShopSites.find(s => s.site === code) || null;
-                    return (
-                        <div key={code} className={`rounded-2xl border p-5 shadow-sm ${
-                            siteData
-                                ? 'border-slate-200 bg-white/70 backdrop-blur-sm'
-                                : 'border-dashed border-slate-200 bg-slate-50/50'
-                        }`}>
-                            {/* 站点头部 */}
-                            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                                <span className="text-base font-black text-slate-800">{flag} {name}</span>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full overflow-hidden">
+            <div className="flex items-start gap-6 h-full">
+                {/* 左侧：监控核心区 */}
+                <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
+                    {/* 1. 顶部监控状态条 */}
+                    <div className="flex items-center justify-between px-5 py-2 rounded-3xl bg-white border border-slate-200 shadow-sm shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500"></div>
+                                <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></div>
                             </div>
-                            {siteData ? (
-                                <>
-                                    {/* 投诉 */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">投诉</div>
-                                            <div className="text-xl font-black text-rose-500 leading-none mt-0.5">{siteData.reclamos || '0%'}</div>
-                                            <div className="text-[9px] text-slate-400 mt-0.5">累计投诉率</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-lg font-black text-slate-800 leading-none">+{siteData.new_claims || 0}</div>
-                                            <div className="text-[9px] text-amber-500 mt-0.5 font-medium">{siteData.alert_date || ''}</div>
-                                        </div>
-                                    </div>
-                                    <div className="h-px bg-slate-300 mb-3"></div>
-                                    {/* 取消 */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">取消</div>
-                                            <div className="text-xl font-black text-purple-500 leading-none mt-0.5">{siteData.cancel || '0%'}</div>
-                                            <div className="text-[9px] text-slate-400 mt-0.5">累计取消率</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-lg font-black text-slate-800 leading-none">+{siteData.new_cancel || 0}</div>
-                                            <div className="text-[9px] text-amber-500 mt-0.5 font-medium">{siteData.alert_date || ''}</div>
-                                        </div>
-                                    </div>
-                                    <div className="h-px bg-slate-300 mb-3"></div>
-                                    {/* 延误 */}
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">延误</div>
-                                            <div className="text-xl font-black text-orange-500 leading-none mt-0.5">{siteData.despacho || '0%'}</div>
-                                            <div className="text-[9px] text-slate-400 mt-0.5">累计延误率</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-lg font-black text-slate-800 leading-none">+{siteData.new_delayed || 0}</div>
-                                            <div className="text-[9px] text-amber-500 mt-0.5 font-medium">{siteData.alert_date || ''}</div>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-8 text-slate-300">
-                                    <div className="text-2xl mb-2">—</div>
-                                    <div className="text-xs text-slate-300">暂无数据</div>
-                                </div>
-                            )}
+                            <span className="text-[11px] font-black text-indigo-700 uppercase tracking-widest">云帆 AI 实时守卫监控中</span>
+                            <span className="text-[11px] text-slate-300">|</span>
+                            <span className="text-[11px] text-slate-500 font-bold">已连接 {groupNames.length} 个店铺组 / {(reputation || []).length} 个站点</span>
                         </div>
-                    );
-                })}
-            </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400 font-mono uppercase">Last Sync</span>
+                            <span className="text-[10px] text-slate-700 font-black">{logs[0]?.timestamp ? new Date(logs[0].timestamp).toLocaleTimeString() : '--:--:--'}</span>
+                        </div>
+                    </div>
 
-            {/* Matrix Table */}
-            <div className="rounded-3xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-100">
-                                <th className="px-6 py-4 text-center">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="text-xl">🏪</span>
-                                            <span className="text-[10px] text-slate-600 font-bold normal-case tracking-normal">店铺</span>
-                                        </div>
-                                    </th>
-                                {SITE_COLS.map(site => (
-                                    <th key={site.code} className="px-3 py-4 text-center">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="text-xl">{site.flag}</span>
-                                            <span className="text-[10px] text-slate-600 font-bold normal-case tracking-normal">{site.name}</span>
-                                        </div>
-                                    </th>
-                                ))}
-                                <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">汇总</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedStores.map((storeName, ai) => {
-                                const stats = storeStats[storeName];
-                                const overallMeta = {
-                                    green: { badge: 'bg-emerald-100 text-emerald-600', label: '优质' },
-                                    yellow: { badge: 'bg-amber-100 text-amber-600', label: '预警' },
-                                    red: { badge: 'bg-rose-100 text-rose-600', label: '危险' },
-                                }[stats.overall];
-                                return (
-                                    <tr key={storeName} className="border-b border-slate-100 hover:bg-slate-50/40 transition-colors">
-                                        <td className="px-6 py-4 text-center">
-                                            <p className="text-[16px] font-black text-slate-800 leading-tight">{storeName}</p>
-                                        </td>
-                                        {SITE_COLS.map(site => {
-                                            const cell = stats.siteMap[site.code];
-                                            const meta = cell ? STATUS_META[cell.status] : null;
-                                            const isHovered = hoveredCell?.storeName === storeName && hoveredCell?.site === site.code;
+            {/* 店铺筛选与全局雷达矩阵 */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0 flex-[0_0_38%]">
+                <div className="px-5 py-2 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setStatusFilter('all')}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${statusFilter === 'all' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-100'}`}
+                        >全部 ({groupNames.length})</button>
+                        <button 
+                            onClick={() => setStatusFilter('abnormal')}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${statusFilter === 'abnormal' ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-500 hover:bg-slate-100'}`}
+                        >异常 ({groupNames.filter(n => storeGroups[n].some(s => s.status !== 'green' || s.is_suspended)).length})</button>
+                    </div>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            placeholder="搜索..." 
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-48 pl-8 pr-4 py-1.5 rounded-xl bg-white border border-slate-200 text-[10px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                        />
+                        <Icon name="search" className="absolute left-3 top-2 w-3 h-3 text-slate-400" />
+                    </div>
+                </div>
+
+                <div className="p-4 flex flex-col flex-1 min-h-0">
+                    <div className="grid grid-cols-[160px_1fr] gap-4 mb-2 text-[9px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 pb-1 shrink-0">
+                        <div>店铺分组</div>
+                        <div className="grid grid-cols-6 gap-2 text-center">
+                            {SITE_COLS.map(c => <div key={c.code}>{c.flag} {c.name}</div>)}
+                        </div>
+                    </div>
+
+                    <div className="space-y-1 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+                        {filteredGroups.map(name => {
+                            const isSelected = activeShop === name || (!activeShop && name === groupNames[0]);
+                            const sites = storeGroups[name];
+                            return (
+                                <div 
+                                    key={name}
+                                    id={`shop-row-${name}`}
+                                    onClick={() => setActiveShop(name)}
+                                    className={`grid grid-cols-[160px_1fr] gap-4 p-3 rounded-2xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-50 border border-indigo-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent'}`}
+                                >
+                                    <div className="flex flex-col justify-center">
+                                        <span className={`text-[12px] font-black truncate ${isSelected ? 'text-indigo-600' : 'text-slate-700'}`}>{name}</span>
+                                        {isSelected && <span className="text-[8px] font-black text-indigo-400 uppercase mt-0.5 tracking-tighter">Selected ▸</span>}
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-2">
+                                        {SITE_COLS.map(col => {
+                                            const siteData = sites.find(s => s.site === col.code);
+                                            if (!siteData) return <div key={col.code} className="flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-slate-100"></div></div>;
+                                            const meta = STATUS_META[siteData.status] || STATUS_META.green;
                                             return (
-                                                <td key={site.code} className="px-3 py-4 text-center">
-                                                    {cell ? (
-                                                        <div
-                                                            onMouseEnter={(e) => handleCellHover(e, storeName, site.code, cell)}
-                                                            onMouseLeave={handleCellLeave}
-                                                            className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto cursor-pointer transition-all duration-150 border-2
-                                                                ${isHovered ? 'border-slate-400 shadow-md scale-110' : 'border-transparent hover:border-slate-200 hover:scale-105'}
-                                                                ${meta?.pulse ? 'animate-pulse' : ''}`}
-                                                            style={{
-                                                                background: cell.status === 'green' ? '#d1fae5' : cell.status === 'yellow' ? '#fef3c7' : '#ffe4e6',
-                                                            }}
-                                                        >
-                                                            <div className={`w-4 h-4 rounded-full ${meta?.dot}`} />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center mx-auto bg-slate-50/60">
-                                                            <span className="text-slate-300 text-sm font-black">—</span>
+                                                <div 
+                                                    key={col.code} 
+                                                    className="flex items-center justify-center relative"
+                                                    onMouseEnter={(e) => handleCellEnter(e, col.code, name, siteData)}
+                                                    onMouseLeave={handleCellLeave}
+                                                >
+                                                    <div className={`w-3 h-3 rounded-full ${meta.dot} ${meta.pulse} shadow-sm border border-white`}></div>
+                                                    {(siteData.new_claims > 0 || siteData.new_violations > 0) && (
+                                                        <div className="absolute -top-1.5 -right-1 bg-rose-500 text-white text-[7px] font-black px-1 rounded-full border border-white">
+                                                            +{(siteData.new_claims || 0) + (siteData.new_violations || 0)}
                                                         </div>
                                                     )}
-                                                </td>
+                                                </div>
                                             );
                                         })}
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="text-[11px] font-black text-slate-500">
-                                                {stats.counts.green} 🟢 · {stats.counts.yellow} 🟡 · {stats.counts.red} 🔴
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                    {sortedStores.length === 0 && (
-                        <div className="py-16 text-center text-slate-400 text-sm">暂无店铺数据</div>
-                    )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
-            <p className="text-center text-[9px] text-slate-300 font-medium">悬停彩点查看详细指标</p>
+                    {/* 3. 站点详情卡片 */}
+                    <div className="flex-1 flex flex-col gap-2 min-h-0">
+                        <div className="flex items-center justify-between px-2 shrink-0">
+                            <div className="flex items-center gap-2">
+                                <Icon name="layout" className="w-4 h-4 text-indigo-500" />
+                                <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest">{activeShop || '大姐店'} · 站点异常明细</h3>
+                            </div>
+                        </div>
+                    <div className="grid grid-cols-3 gap-3 flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
+                        {SITE_COLS.map(col => {
+                            const siteData = activeShopSites.find(s => s.site === col.code);
+                            const meta = siteData ? STATUS_META[siteData.status] : null;
+                            return (
+                                <div key={col.code} className={`p-3 rounded-2xl border transition-all ${siteData ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50/50 border-dashed border-slate-200 opacity-60'}`}>
+                                    <div className="flex items-center justify-between mb-3 shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm">{col.flag}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-[12px] font-black text-slate-800">{col.name}</span>
+                                                {siteData?.alert_date && <span className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">Sync: {siteData.alert_date}</span>}
+                                            </div>
+                                        </div>
+                                        {siteData?.is_suspended && <span className="px-1 py-0.5 rounded-lg bg-rose-50 text-rose-500 text-[8px] font-black uppercase">Suspended</span>}
+                                    </div>
 
-            {hoveredCell && createPortal((
-                <Tooltip
-                    data={hoveredCell.data}
-                    storeName={hoveredCell.storeName}
-                    site={hoveredCell.site}
-                    position={hoveredPos}
-                    onClose={handleCellLeave}
-                />
-            ), document.body)}
+                                    {siteData ? (
+                                        <div className="space-y-2.5">
+                                            <div className="grid grid-cols-3 gap-1">
+                                                <div className="flex flex-col items-center p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors">
+                                                    <p className="text-[9px] font-black text-indigo-500/80 uppercase mb-0.5 tracking-tight">投诉率</p>
+                                                    <div className="flex items-center gap-0.5">
+                                                        <p className={`text-[14px] font-black ${getMetricColor(siteData.reclamos, siteData.status, siteData.new_claims)}`}>{siteData.reclamos}</p>
+                                                        {siteData.new_claims > 0 && <span className="text-rose-500 text-[8px] font-black animate-pulse">+{siteData.new_claims}</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors">
+                                                    <p className="text-[9px] font-black text-slate-500/80 uppercase mb-0.5 tracking-tight">延误率</p>
+                                                    <div className="flex items-center gap-0.5">
+                                                        <p className={`text-[14px] font-black ${getMetricColor(siteData.despacho, siteData.status, siteData.new_delayed)}`}>{siteData.despacho}</p>
+                                                        {siteData.new_delayed > 0 && <span className="text-amber-500"><Icon name="alert-triangle" className="w-2.5 h-2.5" /></span>}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors">
+                                                    <p className="text-[9px] font-black text-slate-500/80 uppercase mb-0.5 tracking-tight">取消率</p>
+                                                    <p className={`text-[14px] font-black ${getMetricColor(siteData.cancel, siteData.status, siteData.new_cancel)}`}>{siteData.cancel || '0.00%'}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-100">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-[9px] font-black text-indigo-500/80 uppercase tracking-tight">官方信用</span>
+                                                        {siteData.status === 'red' && siteData.claims_history === 'Healthy' && (
+                                                            <span className="text-[6px] bg-amber-100 text-amber-600 px-0.5 rounded-sm font-black animate-pulse">Lag</span>
+                                                        )}
+                                                    </div>
+                                                    <span className={`text-[10px] font-black ${siteData.claims_history === 'Healthy' ? 'text-emerald-500' : 'text-amber-500'}`}>{siteData.claims_history || '正常'}</span>
+                                                </div>
+                                                <div className="flex flex-col items-center border-l border-r border-slate-100 px-0.5">
+                                                    <span className="text-[9px] font-black text-slate-500/80 uppercase tracking-tight">今日违规</span>
+                                                    <span className={`text-[10px] font-black ${siteData.new_violations > 0 ? 'text-rose-500' : 'text-slate-300'}`}>+{siteData.new_violations || 0}</span>
+                                                </div>
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-[9px] font-black text-slate-500/80 uppercase tracking-tight">未读消息</span>
+                                                    <span className={`text-[10px] font-black ${siteData.new_messages > 0 ? 'text-indigo-500' : 'text-slate-300'}`}>+{siteData.new_messages || 0}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="py-6 flex flex-col items-center justify-center text-slate-200">
+                                            <span className="text-lg mb-1">—</span>
+                                            <span className="text-[8px] font-bold uppercase">未开通</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+                </div>
+
+                {/* 右侧：实时日志 (全高对齐) */}
+                <div className="w-[320px] self-stretch flex flex-col h-full min-h-0">
+                    <div className="bg-slate-50/80 backdrop-blur-xl rounded-3xl p-5 border border-slate-200/60 shadow-inner flex flex-col h-full min-h-0">
+                        <div className="flex items-center justify-between mb-4 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest">实时守卫日志</h3>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100 shadow-sm">LIVE FEED</span>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-0">
+                        {logs.map((log, i) => {
+                            const date = new Date(log.timestamp);
+                            const isRecent = Date.now() - date.getTime() < 300000; // 5分钟内
+                            
+                            return (
+                                <div 
+                                    key={log.id || i} 
+                                    onClick={() => handleLogClick(log)}
+                                    className={`relative p-3 rounded-2xl border transition-all cursor-pointer group/log ${
+                                        log.level === 'error' ? 'bg-rose-50/50 border-rose-200 hover:bg-rose-50' : 
+                                        log.level === 'warning' ? 'bg-amber-50/50 border-amber-200 hover:bg-amber-50' : 
+                                        'bg-white border-slate-200 hover:border-indigo-300 shadow-sm'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                                log.level === 'error' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : 
+                                                log.level === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+                                            }`}></div>
+                                            <span className={`text-[10px] font-black uppercase tracking-tighter ${
+                                                log.level === 'error' ? 'text-rose-600' : 
+                                                log.level === 'warning' ? 'text-amber-600' : 'text-emerald-600'
+                                            }`}>
+                                                {log.level === 'error' ? '严重警告' : log.level === 'warning' ? '实时警告' : '系统通知'}
+                                            </span>
+                                        </div>
+                                        <span className="text-[8px] font-mono text-slate-400">
+                                            {isRecent ? '刚刚' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] font-bold text-slate-700 leading-snug">{log.message}</p>
+                                    <div className="flex items-center justify-between mt-2">
+                                        {log.site_id && (
+                                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-tighter">
+                                                {log.site_id === 'MLM' ? '墨西哥站' : 
+                                                 log.site_id === 'MLB' ? '巴西站' : 
+                                                 log.site_id === 'MLA' ? '阿根廷站' : 
+                                                 log.site_id === 'MCO' ? '哥伦比亚站' : 
+                                                 log.site_id === 'MLC' ? '智利站' : 
+                                                 log.site_id === 'MLU' ? '乌拉圭站' : log.site_id}
+                                            </span>
+                                        )}
+                                        <span className="text-[7px] text-indigo-400 opacity-0 group-hover/log:opacity-100 transition-opacity font-bold uppercase">定位站点 ▸</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div ref={logEndRef} />
+                        {logs.length === 0 && <div className="text-center py-10 text-slate-400 text-[10px]">等待日志接入...</div>}
+                    </div>
+
+                    <button className="mt-4 w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-widest transition-all shadow-sm shrink-0">
+                        查看完整历史
+                    </button>
+                </div>
+            </div>
         </div>
-    );
+
+        {hoveredCell && createPortal((
+            <Tooltip
+                data={hoveredCell.data}
+                storeName={hoveredCell.storeName}
+                site={hoveredCell.site}
+                position={hoveredPos}
+                onClose={handleCellLeave}
+            />
+        ), document.body)}
+    </div>
+);
 };
 
 export default ShopReputationView;

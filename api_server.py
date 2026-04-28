@@ -33,7 +33,7 @@ MINIMAX_CONFIG = {
 }
 
 import os
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mercadolibre.db")
+DB_PATH = "/Users/chensan/yunfan-pro-dev/mercadolibre.db"
 
 # MercadoLibre OAuth Config
 ML_APP_ID = "2853782117476515"
@@ -190,12 +190,28 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 mapping = {'MLM': 'MX', 'MLB': 'BR', 'MCO': 'CO', 'MLA': 'AR', 'MLC': 'CL', 'MLU': 'UY'}
                 data = []
                 for r in rows:
-                    level = r.get('reputation_level') or ''
-                    status = 'green'
-                    if 'red' in level: status = 'red'
-                    elif 'yellow' in level or 'orange' in level: status = 'yellow'
-                    elif 'green' in level: status = 'green'
+                    level = (r.get('reputation_level') or '').lower()
                     
+                    # 1. 基础映射
+                    status = 'green'
+                    if 'red' in level or 'suspended' in level: status = 'red'
+                    elif 'yellow' in level or 'orange' in level: status = 'yellow'
+                    
+                    # 2. 指标驱动修正 (如果指标过高，强制转色)
+                    def get_val(s):
+                        if not s: return 0.0
+                        try: return float(str(s).replace('%', ''))
+                        except: return 0.0
+                    
+                    claims_pct = get_val(r.get('complaints_rate'))
+                    delayed_pct = get_val(r.get('delayed_rate'))
+                    cancel_pct = get_val(r.get('cancellations_rate'))
+                    
+                    if claims_pct > 3.0 or delayed_pct > 20.0 or cancel_pct > 5.0:
+                        status = 'red'
+                    elif claims_pct > 1.0 or delayed_pct > 10.0 or cancel_pct > 2.0:
+                        if status != 'red': status = 'yellow'
+
                     def format_rate(val):
                         if not val or val == '%': return "0.00%"
                         if isinstance(val, str) and not val.endswith('%'):
@@ -203,18 +219,32 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                             except: return "0.00%"
                         return val
 
+                    def calculate_dynamic_rate(base_rate_str, historical_v, new_v, total_v):
+                        # 如果有新增项，且总数大于0，重新计算比例以确保一致性
+                        if total_v > 0 and (historical_v + new_v) > 0:
+                            return f"{(historical_v + new_v) / total_v * 100:.2f}%"
+                        return format_rate(base_rate_str)
+
+                    total_v = r.get('total_transactions') or 0
+                    
                     data.append({
+                        "id": r.get('id'),
                         "account": r.get('nickname') or r.get('store_name'),
+                        "user_id": r.get('user_id'),
                         "site": mapping.get(r['site_id'], r['site_id']),
+                        "site_id": r.get('site_id'),
                         "name": r.get('store_name'),
                         "group_label": r.get('group_label'),
-                        "reclamos": format_rate(r.get('complaints_rate')),
-                        "despacho": format_rate(r.get('delayed_rate')),
-                        "cancel": format_rate(r.get('cancellations_rate')),
+                        "reputation_level": r.get('reputation_level'),
+                        "status": status,
+                        "is_suspended": r.get('reputation_level') == 'suspended',
+                        "reclamos": calculate_dynamic_rate(r.get('complaints_rate'), r.get('claims_value') or 0, r.get('new_claims') or 0, total_v),
+                        "despacho": calculate_dynamic_rate(r.get('delayed_rate'), r.get('delayed_value') or 0, r.get('new_delayed') or 0, total_v),
+                        "cancel": calculate_dynamic_rate(r.get('cancellations_rate'), r.get('cancel_value') or 0, r.get('new_cancel') or 0, total_v),
                         "reclamos_v": r.get('claims_value') or 0,
                         "despacho_v": r.get('delayed_value') or 0,
                         "cancel_v": r.get('cancel_value') or 0,
-                        "total_v": r.get('total_transactions') or 0,
+                        "total_v": total_v,
                         "claims_period": r.get('claims_period_days') or '60 days',
                         "claims_history": r.get('claims_history') or 'N/A',
                         "alert_date": r.get('alert_date'),
@@ -233,6 +263,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json(data)
             except Exception as e:
                 logger.error(f"Reputation Error: {e}")
+                self.send_json([], status=500)
+
+        elif path == "/api/monitoring_logs":
+            try:
+                limit_val = int(query.get("limit", [20])[0])
+                conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
+                cursor.execute("SELECT * FROM monitoring_logs ORDER BY timestamp DESC LIMIT ?", (limit_val,))
+                rows = [dict(r) for r in cursor.fetchall()]; conn.close()
+                self.send_json(rows)
+            except Exception as e:
+                logger.error(f"Logs Error: {e}")
                 self.send_json([], status=500)
 
         elif path == "/api/meli-auth":
@@ -883,18 +924,31 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
                 
-                # 只获取真实数据 (过滤 CBT 占位符)
-                site_filter = "site_id != 'CBT'"
+                # Check which specific sites are suspended for this group
+                cursor.execute("SELECT site_id FROM stores WHERE group_label = '大姐店' AND reputation_level = 'suspended'")
+                suspended_sites = [r['site_id'] for r in cursor.fetchall()]
+                is_suspended = len(suspended_sites) > 0
                 
-                # 获取大姐店全店汇总 (仅限真实站点)
+                # Mapping for display names
+                site_names = {"MLM": "墨西哥 (MX)", "MCO": "哥伦比亚 (CO)", "MLA": "阿根廷 (AR)", "MLB": "巴西 (BR)", "CBT": "全球/跨境 (CBT)"}
+                suspended_display = ", ".join([site_names.get(s, s) for s in suspended_sites])
+                
+                # 如果账号被暂停，展示所有商品（包括已下架），否则只看在售
+                if is_suspended:
+                    status_filter = "(status = 'active' OR status = 'closed' OR status = 'inactive')"
+                    site_filter = "1=1" 
+                else:
+                    status_filter = "status = 'active'"
+                    site_filter = "site_id != 'CBT'"
+
+                # 获取大姐店全店汇总
                 cursor.execute(f"""
                     SELECT SUM(exposure) as exp, SUM(clicks) as clk, SUM(carts) as crt 
                     FROM product_metrics 
-                    WHERE {site_filter} AND site_id IN (SELECT site_id FROM stores WHERE group_label = '大姐店')
+                    WHERE {site_filter} AND {status_filter} AND site_id IN (SELECT site_id FROM stores WHERE group_label = '大姐店')
                 """)
                 summary_row = cursor.fetchone()
                 
-                # 如果数据库为空，使用项目约定的基准值 (124k 曝光) 作为兜底，但标记为真实数据
                 exposure = summary_row['exp'] if summary_row and summary_row['exp'] else 0
                 clicks = summary_row['clk'] if summary_row and summary_row['clk'] else 0
                 carts = summary_row['crt'] if summary_row and summary_row['crt'] else 0
@@ -902,11 +956,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 summary = {
                     "total_exposure": exposure,
                     "total_clicks": clicks,
-                    "total_carts": carts
+                    "total_carts": carts,
+                    "account_status": "suspended" if is_suspended else "active",
+                    "suspended_sites": suspended_sites,
+                    "suspension_reason": f"账号在以下站点已暂停: {suspended_display}" if is_suspended else ""
                 }
                 
-                # 获取列表 (仅限真实数据)
-                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} ORDER BY exposure DESC LIMIT 100")
+                # 获取列表
+                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} ORDER BY is_core DESC, exposure DESC LIMIT 100")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
                 
                 self.send_json({
@@ -920,12 +977,23 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/product_performance":
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
+                
+                # Check if group is suspended
+                cursor.execute("SELECT reputation_level FROM stores WHERE group_label = '大姐店' LIMIT 1")
+                store_row = cursor.fetchone()
+                is_suspended = store_row and store_row['reputation_level'] == 'suspended'
+                
+                if is_suspended:
+                    status_filter = "(status = 'active' OR status = 'closed' OR status = 'inactive')"
+                else:
+                    status_filter = "status = 'active'"
+
                 # Prioritize 'Core' products (Dajie Shop) then by sales/exposure
                 site_filter = query.get('site', [''])[0]
                 if site_filter and site_filter != 'all':
-                    cursor.execute("SELECT * FROM product_metrics WHERE site_id = ? ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 500", (site_filter,))
+                    cursor.execute(f"SELECT * FROM product_metrics WHERE site_id = ? AND {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 500", (site_filter,))
                 else:
-                    cursor.execute("SELECT * FROM product_metrics ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 500")
+                    cursor.execute(f"SELECT * FROM product_metrics WHERE {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 500")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
                 
                 # ---- Ecosystem Buffet (全家桶) 逻辑注入 ----
@@ -977,10 +1045,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     else:
                         row['days_listed'] = 0
 
-                self.wfile.write(json.dumps(rows).encode())
+                self.send_json(rows)
             except Exception as e:
                 logger.error(f"Performance API error: {e}")
-                self.wfile.write(json.dumps([]).encode())
+                self.send_json([])
 
         elif path == "/api/smart_rotation":
             try:

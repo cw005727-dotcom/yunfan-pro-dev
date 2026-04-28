@@ -235,7 +235,7 @@ const App = () => {
                 </aside>
 
                 {/* Content */}
-                <main className="flex-1 glass-effect rounded-[40px] p-6 md:p-12 overflow-y-auto relative z-10 custom-scrollbar">
+                <main className={`flex-1 glass-effect rounded-[40px] p-6 md:p-12 relative z-10 custom-scrollbar ${sidebarItem === 'reputation' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                     <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
                         {sidebarItem === 'news' && <NewsView />}
                         {sidebarItem === 'intro' && <BusinessIntroView />}

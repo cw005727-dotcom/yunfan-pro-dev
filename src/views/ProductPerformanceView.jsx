@@ -129,8 +129,11 @@ const ProductPerformanceView = () => {
                      }).sort((a,b) => (b.cart_rate||0) - (a.cart_rate||0)),
         cart:     [...allItems].sort((a,b) => (b.cart_rate||0) - (a.cart_rate||0)).slice(0,5),
         risk:     allItems.filter(d => {
-                         const ss = d.sub_status ? JSON.parse(d.sub_status) : [];
-                         return (d.claims||0)>0 || (d.returns||0)>avg.returns || ss.includes('bpp_report') || ss.includes('forbidden') || d.status === 'under_review';
+                         let ss = [];
+                         try { 
+                            ss = d.sub_status ? (d.sub_status.startsWith('[') ? JSON.parse(d.sub_status) : [d.sub_status]) : []; 
+                         } catch { ss = d.sub_status ? [d.sub_status] : []; }
+                         return (d.claims||0)>0 || (d.returns||0)>avg.returns || ss.includes('bpp_report') || ss.includes('forbidden') || d.status === 'under_review' || ss.includes('suspended_account');
                      }).sort((a,b) => ((b.claims||0)+(b.returns||0)) - ((a.claims||0)+(a.returns||0))),
         inactive: allItems.filter(d => (d.days_listed||0)>30 && (d.exposure||0)<avg.exp && (d.carts||0)===0)
                          .sort((a,b) => (b.days_listed||0) - (a.days_listed||0)),
@@ -181,10 +184,13 @@ const ProductPerformanceView = () => {
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1">
                             <p className="text-[12px] font-bold text-slate-700 truncate group-hover:text-indigo-500 transition-colors">{item.name}</p>
+                            {item.status === 'closed' && <span className="text-[8px] font-black text-slate-400 border border-slate-200 bg-slate-50 px-1 rounded uppercase tracking-tighter">Closed</span>}
+                            {item.status === 'inactive' && <span className="text-[8px] font-black text-amber-500 border border-amber-200 bg-amber-50 px-1 rounded uppercase tracking-tighter">Inactive</span>}
                             {/abib|skin|mask/i.test(item.name) && <span className="text-[8px] font-black text-rose-500 border border-rose-200 bg-rose-50 px-1 rounded uppercase tracking-tighter">Sensitive</span>}
                         </div>
                         <p className="text-[9px] text-slate-300">
                             {item.start_time ? `${fmtDate(item.start_time)} 上架` : (item.last_updated ? `${fmtDate(item.last_updated.split(' ')[0])} 同步` : '待同步')}
+                            {item.sub_status && item.sub_status.includes('suspended_account') && <span className="ml-1 text-rose-400">· 账号暂停导致</span>}
                         </p>
                     </div>
                 </div>
@@ -252,6 +258,23 @@ const ProductPerformanceView = () => {
                     <span className="text-[10px] text-slate-400 font-medium">实时更新</span>
                 </div>
             </div>
+
+            {summary?.account_status === 'suspended' && (
+                <div className="p-4 rounded-3xl bg-rose-50 border border-rose-100 flex items-center gap-4 animate-in zoom-in-95 duration-500">
+                    <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                        <Icon name="alert-circle" className="w-6 h-6 text-rose-500" />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="text-[10px] font-black text-rose-800 uppercase tracking-widest mb-0.5">账号异常警报</h4>
+                        <p className="text-[12px] text-rose-600 font-bold leading-relaxed">
+                            {summary.suspension_reason || '账号当前处于暂停状态 (Suspended)，部分商品已下架。系统已切换至“全量追溯模式”，支持分析历史数据。'}
+                        </p>
+                    </div>
+                    <button className="px-4 py-2 rounded-xl bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors shadow-lg shadow-rose-200">
+                        查看详情
+                    </button>
+                </div>
+            )}
 
             {/* Site Filter */}
             <div className="flex items-center gap-2 flex-wrap">
