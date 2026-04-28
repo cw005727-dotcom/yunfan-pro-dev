@@ -1,0 +1,18 @@
+{
+  "order_metrics": {
+    "total_count": 0,
+    "total_amount": 0,
+    "net_proceeds_sum": 0,
+    "orders": []
+  },
+  "reputation": {
+    "level": null,
+    "metrics": {},
+    "transactions": {},
+    "claims_count": 0
+  },
+  "financials": {
+    "pending_amount": 0,
+    "paid_amount": 0
+  }
+}

@@ -1,0 +1,33 @@
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.production
+
+# Encrypted token files
+*.enc
+
+# Python
+__pycache__/
+*.py[cod]
+*.db-journal
+*.db-wal
+
+# Node
+node_modules/
+dist/
+
+# Logs
+*.log
+api_server.log
+server.log
+
+# OS
+.DS_Store
+.DS_Store?
+
+# Vercel
+.vercel
+
+# Backups
+backups/
+*.bak

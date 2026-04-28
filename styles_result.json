@@ -1,0 +1,90 @@
+{
+  "background": {
+    "bodyBg": "rgb(248, 250, 252)",
+    "bodyImage": "radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.1), rgba(0, 0, 0, 0) 28%), linear-gradient(rgb(248, 250, 252), rgb(238, 242, 255))",
+    "htmlBg": "rgba(0, 0, 0, 0)",
+    "mainBg": "rgb(248, 250, 252)",
+    "mainImage": "none"
+  },
+  "leftSide": {
+    "distFromCenter": 45,
+    "isCentered": false,
+    "rect": {
+      "bottom": 752,
+      "centerY": 476,
+      "height": 552,
+      "left": 72.25,
+      "right": 648.25,
+      "top": 200,
+      "width": 576
+    },
+    "title": {
+      "alignItems": "normal",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "border": "0px solid rgb(229, 231, 235)",
+      "borderRadius": "0px",
+      "color": "rgb(255, 255, 255)",
+      "display": "block",
+      "fontSize": "48px",
+      "height": "96px",
+      "justifyContent": "normal",
+      "letterSpacing": "normal",
+      "lineHeight": "48px",
+      "margin": "0px",
+      "padding": "0px",
+      "width": "576px"
+    }
+  },
+  "rightSide": {
+    "box": {
+      "alignItems": "center",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "backgroundImage": "none",
+      "border": "0px solid rgb(229, 231, 235)",
+      "borderRadius": "0px",
+      "color": "rgb(15, 23, 42)",
+      "display": "flex",
+      "fontSize": "16px",
+      "height": "862px",
+      "justifyContent": "center",
+      "letterSpacing": "normal",
+      "lineHeight": "24px",
+      "margin": "0px",
+      "padding": "40px 80px",
+      "width": "720.5px"
+    },
+    "distFromCenter": 0,
+    "input": {
+      "alignItems": "normal",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "border": "0px solid rgb(229, 231, 235)",
+      "borderRadius": "0px",
+      "color": "rgb(15, 23, 42)",
+      "display": "none",
+      "fontSize": "16px",
+      "height": "auto",
+      "justifyContent": "normal",
+      "letterSpacing": "normal",
+      "lineHeight": "24px",
+      "margin": "0px",
+      "padding": "0px",
+      "width": "auto"
+    },
+    "isCentered": true,
+    "rect": {
+      "bottom": 862,
+      "centerY": 431,
+      "height": 862,
+      "left": 720.5,
+      "right": 1441,
+      "top": 0,
+      "width": 720.5
+    }
+  },
+  "viewport": {
+    "centerY": 431,
+    "height": 862
+  }
+}

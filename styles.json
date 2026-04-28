@@ -1,0 +1,67 @@
+{
+  "cards": [
+    {
+      "bg": "rgba(14, 165, 233, 0.2)",
+      "padding": "0px",
+      "radius": "9999px",
+      "shadow": "none"
+    },
+    {
+      "bg": "rgba(34, 211, 238, 0.15)",
+      "padding": "0px",
+      "radius": "9999px",
+      "shadow": "none"
+    },
+    {
+      "bg": "rgba(255, 255, 255, 0.05)",
+      "padding": "20px",
+      "radius": "16px",
+      "shadow": "none"
+    },
+    {
+      "bg": "rgba(255, 255, 255, 0.05)",
+      "padding": "20px",
+      "radius": "16px",
+      "shadow": "none"
+    },
+    {
+      "bg": "rgba(255, 255, 255, 0.05)",
+      "padding": "20px",
+      "radius": "16px",
+      "shadow": "none"
+    }
+  ],
+  "colors": [
+    "rgb(0, 0, 0)",
+    "rgb(248, 250, 252)",
+    "rgb(15, 23, 42)",
+    "rgb(2, 6, 23)",
+    "rgba(14, 165, 233, 0.2)",
+    "rgba(34, 211, 238, 0.15)",
+    "rgba(255, 255, 255, 0.1)",
+    "rgb(125, 211, 252)",
+    "rgb(255, 255, 255)",
+    "rgb(203, 213, 225)",
+    "rgba(255, 255, 255, 0.05)",
+    "rgb(252, 211, 77)",
+    "rgb(148, 163, 184)",
+    "rgb(110, 231, 183)",
+    "rgb(240, 249, 255)",
+    "rgb(2, 132, 199)",
+    "rgb(12, 74, 110)",
+    "rgb(241, 245, 249)",
+    "rgb(100, 116, 139)",
+    "rgb(51, 65, 85)"
+  ],
+  "fonts": [
+    "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+    "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "-apple-system, \"system-ui\", Helvetica, Arial, sans-serif",
+    "\"PingFang SC\""
+  ],
+  "nav": "Not found",
+  "typography": {
+    "h1": "48px",
+    "p": "18px"
+  }
+}

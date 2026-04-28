@@ -1,0 +1,47 @@
+{
+  "button": {
+    "backgroundColor": "rgb(15, 23, 42)",
+    "borderRadius": "16px",
+    "color": "rgb(255, 255, 255)",
+    "display": "inline-flex",
+    "fontSize": "14px",
+    "fontWeight": "600",
+    "height": "52px",
+    "letterSpacing": "normal",
+    "lineHeight": "22.4px"
+  },
+  "input": {
+    "backgroundColor": "rgb(232, 240, 254)",
+    "borderRadius": "16px",
+    "color": "rgb(15, 23, 42)",
+    "display": "block",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "height": "52px",
+    "letterSpacing": "normal",
+    "lineHeight": "21px"
+  },
+  "leftTitle": {
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderRadius": "16px",
+    "color": "rgb(0, 0, 0)",
+    "display": "block",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "height": "0px",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "text": "✨ MERCADOAI PRO\n\n数据分析，卖家大学、\n\n优化中心\n\n一站式管理系统\n\n您的美客多全域经营看板。从实时流量分析到深度利润管理，AI 助您在拉美电商市场实现精准增长。\n\n📊 数据大脑\n24H 实时监控全球站点订单\n🚀 运营管家\n自动分析爆品趋势与库存\n\n账号登录\n\n注册账号\n\n欢迎回来\n\n请输入您的手机号和密码以访问管理后台。\n\n手机号码\n\n登录密码\n\n进入工作台 →\n\n×\n拖拽到此处完成下载\n图片将完成下载\nAIX智能下载器"
+  },
+  "tabsContainer": {
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderRadius": "16px",
+    "color": "rgb(49, 51, 63)",
+    "display": "block",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "height": "52px",
+    "letterSpacing": "normal",
+    "lineHeight": "25.6px"
+  }
+}

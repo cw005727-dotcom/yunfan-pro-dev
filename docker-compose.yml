@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  ml-app:
+    image: nginx:alpine
+    container_name: ml-dashboard-app
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    restart: always
+
+  # 已移除旧的 streamlit 后端和多余的 nginx 转发，直接由 ml-app 提供静态服务

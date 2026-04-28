@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; }
+    .tnum { font-feature-settings: "tnum"; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.1); border-radius: 10px; }
+}
+
+@layer components {
+    .glass-effect { background: rgba(241, 245, 249, 0.7); backdrop-filter: blur(32px); border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
+    .solid-card { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+    .gradient-bg { background: radial-gradient(circle at top left, #f8fafc 0%, #f1f5f9 100%); }
+    
+    .risk-capsule { backdrop-filter: blur(12px); }
+    .risk-red { background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.25); }
+    .risk-yellow { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); }
+    .risk-purple { background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.25); }
+
+    /* Module Accents */
+    .accent-home { --accent-color: #2563eb; --accent-glow: rgba(37, 99, 235, 0.15); --accent-bg: rgba(37, 99, 235, 0.15); }
+    .accent-data { --accent-color: #6366f1; --accent-glow: rgba(99, 102, 241, 0.15); --accent-bg: rgba(99, 102, 241, 0.15); }
+    .accent-ops { --accent-color: #0d9488; --accent-glow: rgba(13, 148, 136, 0.15); --accent-bg: rgba(13, 148, 136, 0.15); }
+    .accent-optimize { --accent-color: #d97706; --accent-glow: rgba(217, 119, 6, 0.15); --accent-bg: rgba(217, 119, 6, 0.15); }
+
+    .bg-accent { background-color: var(--accent-color); }
+    .bg-accent-soft { background-color: var(--accent-bg); }
+    .text-accent { color: var(--accent-color); }
+    .border-accent { border-color: var(--accent-color); }
+    .btn-accent { background-color: var(--accent-color); box-shadow: 0 8px 20px var(--accent-glow); }
+}
+
+/* Animations */
+@keyframes popup-zoom { 0% { opacity:0; transform: scale(0.82); } 60% { opacity:1; transform: scale(1.06); } 80% { transform: scale(0.97); } 100% { opacity:1; transform: scale(1); } }
+.metric-pop { animation: popup-zoom 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; transform-origin: center center; transform: scale(0.88); }
+
+@keyframes metric-num { 0% { opacity:0; transform: scale(0.6); } 60% { opacity:1; transform: scale(1.15); } 100% { opacity:1; transform: scale(1); } }
+.metric-num { animation: metric-num 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity:0; }
+
+@keyframes card-in { 0% { opacity:0; transform: translateY(12px) scale(0.95); } 100% { opacity:1; transform: translateY(0) scale(1); } }
+.card-in { animation: card-in 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity:0; }
+
+@keyframes section-rise { 0% { opacity:0; transform: translateY(20px); } 100% { opacity:1; transform: translateY(0); } }
+.section-rise { animation: section-rise 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity:0; }
+
+@keyframes glow-pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+.glow-pulse { animation: glow-pulse 1.8s ease-in-out infinite; }
+
+@keyframes label-float { 0%,100% { transform: translateY(0); opacity:0.6; } 50% { transform: translateY(-1px); opacity:0.9; } }
+
+@keyframes marquee-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.animate-marquee { animation: marquee-left 30s linear infinite; }
+.animate-marquee:hover { animation-play-state: paused; }
+.marquee-track { overflow: hidden; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 2px; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@media (max-width: 768px) {
+    .no-scrollbar-on-mobile::-webkit-scrollbar { display: none; }
+    .no-scrollbar-on-mobile { -ms-overflow-style: none; scrollbar-width: none; }
+}

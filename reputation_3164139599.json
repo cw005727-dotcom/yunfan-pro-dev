@@ -1,0 +1,462 @@
+{
+  "seller_id": "3164139599",
+  "user_info": {
+    "id": 3164139599,
+    "nickname": "CNGUIZHOUFENGMENGKEJIYO",
+    "registration_date": "2026-01-28T07:02:15.588-04:00",
+    "first_name": "GuiZhouFengMengKeJiYouXianGong",
+    "last_name": "GuiZhouFengMengKeJiYouXianGong",
+    "gender": "",
+    "country_id": "CN",
+    "email": "jessicaking8353@outlook.com",
+    "identification": {
+      "number": "91520102MAK3PRU74K",
+      "type": "TaxID"
+    },
+    "address": {
+      "address": "GUIZHOUSHENGGUIYANGSHINANMINGQUXINHUALUJIEDAOZUNYILU25HAOCHENGSHIFANGZHOU1CHUANG",
+      "city": "Guiyang",
+      "state": "CN-GZ",
+      "zip_code": "550000"
+    },
+    "phone": {
+      "area_code": "86",
+      "extension": "",
+      "number": "18786798362",
+      "verified": false
+    },
+    "alternative_phone": {
+      "area_code": "",
+      "extension": "",
+      "number": ""
+    },
+    "user_type": "normal",
+    "tags": [
+      "messages_as_seller",
+      "normal"
+    ],
+    "logo": null,
+    "points": 0,
+    "site_id": "CBT",
+    "permalink": "GGUIZHOUFENGMENGKEJIYOUXIANGON",
+    "seller_experience": "NEWBIE",
+    "bill_data": {
+      "accept_credit_note": null
+    },
+    "seller_reputation": {
+      "level_id": null,
+      "power_seller_status": null,
+      "transactions": {
+        "canceled": 0,
+        "completed": 0,
+        "period": "historic",
+        "ratings": {
+          "negative": 0,
+          "neutral": 0,
+          "positive": 0
+        },
+        "total": 0
+      },
+      "metrics": {
+        "sales": {
+          "period": "60 months",
+          "completed": 0
+        },
+        "claims": {
+          "period": "60 months",
+          "rate": 0,
+          "value": 0
+        },
+        "delayed_handling_time": {
+          "period": "60 months",
+          "rate": 0,
+          "value": 0
+        },
+        "cancellations": {
+          "period": "60 months",
+          "rate": 0,
+          "value": 0
+        }
+      }
+    },
+    "buyer_reputation": {
+      "canceled_transactions": 0,
+      "tags": null,
+      "transactions": {
+        "canceled": {
+          "paid": null,
+          "total": null
+        },
+        "completed": null,
+        "not_yet_rated": {
+          "paid": null,
+          "total": null,
+          "units": null
+        },
+        "period": "",
+        "total": null,
+        "unrated": {
+          "paid": null,
+          "total": null
+        }
+      }
+    },
+    "status": {
+      "billing": {
+        "allow": true,
+        "codes": []
+      },
+      "buy": {
+        "allow": true,
+        "codes": [],
+        "immediate_payment": {
+          "reasons": [],
+          "required": false
+        }
+      },
+      "confirmed_email": true,
+      "shopping_cart": {
+        "buy": null,
+        "sell": null
+      },
+      "immediate_payment": false,
+      "list": {
+        "allow": true,
+        "codes": [],
+        "immediate_payment": {
+          "reasons": [],
+          "required": false
+        }
+      },
+      "mercadoenvios": "not_accepted",
+      "mercadopago_account_type": "personal",
+      "mercadopago_tc_accepted": true,
+      "required_action": "",
+      "sell": {
+        "allow": true,
+        "codes": [],
+        "immediate_payment": {
+          "reasons": [],
+          "required": false
+        }
+      },
+      "site_status": "active",
+      "user_type": null
+    },
+    "secure_email": "gguizho.3164139599@mail.mercadolibre.com",
+    "company": {
+      "brand_name": "GuiZhouFengMengKeJiYouXianGongSi",
+      "city_tax_id": "",
+      "corporate_name": "GuiZhouFengMengKeJiYouXianGongSi",
+      "identification": "91520102MAK3PRU74K",
+      "state_tax_id": "",
+      "cust_type_id": "BU",
+      "soft_descriptor": ""
+    },
+    "credit": {
+      "consumed": 0,
+      "credit_level_id": "CBT5",
+      "rank": "newbie"
+    },
+    "context": {
+      "device": "desktop",
+      "flow": "cbt-merchant",
+      "ip_address": "110.87.123.205",
+      "source": "mercadolibre-cross_border_trade"
+    },
+    "registration_identifiers": []
+  },
+  "reputation_matrix": {
+    "user_id": 3164139599,
+    "site_id": "CBT",
+    "seller_reputation": [
+      {
+        "user_id": 3164142227,
+        "site_id": "MLM",
+        "logistic_type": "remote",
+        "seller_reputation": {
+          "level_id": "1_red",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 10,
+            "completed": 4,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 1,
+              "positive": 0
+            },
+            "total": 14
+          },
+          "metrics": {
+            "sales": {
+              "period": "365 days",
+              "completed": 4
+            },
+            "claims": {
+              "period": "365 days",
+              "rate": 0.0714,
+              "value": 1
+            },
+            "delayed_handling_time": {
+              "period": "365 days",
+              "rate": 0.3,
+              "value": 3
+            },
+            "cancellations": {
+              "period": "365 days",
+              "rate": 0.1428,
+              "value": 2
+            }
+          }
+        }
+      },
+      {
+        "user_id": 3164142229,
+        "site_id": "MCO",
+        "logistic_type": "remote",
+        "seller_reputation": {
+          "level_id": "4_light_green",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 0,
+            "completed": 1,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 1,
+              "positive": 0
+            },
+            "total": 1
+          },
+          "metrics": {
+            "sales": {
+              "period": "365 days",
+              "completed": 1
+            },
+            "claims": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "delayed_handling_time": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "cancellations": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            }
+          }
+        }
+      },
+      {
+        "user_id": 3164144057,
+        "site_id": "MLA",
+        "logistic_type": "remote",
+        "seller_reputation": {
+          "level_id": "1_red",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 9,
+            "completed": 8,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 1,
+              "positive": 0
+            },
+            "total": 17
+          },
+          "metrics": {
+            "sales": {
+              "period": "365 days",
+              "completed": 8
+            },
+            "claims": {
+              "period": "365 days",
+              "rate": 0.1176,
+              "value": 2
+            },
+            "delayed_handling_time": {
+              "period": "365 days",
+              "rate": 0.2666,
+              "value": 4
+            },
+            "cancellations": {
+              "period": "365 days",
+              "rate": 0.0588,
+              "value": 1
+            }
+          }
+        }
+      },
+      {
+        "user_id": 3164144051,
+        "site_id": "MLB",
+        "logistic_type": "remote",
+        "seller_reputation": {
+          "level_id": "4_light_green",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 7,
+            "completed": 68,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 1,
+              "positive": 0
+            },
+            "total": 75
+          },
+          "metrics": {
+            "sales": {
+              "period": "60 days",
+              "completed": 68
+            },
+            "claims": {
+              "period": "60 days",
+              "rate": 0,
+              "value": 0
+            },
+            "delayed_handling_time": {
+              "period": "60 days",
+              "rate": 0,
+              "value": 0
+            },
+            "cancellations": {
+              "period": "60 days",
+              "rate": 0,
+              "value": 0
+            }
+          }
+        }
+      },
+      {
+        "user_id": 3164141055,
+        "site_id": "MLC",
+        "logistic_type": "remote",
+        "seller_reputation": {
+          "level_id": "newbie",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 0,
+            "completed": 0,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 0,
+              "positive": 0
+            },
+            "total": 0
+          },
+          "metrics": {
+            "sales": {
+              "period": "365 days",
+              "completed": 0
+            },
+            "claims": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "delayed_handling_time": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "cancellations": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            }
+          }
+        }
+      },
+      {
+        "user_id": 3164142231,
+        "site_id": "MLM",
+        "logistic_type": "fulfillment",
+        "seller_reputation": {
+          "level_id": "newbie",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 0,
+            "completed": 0,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 0,
+              "positive": 0
+            },
+            "total": 0
+          },
+          "metrics": {
+            "sales": {
+              "period": "365 days",
+              "completed": 0
+            },
+            "claims": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "delayed_handling_time": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "cancellations": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            }
+          }
+        }
+      },
+      {
+        "user_id": 3186965280,
+        "site_id": "MLU",
+        "logistic_type": "remote",
+        "seller_reputation": {
+          "level_id": "4_light_green",
+          "power_seller_status": null,
+          "transactions": {
+            "canceled": 0,
+            "completed": 0,
+            "period": "historic",
+            "ratings": {
+              "negative": 0,
+              "neutral": 0,
+              "positive": 0
+            },
+            "total": 0
+          },
+          "metrics": {
+            "sales": {
+              "period": "365 days",
+              "completed": 0
+            },
+            "claims": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "delayed_handling_time": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            },
+            "cancellations": {
+              "period": "365 days",
+              "rate": 0,
+              "value": 0
+            }
+          }
+        }
+      }
+    ]
+  }
+}

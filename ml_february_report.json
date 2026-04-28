@@ -1,0 +1,14 @@
+{
+  "summary": {
+    "total_orders": 0,
+    "total_amount": 0,
+    "sites": {}
+  },
+  "reputation": {
+    "message": "unknown_error",
+    "error": "",
+    "status": 400,
+    "cause": []
+  },
+  "orders_detail": []
+}
