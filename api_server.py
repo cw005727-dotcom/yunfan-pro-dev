@@ -215,6 +215,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "despacho_v": r.get('delayed_value') or 0,
                         "cancel_v": r.get('cancel_value') or 0,
                         "total_v": r.get('total_transactions') or 0,
+                        "claims_period": r.get('claims_period_days') or '60 days',
+                        "claims_history": r.get('claims_history') or 'N/A',
+                        "alert_date": r.get('alert_date'),
+                        "new_claims": r.get('new_claims') or 0,
+                        "total_claims": r.get('total_complaints') or 0,
+                        "new_violations": r.get('new_violations') or 0,
+                        "total_violations": r.get('total_violations') or 0,
+                        "new_messages": r.get('new_messages') or 0,
+                        "total_messages": r.get('total_messages') or 0,
+                        "new_delayed": r.get('new_delayed') or 0,
+                        "new_cancel": r.get('new_cancel') or 0,
                         "status": status,
                         "score": 15 if status == 'red' else 50 if status == 'yellow' else 92
                     })
@@ -644,12 +655,15 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 shop_filter = query.get("shop", [None])[0]
                 group_filter = query.get("group", [None])[0]
                 conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
+                
+                # 1. 基础指标汇总
                 sql = "SELECT SUM(amount), COUNT(*) FROM orders_v2"
                 params = []
                 where = ""
+                uids = []
                 if group_filter:
                     cursor.execute("SELECT user_id FROM stores WHERE group_label = ?", (group_filter,))
-                    uids = [r['user_id'] for r in cursor.fetchall() if r['user_id']]
+                    uids = [str(r[0]) for r in cursor.fetchall() if r[0]]
                     if uids:
                         placeholders = ','.join(['?'] * len(uids))
                         where = f" WHERE user_id IN ({placeholders})"
@@ -658,14 +672,37 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     cursor.execute("SELECT user_id FROM stores WHERE nickname = ?", (shop_filter,))
                     row = cursor.fetchone()
                     if row and row[0]:
+                        uids = [str(row[0])]
                         where = " WHERE user_id = ?"
-                        params = [row[0]]
+                        params = uids
+
                 cursor.execute(f"SELECT SUM(amount), COUNT(*) FROM orders_v2{where}", params)
-                gmv, count = cursor.fetchone(); conn.close()
-                self.send_json({"total_gmv": round(gmv or 0, 2), "total_orders": count or 0, "alerts": 5 if count > 0 else 0})
+                gmv_row = cursor.fetchone()
+                gmv = gmv_row[0] or 0
+                count = gmv_row[1] or 0
+                
+                # 2. 每日预警汇总 (dailyAlerts)
+                alerts = {"complaints": 0, "violations": 0, "messages": 0}
+                if uids:
+                    placeholders = ','.join(['?'] * len(uids))
+                    alert_sql = f"SELECT SUM(complaint_count), SUM(violation_count), SUM(message_count) FROM shop_alerts WHERE user_id IN ({placeholders}) AND date = date('now')"
+                    cursor.execute(alert_sql, uids)
+                    alert_row = cursor.fetchone()
+                    if alert_row:
+                        alerts["complaints"] = alert_row[0] or 0
+                        alerts["violations"] = alert_row[1] or 0
+                        alerts["messages"] = alert_row[2] or 0
+                
+                conn.close()
+                self.send_json({
+                    "total_gmv": round(gmv, 2), 
+                    "total_orders": count, 
+                    "alerts": alerts["complaints"],
+                    "daily_alerts": alerts
+                })
             except Exception as e:
                 logger.error(f"Stats Error: {e}")
-                self.send_json({"total_gmv": 0, "total_orders": 0})
+                self.send_json({"total_gmv": 0, "total_orders": 0, "alerts": 0})
 
         elif path == "/api/stats_overview":
             try:

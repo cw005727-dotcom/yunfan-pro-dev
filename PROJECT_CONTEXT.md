@@ -24,7 +24,25 @@
     | **上架时间** | `start_time` | 映射自 API `date_created` (ISO -> YYYY-MM-DD) |
     | **价格指数** | `price_index` | 算法：`current_price / category_avg_price` |
 
-#### 2. 状态码规范
+#### 2. 店铺声誉板块 (Shop Reputation Center)
+*   **前端组件**：`src/views/ReputationCenter.jsx`
+*   **后端接口**：`/api/shop_reputation`
+*   **物理表**：`mercadolibre.db` -> `stores`
+*   **核心映射**：
+    | UI 模块/卡片 | 数据字段 (API Return) | 业务逻辑定义 |
+    | :--- | :--- | :--- |
+    | **投诉率 (Reclamos)** | `reclamos` | 来自 `stores.complaints_rate` (e.g., "7.14%") |
+    | **考核周期** | `claims_period` | 来自 `stores.claims_period_days` (e.g., "60 days") |
+    | **历史指标** | `claims_history` | 来自 `stores.claims_history` (e.g., "Healthy") |
+    | **今日预警 (Alerts)** | `daily_alerts` | 来自 `/api/stats` 聚合自 `shop_alerts` 表 |
+    | **今日投诉** | `daily_alerts.complaints` | 映射自 `shop_alerts.complaint_count` |
+    | **跑马灯预警日期** | `alert_date` | 来自 `stores.alert_date` (e.g., "4.27") |
+    | **投诉 (New/Total)** | `new_claims` / `total_claims` | 映射自今日新增 vs 考核期总数 |
+    | **违规 (New/Total)** | `new_violations` / `total_violations` | 映射自今日处罚 vs 存量违规 |
+    | **消息 (New/Total)** | `new_messages` / `total_messages` | 映射自今日咨询 vs 待回复总数 |
+    | **延误/取消 (New)** | `new_delayed` / `new_cancel` | 映射自今日新增异常项 |
+
+#### 3. 状态码规范
 *   `active`: 在售 (Listing is live and purchasable)
 *   `under_review`: 审核中 (Risk module focuses here)
 *   `closed`: 已下架 (Do not show in Performance module)

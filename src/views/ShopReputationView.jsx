@@ -100,6 +100,11 @@ const ShopReputationView = () => {
 
     const storeNames = Object.keys(storeGroups);
 
+    // 当前选中店铺下各站点的数据（null=显示全量）
+    const activeShopSites = activeShop
+        ? Object.values(storeGroups[activeShop] || {})
+        : Object.values(storeGroups).flatMap(g => Object.values(g));
+
     // Compute per-store stats
     const storeStats = {};
     storeNames.forEach(name => {
@@ -190,45 +195,93 @@ const ShopReputationView = () => {
                 </div>
             </div>
 
-            {/* 风险预警跑马灯 */}
+            {/* 跑马灯：违规警告 + 待回消息（只显示待回+新增违规） */}
             {(() => {
-                const riskItems = [];
-                shops.forEach(s => {
-                    if (s.site === 'CBT' || !s.status) return;
-                    if (s.status === 'red') {
-                        riskItems.push({ site: s.site, name: s.store_name || s.nickname || s.account, type: '危险', bg: 'bg-rose-50 border border-rose-200', dotColor: 'bg-rose-500', textColor: 'text-rose-600', reason: `投诉率${s.complaints_rate || 0}% · 延误率${s.delayed_rate || 0}%` });
-                    } else if (s.status === 'yellow') {
-                        riskItems.push({ site: s.site, name: s.store_name || s.nickname || s.account, type: '预警', bg: 'bg-amber-50 border border-amber-200', dotColor: 'bg-amber-500', textColor: 'text-amber-600', reason: `投诉率${s.complaints_rate || 0}% · 延误率${s.delayed_rate || 0}%` });
-                    }
+                const alertItems = [];
+                activeShopSites.forEach(s => {
+                    const siteLabels = { MX: '🇲🇽', BR: '🇧🇷', AR: '🇦🇷', CO: '🇨🇴', CL: '🇨🇱', UY: '🇺🇾' };
+                    const flag = siteLabels[s.site] || s.site;
+                    if ((s.new_violations || 0) > 0) alertItems.push({ icon: '⚠️', text: `${flag}违规+${s.new_violations} (${s.alert_date || ''})`, color: 'text-amber-600' });
+                    if ((s.new_messages || 0) > 0) alertItems.push({ icon: '💬', text: `${flag}待回+${s.new_messages}`, color: 'text-blue-500' });
                 });
-                if (riskItems.length === 0) return null;
-                const marqueeList = [...riskItems, ...riskItems];
-                const siteLabels = { MX: '🇲🇽墨西哥', BR: '🇧🇷巴西', AR: '🇦🇷阿根廷', CO: '🇨🇴哥伦比亚', CL: '🇨🇱智利', MLM: '🇲🇽墨西哥', MLB: '🇧🇷巴西', MLA: '🇦🇷阿根廷', MCO: '🇨🇴哥伦比亚' };
+                if (alertItems.length === 0) return null;
+                const repeated = [...alertItems, ...alertItems];
                 return (
-                    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100">
-                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-700">风险预警透视</p>
-                            <div className="flex-1 h-px bg-slate-100"></div>
-                            <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">实时监控中</p>
-                        </div>
-                        <div className="relative overflow-hidden py-4">
-                            <div className="flex gap-5 marquee-track">
-                                <div className="animate-marquee flex items-center gap-5 shrink-0">
-                                    {marqueeList.map((item, i) => (
-                                        <div key={i} className={`flex items-center gap-2.5 px-4 py-2 rounded-full shrink-0 ${item.bg}`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${item.dotColor} shrink-0`}></div>
-                                            <span className={`text-[10px] font-black uppercase tracking-wide ${item.textColor}`}>{item.type}</span>
-                                            <span className="text-[11px] font-black text-slate-800">{siteLabels[item.site] || item.site}</span>
-                                            <span className="text-[11px] text-slate-500">· {item.reason}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                    <div className="mb-4 overflow-hidden rounded-2xl bg-amber-50 border border-amber-200 px-5 py-3">
+                        <div className="animate-marquee flex gap-8 whitespace-nowrap">
+                            {repeated.map((item, i) => (
+                                <span key={i} className={`text-sm font-bold ${item.color}`}>{item.icon} {item.text}</span>
+                            ))}
                         </div>
                     </div>
                 );
             })()}
+
+            {/* 站点指标卡：始终显示全部6个站点，无数据的显示占位 */}
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+                {SITE_COLS.map(({ code, flag, name }) => {
+                    const siteData = activeShopSites.find(s => s.site === code) || null;
+                    return (
+                        <div key={code} className={`rounded-2xl border p-5 shadow-sm ${
+                            siteData
+                                ? 'border-slate-200 bg-white/70 backdrop-blur-sm'
+                                : 'border-dashed border-slate-200 bg-slate-50/50'
+                        }`}>
+                            {/* 站点头部 */}
+                            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                                <span className="text-base font-black text-slate-800">{flag} {name}</span>
+                            </div>
+                            {siteData ? (
+                                <>
+                                    {/* 投诉 */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div>
+                                            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">投诉</div>
+                                            <div className="text-xl font-black text-rose-500 leading-none mt-0.5">{siteData.reclamos || '0%'}</div>
+                                            <div className="text-[9px] text-slate-400 mt-0.5">累计投诉率</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-lg font-black text-slate-800 leading-none">+{siteData.new_claims || 0}</div>
+                                            <div className="text-[9px] text-amber-500 mt-0.5 font-medium">{siteData.alert_date || ''}</div>
+                                        </div>
+                                    </div>
+                                    <div className="h-px bg-slate-300 mb-3"></div>
+                                    {/* 取消 */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div>
+                                            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">取消</div>
+                                            <div className="text-xl font-black text-purple-500 leading-none mt-0.5">{siteData.cancel || '0%'}</div>
+                                            <div className="text-[9px] text-slate-400 mt-0.5">累计取消率</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-lg font-black text-slate-800 leading-none">+{siteData.new_cancel || 0}</div>
+                                            <div className="text-[9px] text-amber-500 mt-0.5 font-medium">{siteData.alert_date || ''}</div>
+                                        </div>
+                                    </div>
+                                    <div className="h-px bg-slate-300 mb-3"></div>
+                                    {/* 延误 */}
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">延误</div>
+                                            <div className="text-xl font-black text-orange-500 leading-none mt-0.5">{siteData.despacho || '0%'}</div>
+                                            <div className="text-[9px] text-slate-400 mt-0.5">累计延误率</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-lg font-black text-slate-800 leading-none">+{siteData.new_delayed || 0}</div>
+                                            <div className="text-[9px] text-amber-500 mt-0.5 font-medium">{siteData.alert_date || ''}</div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-slate-300">
+                                    <div className="text-2xl mb-2">—</div>
+                                    <div className="text-xs text-slate-300">暂无数据</div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
 
             {/* Matrix Table */}
             <div className="rounded-3xl border border-slate-200 overflow-hidden bg-white shadow-sm">

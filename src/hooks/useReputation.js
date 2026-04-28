@@ -28,10 +28,11 @@ export const useReputation = (group = null) => {
       
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        const d = statsData.daily_alerts || {};
         setDailyAlerts({
-          complaints: String(statsData.alerts ?? 0).padStart(2, '0'),
-          violations: '00',
-          messages: '00',
+          complaints: String(d.complaints ?? statsData.alerts ?? 0).padStart(2, '0'),
+          violations: String(d.violations ?? 0).padStart(2, '0'),
+          messages: String(d.messages ?? 0).padStart(2, '0'),
         });
       }
       
