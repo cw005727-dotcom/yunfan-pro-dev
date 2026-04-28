@@ -33,14 +33,36 @@ THRESHOLD_RED = 0.05     # >5% 任意一项 → red
 THRESHOLD_YELLOW = 0.02  # >2% 任意一项 → yellow
 THRESHOLD_DELAYED = 0.03 # 延误>3% → red
 
-# 延误判定：物流异常子状态
+# 延误判定：物流异常子状态（来自 ML 官方定义）
+# https://shipping-docs.mercadolibre.com/api-docs/shipping_notifications_v2/
 DELAYED_SUBSTATUS = [
-    'at_customs', 'detained_at_origin', 'pending_recovery',
-    'return_failed', 'return_delivered'
+    'at_customs',           # 清关中
+    'customs_ready_to_pickup_release',  # 待提货
+    'delayed',              # 延误
+    'delivered',            # 已妥投（不是延误）
+    'detained_at_origin',   # 在原产地扣押
+    'pending_customer_modification',  # 等待客户修改地址
+    'pending_other',        # 其他待处理
+    'pending_pickup',       # 待提货
+    'pending_recovery',     # 等待退回
+    'picked_up',            # 已提取
+    'ready_to_ship',        # 准备发货
+    'return_delivered',     # 退回已妥投
+    'return_failed',        # 退回失败
+    'shipped',              # 已发货
+    'unshipped'             # 未发货
 ]
 
-# 投诉判定：状态为 cancelled 且子状态为 fraudulent
-COMPLAINT_SUBSTATUS = 'fraudulent'
+# 卖家取消判定：cancel_detail.group = 'seller' or 'internal'
+# 这是卖家主动取消的订单，算作"由你取消"
+
+# 投诉判定：mediations 数量 > 0（买卖家纠纷）
+# 或 cancel_detail.group = 'mediation'
+
+# 不合规发货（Envíos）判定：
+# 1. logistic_type = 'drop_off'（自寄/线下寄）且
+# 2. shipped/picked_up/dropped_off 但 substatus 含异常关键词
+# 或：用 cancel_detail.group = 'shipment' 但不是 shipped_not_delivered（那是 Envíos 正常状态）
 
 def format_rate(rate):
     """返回百分比字符串，如 '7.14%'"""
@@ -57,7 +79,15 @@ def compute_status(complaints_rate, cancellations_rate, delayed_rate):
     return 'green'
 
 def aggregate_by_site(site_id, user_id, conn):
-    """对一个站点的订单进行聚合计算，返回 dict"""
+    """对一个站点的订单进行聚合计算，返回 dict
+    
+    ML 投诉率/取消率/不合规发货率的正确计算方式（从实际订单验证）：
+    - 投诉（claims）= mediations_count > 0（买卖家有纠纷）
+    - 取消（cancellations）= cancel_detail_group IN ('seller', 'internal')（卖家主动取消）
+    - 不合规发货（non-compliant）= cancel_detail_group = 'shipment'（Envíos 配送异常）
+      注意：shipment_not_delivered 是"已发货但未到达"，属于不合规
+    - 分母 = 近60天内的总订单数
+    """
     cursor = conn.cursor()
     
     # 总有效订单数（近60天内）
@@ -67,35 +97,45 @@ def aggregate_by_site(site_id, user_id, conn):
     """, (user_id,))
     total = cursor.fetchone()[0] or 1  # 避免除零
     
-    # 投诉（fraudulent）
+    # 投诉（mediations_count > 0）
     cursor.execute("""
         SELECT COUNT(*) FROM orders_v2
-        WHERE user_id = ? AND shipping_status = 'cancelled' AND shipping_substatus = ?
+        WHERE user_id = ? AND mediations_count > 0
         AND order_date >= date('now', '-60 days')
-    """, (user_id, COMPLAINT_SUBSTATUS))
+    """, (user_id,))
     complaints = cursor.fetchone()[0]
     
-    # 取消（非 fraudulent 的 cancelled）
+    # 取消（cancel_detail_group = 'seller' or 'internal'，卖家主动取消）
     cursor.execute("""
         SELECT COUNT(*) FROM orders_v2
-        WHERE user_id = ? AND shipping_status = 'cancelled' AND shipping_substatus != ?
-        AND shipping_substatus != '' AND shipping_substatus IS NOT NULL
+        WHERE user_id = ? AND cancel_detail_group IN ('seller', 'internal')
         AND order_date >= date('now', '-60 days')
-    """, (user_id, COMPLAINT_SUBSTATUS))
+    """, (user_id,))
     cancellations = cursor.fetchone()[0]
     
-    # 延误（异常子状态且未 delivered）
+    # 不合规发货（Envíos 配送异常：shipment 相关）
     cursor.execute("""
         SELECT COUNT(*) FROM orders_v2
-        WHERE user_id = ? AND shipping_substatus IN ({})
+        WHERE user_id = ? AND cancel_detail_group = 'shipment'
         AND order_date >= date('now', '-60 days')
-    """.format(','.join(['?'] * len(DELAYED_SUBSTATUS))),
-        [user_id] + DELAYED_SUBSTATUS)
+    """, (user_id,))
+    non_compliant = cursor.fetchone()[0]
+    
+    # 延误（物流子状态异常，已发货但有问题的）
+    # shipped_not_delivered / delayed substatuses
+    delayed_substatuses = ['shipped_not_delivered', 'delayed', 'at_customs',
+                           'detained_at_origin', 'pending_recovery', 'return_failed']
+    cursor.execute(f"""
+        SELECT COUNT(*) FROM orders_v2
+        WHERE user_id = ? AND shipping_substatus IN ({','.join(['?'] * len(delayed_substatuses))})
+        AND order_date >= date('now', '-60 days')
+    """, [user_id] + delayed_substatuses)
     delayed = cursor.fetchone()[0]
     
     complaints_rate = complaints / total
     cancellations_rate = cancellations / total
     delayed_rate = delayed / total
+    non_compliant_rate = non_compliant / total
     
     status = compute_status(complaints_rate, cancellations_rate, delayed_rate)
     
@@ -116,9 +156,11 @@ def aggregate_by_site(site_id, user_id, conn):
         'complaints': complaints,
         'cancellations': cancellations,
         'delayed': delayed,
+        'non_compliant': non_compliant,
         'complaints_rate': complaints_rate,
         'cancellations_rate': cancellations_rate,
         'delayed_rate': delayed_rate,
+        'non_compliant_rate': non_compliant_rate,
         'status': status,
         'new_claims': max(0, new_claims),
         'new_cancel': max(0, new_cancel),

@@ -141,11 +141,11 @@ const App = () => {
     if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
 
     return (
-        <div className={`h-screen w-full gradient-bg flex flex-col items-center pt-2 md:pt-8 pb-8 md:pb-6 gap-4 md:gap-6 overflow-hidden relative px-4 md:px-12 ${moduleClass}`}>
+        <div className={`h-screen w-full gradient-bg flex flex-col items-stretch pt-4 pb-0 gap-4 overflow-hidden relative px-6 ${moduleClass}`}>
             
             {/* Top Navigation Bar */}
-            <div className="w-full max-w-[1600px] z-50 px-2 md:px-4 box-border">
-                <div className="glass-effect rounded-3xl flex md:grid md:grid-cols-[2.2fr_auto_1fr] items-center justify-between pl-6 md:pl-8 pr-6 md:pr-12 py-3 md:py-4 shadow-xl w-full">
+            <div className="w-full z-50 px-0 box-border shrink-0">
+                <div className="glass-effect rounded-[24px] flex md:grid md:grid-cols-[2.2fr_auto_1fr] items-center justify-between pl-8 pr-12 py-3 shadow-lg w-full">
                     <div className="flex items-center">
                         <Brand slogan="跨境电商智能工作台" />
                     </div>
@@ -180,12 +180,12 @@ const App = () => {
                 </div>
             </div>
 
-            <div className="w-full max-w-[1600px] flex-1 flex flex-col md:flex-row gap-4 md:gap-6 overflow-hidden relative px-2 md:px-4">
+            <div className="w-full flex-1 flex flex-col md:flex-row gap-0 overflow-hidden relative px-0">
                 
                 {/* Sidebar */}
-                <aside className="hidden md:flex w-48 glass-effect rounded-[32px] p-3 flex-col z-40 overflow-hidden shadow-xl relative">
-                    <div className="flex items-center justify-between mb-6 px-3 pt-3">
-                        <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.4em]">{topTab}</p>
+                <aside className="hidden md:flex w-56 glass-effect rounded-tl-[32px] rounded-bl-none rounded-tr-none rounded-br-none p-3 flex-col z-40 overflow-hidden shadow-[10px_0_30px_-15px_rgba(0,0,0,0.05)] relative border-r border-slate-200/50">
+                    <div className="flex items-center justify-between mb-8 px-5 pt-5">
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.5em]">{topTab}</p>
                         <div className="flex gap-1">
                             <div className="w-1 h-1 rounded-full bg-accent/40"></div>
                             <div className="w-1 h-1 rounded-full bg-accent animate-pulse"></div>
@@ -235,7 +235,7 @@ const App = () => {
                 </aside>
 
                 {/* Content */}
-                <main className={`flex-1 glass-effect rounded-[40px] p-6 md:p-12 relative z-10 custom-scrollbar ${sidebarItem === 'reputation' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                <main className={`flex-1 glass-effect rounded-tr-[32px] rounded-tl-none rounded-bl-none rounded-br-none p-0 relative z-10 custom-scrollbar ${['reputation', 'infringement'].includes(sidebarItem) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                     <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
                         {sidebarItem === 'news' && <NewsView />}
                         {sidebarItem === 'intro' && <BusinessIntroView />}

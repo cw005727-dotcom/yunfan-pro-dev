@@ -22,15 +22,18 @@ export const useSmartRotation = (site = 'MLM') => {
   }, [site]);
 
   const applyRotation = async () => {
-    if (!recommendation) return;
+    // 适配 has_suggestion 结构
+    const data = recommendation?.has_suggestion ? recommendation.suggestion : recommendation;
+    if (!data) return;
+
     try {
       setIsApplying(true);
       const res = await fetch(`${API_BASE}/apply_rotation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          add_id: recommendation.add_item.item_id,
-          remove_id: recommendation.remove_item.item_id
+          add_id: data.new_item_id,
+          remove_id: data.current_item_id
         })
       });
       if (!res.ok) throw new Error('Apply rotation failed');

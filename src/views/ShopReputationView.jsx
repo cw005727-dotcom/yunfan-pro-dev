@@ -149,7 +149,7 @@ const ShopReputationView = () => {
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full overflow-hidden">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full overflow-hidden p-8">
             <div className="flex items-start gap-6 h-full">
                 {/* 左侧：监控核心区 */}
                 <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
@@ -328,76 +328,84 @@ const ShopReputationView = () => {
                 </div>
                 </div>
 
-                {/* 右侧：实时日志 (全高对齐) */}
-                <div className="w-[320px] self-stretch flex flex-col h-full min-h-0">
-                    <div className="bg-slate-50/80 backdrop-blur-xl rounded-3xl p-5 border border-slate-200/60 shadow-inner flex flex-col h-full min-h-0">
-                        <div className="flex items-center justify-between mb-4 shrink-0">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest">实时守卫日志</h3>
+                {/* 右侧：实时日志 (Deep Blue Premium Logic) */}
+                <div className="w-[320px] self-stretch flex flex-col h-full min-h-0 relative group">
+                    <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-6 flex flex-col h-full min-h-0 shadow-2xl relative overflow-hidden">
+                        {/* Background Glow */}
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:animate-pulse"></div>
+
+                        <div className="flex items-center justify-between mb-8 shrink-0 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                    <Icon name="shield-check" className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[11px] font-black text-white uppercase tracking-widest leading-none mb-1">实时守卫日志</h3>
+                                    <p className="text-[9px] text-white/40 font-bold uppercase tracking-tighter">Guard Logs</p>
+                                </div>
+                            </div>
+                            <span className="text-[8px] font-black text-white/60 bg-white/10 px-2 py-0.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm">LIVE FEED</span>
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100 shadow-sm">LIVE FEED</span>
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-0">
-                        {logs.map((log, i) => {
-                            const date = new Date(log.timestamp);
-                            const isRecent = Date.now() - date.getTime() < 300000; // 5分钟内
-                            
-                            return (
-                                <div 
-                                    key={log.id || i} 
-                                    onClick={() => handleLogClick(log)}
-                                    className={`relative p-3 rounded-2xl border transition-all cursor-pointer group/log ${
-                                        log.level === 'error' ? 'bg-rose-50/50 border-rose-200 hover:bg-rose-50' : 
-                                        log.level === 'warning' ? 'bg-amber-50/50 border-amber-200 hover:bg-amber-50' : 
-                                        'bg-white border-slate-200 hover:border-indigo-300 shadow-sm'
-                                    }`}
-                                >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${
-                                                log.level === 'error' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : 
-                                                log.level === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
-                                            }`}></div>
-                                            <span className={`text-[10px] font-black uppercase tracking-tighter ${
-                                                log.level === 'error' ? 'text-rose-600' : 
-                                                log.level === 'warning' ? 'text-amber-600' : 'text-emerald-600'
-                                            }`}>
-                                                {log.level === 'error' ? '严重警告' : log.level === 'warning' ? '实时警告' : '系统通知'}
+                        
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar-slim relative z-10">
+                            {logs.map((log, i) => {
+                                const date = new Date(log.timestamp);
+                                const isRecent = Date.now() - date.getTime() < 300000;
+                                
+                                return (
+                                    <div 
+                                        key={log.id || i} 
+                                        onClick={() => handleLogClick(log)}
+                                        className={`relative p-4 rounded-2xl border transition-all cursor-pointer group/log backdrop-blur-sm ${
+                                            log.level === 'error' ? 'bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20' : 
+                                            log.level === 'warning' ? 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 
+                                            'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                                        }`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${
+                                                    log.level === 'error' ? 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.6)]' : 
+                                                    log.level === 'warning' ? 'bg-amber-400' : 'bg-emerald-400'
+                                                }`}></div>
+                                                <span className={`text-[10px] font-black uppercase tracking-tighter ${
+                                                    log.level === 'error' ? 'text-rose-400' : 
+                                                    log.level === 'warning' ? 'text-amber-400' : 'text-emerald-400'
+                                                }`}>
+                                                    {log.level === 'error' ? '严重警告' : log.level === 'warning' ? '实时警告' : '系统通知'}
+                                                </span>
+                                            </div>
+                                            <span className="text-[8px] font-mono text-white/40">
+                                                {isRecent ? '刚刚' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
-                                        <span className="text-[8px] font-mono text-slate-400">
-                                            {isRecent ? '刚刚' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        <p className="text-[11px] font-bold text-white/80 leading-relaxed whitespace-normal break-words">{log.message}</p>
+                                        <div className="flex items-center justify-between mt-3">
+                                            {log.site_id && (
+                                                <span className="px-1.5 py-0.5 rounded bg-white/10 text-[8px] font-black text-white/60 uppercase tracking-tighter border border-white/10">
+                                                    {log.site_id === 'MLM' ? '墨西哥站' : 
+                                                     log.site_id === 'MLB' ? '巴西站' : 
+                                                     log.site_id === 'MLA' ? '阿根廷站' : 
+                                                     log.site_id === 'MCO' ? '哥伦比亚站' : 
+                                                     log.site_id === 'MLC' ? '智利站' : 
+                                                     log.site_id === 'MLU' ? '乌拉圭站' : log.site_id}
+                                                </span>
+                                            )}
+                                            <span className="text-[7px] text-white/30 opacity-0 group-hover/log:opacity-100 transition-opacity font-bold uppercase tracking-widest">定位详情 ▸</span>
+                                        </div>
                                     </div>
-                                    <p className="text-[11px] font-bold text-slate-700 leading-snug">{log.message}</p>
-                                    <div className="flex items-center justify-between mt-2">
-                                        {log.site_id && (
-                                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-tighter">
-                                                {log.site_id === 'MLM' ? '墨西哥站' : 
-                                                 log.site_id === 'MLB' ? '巴西站' : 
-                                                 log.site_id === 'MLA' ? '阿根廷站' : 
-                                                 log.site_id === 'MCO' ? '哥伦比亚站' : 
-                                                 log.site_id === 'MLC' ? '智利站' : 
-                                                 log.site_id === 'MLU' ? '乌拉圭站' : log.site_id}
-                                            </span>
-                                        )}
-                                        <span className="text-[7px] text-indigo-400 opacity-0 group-hover/log:opacity-100 transition-opacity font-bold uppercase">定位站点 ▸</span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <div ref={logEndRef} />
-                        {logs.length === 0 && <div className="text-center py-10 text-slate-400 text-[10px]">等待日志接入...</div>}
-                    </div>
+                                );
+                            })}
+                            <div ref={logEndRef} />
+                            {logs.length === 0 && <div className="text-center py-12 text-white/20 text-[10px] italic">等待实时信号介入...</div>}
+                        </div>
 
-                    <button className="mt-4 w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-widest transition-all shadow-sm shrink-0">
-                        查看完整历史
-                    </button>
+                        <button className="mt-4 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-[9px] font-black text-white uppercase tracking-widest transition-all shadow-lg backdrop-blur-sm shrink-0">
+                            查看监控全史
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
 
         {hoveredCell && createPortal((
             <Tooltip

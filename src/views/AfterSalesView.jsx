@@ -1,195 +1,283 @@
 import { useState, useEffect } from 'react';
 import Icon from '../components/Icon.jsx';
 
-const MOCK_MESSAGES = [
-    { id: 1, site: 'MLM', buyer: 'Juan Perez', lastMsg: '¿Está disponible?', time: '10:25', unread: true, item_id: 'CBT3902008522' },
-    { id: 2, site: 'MLB', buyer: 'Ricardo Silva', lastMsg: 'Obrigado pelo envio!', time: '昨天', unread: false, item_id: 'CBT3902008523' },
-    { id: 3, site: 'MCO', buyer: 'Elena Gomez', lastMsg: 'Mi paquete no llega', time: '2小时前', unread: true, item_id: 'CBT3902008524' }
-];
+const SITE_EMOJI = { MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾' };
+const SITE_NAME = { MLM: '墨西哥', MLB: '巴西', MLA: '阿根廷', MCO: '哥伦比亚', MLC: '智利', MLU: '乌拉圭' };
+const CANCEL_REASON = {
+    mediations: 'Disputa abierta · Reclamo del comprador',
+    buyer_cancel_express: 'Cancelación solicitada por el comprador',
+    shipment_not_delivered: 'Envío no entregado',
+    undispatched_order: 'Pedido no enviado',
+    buyer: 'Cancelación solicitada por el comprador',
+};
+const STATUS_TAG = { cancelled: '🔴 已取消', payment_required: '🟡 待付款', closed: '⚫ 已关闭', completed: '🟢 已完成', active: '🔵 进行中' };
 
-const AfterSalesView = () => {
-    const [chatList, setChatList] = useState([]);
-    const [activeChat, setActiveChat] = useState(null);
+const formatDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = now - d;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 1) return '刚刚';
+    if (hours < 24) return `${hours}小时前`;
+    if (hours < 48) return '昨天';
+    return `${d.getMonth()+1}.${d.getDate()}`;
+};
+
+const DisputesView = () => {
+    const [disputes, setDisputes] = useState([]);
+    const [active, setActive] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [aiText, setAiText] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
     const [inputText, setInputText] = useState('');
-    const [aiSuggestion, setAiSuggestion] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => { loadList(); }, []);
 
     useEffect(() => {
-        loadChatList();
-        const timer = setInterval(loadChatList, 60000);
-        return () => clearInterval(timer);
-    }, []);
+        if (active) loadChat(active.id);
+    }, [active]);
 
-    useEffect(() => {
-        if (activeChat) {
-            loadChatHistory(activeChat.id);
-        }
-    }, [activeChat]);
-
-    const loadChatList = async () => {
+    const loadList = async () => {
         try {
-            const res = await fetch('/api/customer_service/list');
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setChatList(data);
-                if (data.length > 0 && !activeChat) setActiveChat(data[0]);
+            const r = await fetch('/api/customer_service/list');
+            const d = await r.json();
+            if (Array.isArray(d)) setDisputes(d);
+        } catch (e) { console.error(e); }
+    };
+
+    const loadChat = async (orderId) => {
+        try {
+            const r = await fetch(`/api/customer_service/chat?id=${orderId}`);
+            const d = await r.json();
+            if (Array.isArray(d)) {
+                setMessages(d);
+                const last = d[d.length - 1];
+                if (last && last.role === 'buyer') fetchAi(last.content, orderId);
             }
         } catch (e) { console.error(e); }
     };
 
-    const loadChatHistory = async (id) => {
+    const fetchAi = async (content, orderId) => {
+        setAiText('✨ 正在生成高情商回复...');
+        setAiLoading(true);
         try {
-            const res = await fetch(`/api/customer_service/chat?id=${id}`);
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setMessages(data);
-                // Trigger AI suggestion for the last message if it's from buyer
-                const lastMsg = data[data.length - 1];
-                if (lastMsg && lastMsg.role === 'buyer') {
-                    fetchAiSuggestion(lastMsg.content, activeChat.item_id);
-                }
-            }
-        } catch (e) { console.error(e); }
-    };
-
-    const fetchAiSuggestion = async (content, item_id) => {
-        setAiSuggestion('AI 正在思考...');
-        try {
-            const res = await fetch('/api/customer_service/suggest', {
+            const r = await fetch('/api/customer_service/suggest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content, item_id })
+                body: JSON.stringify({ content, order_id: orderId })
             });
-            const data = await res.json();
-            setAiSuggestion(data.suggestion);
-        } catch (e) { setAiSuggestion('暂时无法获取建议'); }
+            const d = await r.json();
+            setAiText(d.suggestion || '暂时无法生成建议');
+        } catch {
+            setAiText('暂时无法生成建议');
+        } finally {
+            setAiLoading(false);
+        }
     };
 
-    const handleSend = () => {
-        if (!inputText.trim()) return;
-        const newMsg = { role: 'seller', content: inputText, created_at: '现在' };
-        setMessages([...messages, newMsg]);
+    const adoptAi = () => { setInputText(aiText); };
+
+    const sendMsg = () => {
+        if (!inputText.trim() || !active) return;
+        const newMsg = { role: 'seller', content: inputText, created_at: new Date().toLocaleString('zh-CN') };
+        setMessages(m => [...m, newMsg]);
         setInputText('');
-        // In a real app, we would POST to /api/customer_service/reply here
     };
+
+    const reason = active ? (CANCEL_REASON[active.cancel_code] || CANCEL_REASON[active.cancel_detail_group] || 'Asunto pendiente') : '';
+    const siteFlag = SITE_EMOJI[active?.site_id] || '🌐';
 
     return (
-        <div className="h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="h-full flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-8 duration-700">
+
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">客服中心</h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">AI 售后助理 · 多语言自动翻译</p>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">售后纠纷</h3>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+                        {disputes.length} 个纠纷订单 · AI 高情商回复
+                    </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Real-time Chat</span>
-                    </div>
+                <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${disputes.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                        {disputes.length > 0 ? `${disputes.length} Disputas` : 'Sin disputas'}
+                    </span>
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex gap-6 overflow-hidden min-h-0">
-                
-                {/* Left: Chat List */}
-                <div className="w-80 flex flex-col gap-3 overflow-y-auto no-scrollbar pr-1">
-                    {chatList.map(chat => (
-                        <button 
-                            key={chat.id}
-                            onClick={() => setActiveChat(chat)}
-                            className={`p-4 rounded-3xl border transition-all text-left flex gap-3 ${activeChat?.id === chat.id ? 'bg-slate-900 border-slate-900 shadow-xl' : 'bg-white border-slate-200 hover:border-slate-400'}`}
-                        >
-                            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-xl shadow-inner shrink-0 relative">
-                                {chat.site_id === 'MLM' ? '🇲🇽' : chat.site_id === 'MLB' ? '🇧🇷' : '🇨🇴'}
-                                {chat.status === 'unread' && <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white"></div>}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center mb-0.5">
-                                    <p className={`text-[12px] font-black truncate ${activeChat?.id === chat.id ? 'text-white' : 'text-slate-800'}`}>{chat.buyer_name}</p>
-                                    <span className="text-[9px] text-slate-400">{chat.updated_at.split(' ')[1].substring(0,5)}</span>
+            {/* Main */}
+            <div className="flex-1 flex gap-5 overflow-hidden min-h-0">
+
+                {/* Left: Dispute List */}
+                <div className="w-80 flex flex-col gap-2.5 overflow-y-auto no-scrollbar pr-1">
+                    {disputes.length === 0 && (
+                        <div className="text-center py-12 text-slate-400 text-sm">暂无纠纷订单</div>
+                    )}
+                    {disputes.map(d => {
+                        const r = CANCEL_REASON[d.cancel_code] || CANCEL_REASON[d.cancel_detail_group] || '';
+                        const shortR = r.length > 28 ? r.substring(0, 28) + '...' : r;
+                        return (
+                            <button
+                                key={d.id}
+                                onClick={() => setActive(d)}
+                                className={`p-4 rounded-2xl border text-left transition-all flex gap-3 ${
+                                    active?.id === d.id
+                                    ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200'
+                                    : 'bg-white border-slate-200 hover:border-rose-300 hover:bg-rose-50/30'
+                                }`}
+                            >
+                                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg shadow-inner shrink-0 bg-slate-100">
+                                    {SITE_EMOJI[d.site_id] || '🌐'}
                                 </div>
-                                <p className={`text-[10px] truncate ${activeChat?.id === chat.id ? 'text-slate-400' : 'text-slate-500'}`}>{chat.last_message}</p>
-                            </div>
-                        </button>
-                    ))}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <p className={`text-[11px] font-black truncate pr-2 ${active?.id === d.id ? 'text-white' : 'text-slate-800'}`}>
+                                            {d.product_name?.substring(0, 30) || '未知商品'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${active?.id === d.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                            {d.site_id}
+                                        </span>
+                                        <span className={`text-[9px] font-black ${active?.id === d.id ? 'text-slate-300' : 'text-slate-400'}`}>
+                                            ${d.amount}
+                                        </span>
+                                    </div>
+                                    <p className={`text-[9px] leading-snug ${active?.id === d.id ? 'text-rose-300' : 'text-rose-500'}`}>
+                                        {d.status === 'cancelled' ? '🔴 ' : ''}{shortR}
+                                    </p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span className={`text-[9px] ${active?.id === d.id ? 'text-slate-400' : 'text-slate-400'}`}>
+                                        {formatDate(d.order_date)}
+                                    </span>
+                                    <span className={`text-[8px] ${active?.id === d.id ? 'text-slate-500' : 'text-slate-300'}`}>
+                                        #{d.id.substring(d.id.length - 6)}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
 
-                {/* Right: Chat Window */}
-                <div className="flex-1 flex flex-col rounded-[32px] border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    {/* Chat Header */}
-                    <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-                                <Icon name="user" className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-[13px] font-black text-slate-800">{activeChat?.buyer_name || '选择会话'}</p>
-                                <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">在线沟通中</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-right">
-                                <p className="text-[10px] text-slate-400 font-medium">咨询商品</p>
-                                <p className="text-[10px] font-black text-blue-600">{activeChat?.item_id}</p>
-                            </div>
-                            <button className="p-2 hover:bg-slate-200 rounded-lg transition-all text-slate-400"><Icon name="more-vertical" className="w-5 h-5" /></button>
-                        </div>
-                    </div>
+                {/* Right: Dispute Detail */}
+                <div className="flex-1 flex flex-col rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden">
 
-                    {/* Message Flow */}
-                    <div className="flex-1 p-6 overflow-y-auto space-y-4 no-scrollbar">
+                    {/* Detail Header */}
+                    {active && (
+                        <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                            <div className="flex items-start justify-between mb-3">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xl">{siteFlag}</span>
+                                        <span className="text-[13px] font-black text-slate-800">{active.site_id} · {SITE_NAME[active.site_id]}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">#{active.id.substring(active.id.length - 8)}</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 font-medium">{active.product_name}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[18px] font-black text-slate-800">${active.amount}</p>
+                                    <p className="text-[9px] text-slate-400">{active.status}</p>
+                                </div>
+                            </div>
+
+                            {/* Order Info Chips */}
+                            <div className="flex flex-wrap gap-2">
+                                {reason && (
+                                    <span className="px-3 py-1 bg-rose-50 border border-rose-200 rounded-full text-[10px] font-bold text-rose-600">
+                                        ⚠️ {reason}
+                                    </span>
+                                )}
+                                {active.cancel_code && (
+                                    <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-medium text-slate-500">
+                                        取消码: {active.cancel_code}
+                                    </span>
+                                )}
+                                {active.mediations_count > 0 && (
+                                    <span className="px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-[10px] font-bold text-amber-600">
+                                        🛡 {active.mediations_count} 次调解
+                                    </span>
+                                )}
+                                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-medium text-slate-500">
+                                    📦 SKU: {active.seller_sku || '无'}
+                                </span>
+                                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-medium text-slate-500">
+                                    🏪 {active.store_name || active.nickname || '未知店铺'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Chat Messages */}
+                    <div className="flex-1 p-5 overflow-y-auto space-y-3 no-scrollbar">
+                        {!active && (
+                            <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                                ← 选择一个纠纷订单查看详情
+                            </div>
+                        )}
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === 'seller' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] p-4 rounded-2xl text-[12px] leading-relaxed ${
-                                    msg.role === 'seller' ? 'bg-slate-900 text-white rounded-tr-none' 
-                                    : msg.role === 'ai' ? 'bg-emerald-50 text-emerald-700 italic border border-emerald-100'
-                                    : 'bg-slate-100 text-slate-700 rounded-tl-none'
+                                <div className={`max-w-[82%] p-4 rounded-2xl text-[12px] leading-relaxed ${
+                                    msg.role === 'seller'
+                                        ? 'bg-slate-900 text-white rounded-tr-none shadow-lg'
+                                        : msg.role === 'ai'
+                                        ? 'bg-emerald-50 text-emerald-700 italic border border-emerald-200 rounded-tl-none'
+                                        : 'bg-rose-50 text-slate-700 border border-rose-100 rounded-tl-none'
                                 }`}>
+                                    <span className="text-[9px] font-black opacity-40 uppercase mb-1 block">
+                                        {msg.role === 'seller' ? '客服回复' : msg.role === 'ai' ? '✨ AI建议' : '🛒 买家'}
+                                    </span>
                                     {msg.content}
-                                    {msg.translated_content && (
-                                        <p className="mt-2 pt-2 border-t border-slate-200/30 opacity-70 italic text-[11px]">
-                                            [中文翻译]: {msg.translated_content}
-                                        </p>
-                                    )}
-                                    <p className={`text-[8px] mt-1 opacity-50 ${msg.role === 'seller' ? 'text-right' : 'text-left'}`}>{msg.created_at}</p>
+                                    <p className={`text-[8px] mt-2 opacity-50 ${msg.role === 'seller' ? 'text-right' : 'text-left'}`}>
+                                        {msg.created_at}
+                                    </p>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* AI Assistant Suggestion */}
-                    <div className="px-6 py-3 bg-indigo-50/50 border-t border-indigo-100 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-200">
-                            <Icon name="sparkles" className="w-4 h-4" />
+                    {/* AI Suggestion Bar */}
+                    {active && (
+                        <div className="px-5 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-100 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-200">
+                                <Icon name="sparkles" className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mb-0.5">AI 高情商回复</p>
+                                <p className={`text-[11px] font-medium ${aiLoading ? 'text-indigo-400 italic' : 'text-indigo-700'} truncate`}>
+                                    {aiText}
+                                </p>
+                            </div>
+                            {!aiLoading && aiText && aiText !== '✨ 正在生成高情商回复...' && (
+                                <button
+                                    onClick={adoptAi}
+                                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black hover:bg-indigo-700 transition-all shrink-0"
+                                >
+                                    采用
+                                </button>
+                            )}
                         </div>
-                        <div className="flex-1">
-                            <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mb-0.5">AI 建议回复</p>
-                            <p className="text-[11px] text-indigo-700 font-medium italic truncate">{aiSuggestion}</p>
-                        </div>
-                        <button 
-                            onClick={() => setInputText(aiSuggestion)}
-                            className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black hover:bg-indigo-700 transition-all"
-                        >
-                            采用回复
-                        </button>
-                    </div>
+                    )}
 
-                    {/* Input Area */}
-                    <div className="p-6 pt-2 bg-white">
-                        <div className="relative">
-                            <input 
+                    {/* Input */}
+                    <div className="p-5 pt-3 bg-white">
+                        <div className="flex gap-2">
+                            <input
                                 value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-[12px] font-medium focus:outline-none focus:border-slate-400 transition-all pr-12"
-                                placeholder="输入消息内容..."
+                                onChange={e => setInputText(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && sendMsg()}
+                                className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-[12px] font-medium focus:outline-none focus:border-indigo-400 transition-all"
+                                placeholder="输入客服回复..."
+                                disabled={!active}
                             />
-                            <button 
-                                onClick={handleSend}
-                                className="absolute right-3 top-2.5 p-2 bg-slate-900 text-white rounded-xl hover:bg-blue-600 transition-all"
+                            <button
+                                onClick={sendMsg}
+                                disabled={!active}
+                                className="px-5 bg-slate-900 text-white rounded-2xl hover:bg-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-black text-[11px]"
                             >
-                                <Icon name="send" className="w-4 h-4" />
+                                发送
                             </button>
                         </div>
                     </div>
@@ -199,4 +287,4 @@ const AfterSalesView = () => {
     );
 };
 
-export default AfterSalesView;
+export default DisputesView;

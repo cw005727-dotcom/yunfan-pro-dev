@@ -103,11 +103,19 @@ def pull_real_data():
                         platform_fee = sum([oi.get('sale_fee', 0) for oi in order_items])
                         net_profit = total_amount - platform_fee
 
+                        # 提取 cancel_detail / mediations / paid_amount
+                        cancel_d = order.get('cancel_detail') or {}
+                        cancel_detail_group = cancel_d.get('group') or ''
+                        cancel_code = cancel_d.get('code') or ''
+                        mediations_count = len(order.get('mediations', []))
+                        paid_amt = order.get('paid_amount') or 0
+                        
                         final_orders.append((
                             order_id, sid, site, date_created, product_name, 
                             quantity, total_amount, platform_fee, 0, net_profit, 
                             None, status, ship_status, ship_substatus, tracking_id,
-                            logistic_type, seller_sku, thumbnail
+                            logistic_type, seller_sku, thumbnail,
+                            cancel_detail_group, cancel_code, mediations_count, paid_amt
                         ))
                     except Exception as e:
                         print(f"    Failed to sync order detail {sub_id}: {e}")
@@ -123,8 +131,8 @@ def pull_real_data():
         try:
             cursor.executemany("""
                 INSERT OR REPLACE INTO orders_v2 
-                (id, user_id, site_id, order_date, product_name, quantity, amount, platform_fee, tax, net_profit, last_ship_date, status, shipping_status, shipping_substatus, tracking_id, logistic_type, seller_sku, thumbnail)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, user_id, site_id, order_date, product_name, quantity, amount, platform_fee, tax, net_profit, last_ship_date, status, shipping_status, shipping_substatus, tracking_id, logistic_type, seller_sku, thumbnail, cancel_detail_group, cancel_code, mediations_count, paid_amount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, final_orders)
             conn.commit()
             print("Order amounts synced successfully.")
