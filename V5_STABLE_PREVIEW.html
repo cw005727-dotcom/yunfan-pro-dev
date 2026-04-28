@@ -16,6 +16,8 @@
         .solid-card { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .animate-marquee { animation: marquee 40s linear infinite; }
+        .rep-cell { width: 36px; height: 36px; border-radius: 12px; display: flex; items-center: center; justify-content: center; transition: all 0.2s; cursor: pointer; }
+        .rep-cell:hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -144,14 +146,19 @@
 
         const App = () => {
             const [orders, setOrders] = useState([]);
+            const [reputation, setReputation] = useState([]);
             const [filter, setFilter] = useState('all');
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                fetch('http://localhost:8506/api/orders')
-                    .then(r => r.json())
-                    .then(data => { setOrders(Array.isArray(data) ? data : (data.orders || [])); setLoading(false); })
-                    .catch(() => setLoading(false));
+                Promise.all([
+                    fetch('http://localhost:8506/api/orders').then(r => r.json()),
+                    fetch('http://localhost:8506/api/shop_reputation').then(r => r.json())
+                ]).then(([ordersData, repData]) => {
+                    setOrders(Array.isArray(ordersData) ? ordersData : (ordersData.orders || []));
+                    setReputation(repData);
+                    setLoading(false);
+                }).catch(() => setLoading(false));
             }, []);
 
             const filtered = useMemo(() => {
@@ -161,21 +168,90 @@
                 return orders;
             }, [orders, filter]);
 
-            if (loading) return <div className="flex items-center justify-center h-screen font-black text-slate-300">加载中...</div>;
+            // Group reputation by store (大姐店)
+            const repMatrix = useMemo(() => {
+                const groups = {};
+                reputation.forEach(s => {
+                    const key = s.group_label || '其他';
+                    if (!groups[key]) groups[key] = {};
+                    groups[key][s.site] = s;
+                });
+                return groups;
+            }, [reputation]);
+
+            if (loading) return <div className="flex items-center justify-center h-screen font-black text-slate-300 animate-pulse">数据对齐中...</div>;
 
             return (
                 <div className="max-w-7xl mx-auto px-6 py-12">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="text-4xl font-black text-slate-900 tracking-tight">📦 物流实时监控 (V5_STANDALONE)</h3>
-                            <p className="text-slate-400 text-sm font-medium mt-1">100% 数据对齐 · 巴西站 82 件商品已同步</p>
+                            <h3 className="text-4xl font-black text-slate-900 tracking-tight">云帆跨境 PRO (V5.1)</h3>
+                            <p className="text-slate-400 text-sm font-black uppercase tracking-widest mt-1">数据 AI · 巴西站深度对齐 · 店铺声誉镜像监控</p>
                         </div>
-                        <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm">
-                            <span className="text-3xl font-black text-blue-600">{orders.length}</span>
-                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">总订单</span>
+                        <div className="flex gap-4">
+                            <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm text-center">
+                                <span className="text-3xl font-black text-blue-600">{orders.length}</span>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">总订单</p>
+                            </div>
+                            <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm text-center">
+                                <span className="text-3xl font-black text-rose-500">{reputation.filter(r => r.status === 'red').length}</span>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">红标站点</p>
+                            </div>
                         </div>
                     </div>
 
+                    {/* Reputation Matrix Section */}
+                    <div className="mb-12">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-2 h-6 bg-blue-600 rounded-full"></div>
+                            <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">店铺声誉中心 (Matrix)</h4>
+                        </div>
+                        <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden">
+                            <table className="w-full">
+                                <thead className="bg-slate-50 border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">店铺分组</th>
+                                        {['MX', 'BR', 'AR', 'CO'].map(site => (
+                                            <th key={site} className="px-3 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">{SITE_FLAGS[site] || site} {site}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.entries(repMatrix).map(([group, sites]) => (
+                                        <tr key={group} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-6 py-4 font-black text-slate-700">{group}</td>
+                                            {['MX', 'BR', 'AR', 'CO'].map(site => {
+                                                const data = sites[site];
+                                                const color = data ? (data.status === 'red' ? 'bg-rose-100' : data.status === 'yellow' ? 'bg-amber-100' : 'bg-emerald-100') : 'bg-slate-50';
+                                                const dot = data ? (data.status === 'red' ? 'bg-rose-500' : data.status === 'yellow' ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200';
+                                                return (
+                                                    <td key={site} className="px-3 py-4">
+                                                        <div className="flex flex-col items-center">
+                                                            <div className={`rep-cell ${color} ${data?.status === 'red' ? 'animate-pulse' : ''}`}>
+                                                                <div className={`w-3 h-3 rounded-full ${dot}`}></div>
+                                                            </div>
+                                                            {data && (
+                                                                <div className="mt-1 flex flex-col items-center opacity-60">
+                                                                    <span className="text-[8px] font-black text-slate-400 uppercase">C: {data.reclamos}</span>
+                                                                    <span className="text-[8px] font-black text-slate-400 uppercase">D: {data.despacho}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
+                        <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">物流实时看板 (Logistics)</h4>
+                    </div>
+                    
                     <MarqueeTicker orders={orders.slice(0, 8)} />
 
                     <div className="flex gap-2 mb-8">

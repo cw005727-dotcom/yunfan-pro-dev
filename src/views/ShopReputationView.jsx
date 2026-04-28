@@ -27,7 +27,7 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
     const statusLabel = data.status === 'green' ? '健康' : data.status === 'yellow' ? '预警' : '危险';
     return (
         <div
-            className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-in fade-in zoom-in-95 duration-150"
+            className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-4"
             style={{ 
                 left: position.x, 
                 top: position.y,
@@ -127,6 +127,7 @@ const ShopReputationView = () => {
             x: rect.left,
             y: rect.bottom + 8,
         });
+        console.log('hover pos:', { x: rect.left, y: rect.bottom + 8, rectLeft: rect.left, rectRight: rect.right, rectWidth: rect.width, windowInnerW: window.innerWidth });
         setHoveredCell({ storeName, site, data: cell });
     };
 
