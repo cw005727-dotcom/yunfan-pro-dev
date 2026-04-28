@@ -28,20 +28,20 @@ const doTranslate = async (text, from = 'auto', to = 'zh-CN') => {
     const key = `${from}|${to}|${text}`;
     if (translateCache[key]) return translateCache[key];
     try {
-        const r = await fetch('/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, from, to })
-        });
-        const d = await r.json();
-        console.log('[translate]', text.substring(0, 30), '->', d.translated);
-        translateCache[key] = d.translated || '';
-        return translateCache[key];
+      // Direct to port 8506 to avoid Vite HTTP proxy HTTP/1.0 issue
+      const r = await fetch('http://localhost:8506/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, from, to })
+      });
+      const d = await r.json();
+      translateCache[key] = d.translated || '';
+      return translateCache[key];
     } catch (e) {
-        console.error('[translate error]', e);
-        return '';
+      console.error('[translate error]', e);
+      return '';
     }
-};
+  };
 
 const MsgBubble = ({ msg, siteId }) => {
     const [showZh, setShowZh] = useState(false);

@@ -19,9 +19,6 @@ const OptimizeTitleView = lazy(() => import('./views/OptimizeTitleView'));
 const ImageLabView = lazy(() => import('./views/ImageLabView'));
 const KeywordIntelView = lazy(() => import('./views/KeywordIntelView'));
 
-// Hooks
-import { useStatsOverview } from './hooks/useStatsOverview';
-
 const LoginPage = ({ onLogin }) => {
     return (
         <div className="min-h-screen flex items-stretch gradient-bg relative overflow-hidden text-slate-900">
@@ -56,22 +53,31 @@ const LoginPage = ({ onLogin }) => {
                         </div>
                         <div className="flex gap-8 border-b border-slate-200 mb-10">
                             <button className="pb-5 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-blue-600 border-b-2 border-blue-600">账号登录</button>
-                            <button className="pb-5 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600">立即注册</button>
+                            <button className="pb-5 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600 transition-colors">注册申请</button>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight">欢迎登录</h2>
-                    </div>
-
-                    <div className="space-y-6 md:space-y-8">
-                        <div className="space-y-2 md:space-y-4">
-                            <label className="text-[9px] md:text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] px-4">账号标识</label>
-                            <input className="w-full bg-slate-50 border border-slate-200 rounded-[28px] md:rounded-[32px] px-8 md:px-10 py-5 md:py-6 text-slate-900 font-bold focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-300 text-sm md:text-base shadow-inner" placeholder="YUNFAN_PRO_ADMIN" />
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">电子邮箱</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="your@email.com" 
+                                    className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-medium"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">访问密码</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="••••••••" 
+                                    className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-medium"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2 md:space-y-4">
-                            <label className="text-[9px] md:text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] px-4">访问秘钥</label>
-                            <input type="password" title="password" className="w-full bg-slate-50 border border-slate-200 rounded-[28px] md:rounded-[32px] px-8 md:px-10 py-5 md:py-6 text-slate-900 font-bold focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-300 text-sm md:text-base shadow-inner" placeholder="••••••••" />
-                        </div>
-                        <button onClick={onLogin} className="w-full bg-slate-900 text-white py-6 md:py-7 rounded-[28px] md:rounded-[32px] font-black text-[10px] md:text-xs uppercase tracking-[0.4em] hover:bg-blue-600 transition-all shadow-2xl shadow-blue-500/20 active:scale-[0.98]">
-                            进入系统
+                        <button 
+                            onClick={onLogin}
+                            className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 active:scale-[0.98]"
+                        >
+                            即刻进入引擎
                         </button>
                     </div>
                 </div>
@@ -82,9 +88,9 @@ const LoginPage = ({ onLogin }) => {
 
 const App = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(true);
-    const [topTab, setTopTab] = useState('home');
-    const [sidebarItem, setSidebarItem] = useState('news');
-    const { stats, isLoading: statsLoading } = useStatsOverview();
+    const [topTab, setTopTab] = useState('data');
+    const [sidebarItem, setSidebarItem] = useState('reputation');
+    const [moduleClass, setModuleClass] = useState('theme-data');
 
     const menuConfig = {
         home: [
@@ -93,196 +99,193 @@ const App = () => {
             { id: 'activity', label: '活动中心', icon: 'star', color: 'text-amber-500', bg: 'bg-amber-500', shadow: 'shadow-amber-500/30' }
         ],
         data: [
-            { id: 'reputation', label: '店铺声誉', icon: 'shield-check', color: 'text-emerald-500', bg: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', status: 'pulse' },
-            { id: 'infringement', label: '商品性能表', icon: 'bar-chart-2', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', count: 0 },
+            { id: 'reputation', label: '数据大盘', icon: 'pie-chart', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'radar', label: '爆品雷达', icon: 'zap', color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-500/30' },
             { id: 'data-overview', label: '数据概览', icon: 'bar-chart-2', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
-            { id: 'logistics', label: '物流跟踪', icon: 'truck', color: 'text-cyan-500', bg: 'bg-cyan-500', shadow: 'shadow-cyan-500/30' }
+            { id: 'infringement', label: '商品性能表', icon: 'bar-chart-2', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', count: 0 }
         ],
         ops: [
-            { id: 'auth', label: '前期准备', icon: 'key', color: 'text-teal-500', bg: 'bg-teal-500', shadow: 'shadow-teal-500/30' },
             { id: 'collect', label: '产品采集', icon: 'download-cloud', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'maintain', label: '商品维护', icon: 'settings', color: 'text-slate-500', bg: 'bg-slate-500', shadow: 'shadow-slate-500/30' },
-            { id: 'service', label: '售后处理', icon: 'headphones', color: 'text-rose-500', bg: 'bg-rose-500', shadow: 'shadow-rose-500/30' }
+            { id: 'service', label: '售后处理', icon: 'headphones', color: 'text-rose-500', bg: 'bg-rose-500', shadow: 'shadow-rose-500/30' },
+            { id: 'logistics', label: '物流跟踪', icon: 'truck', color: 'text-cyan-500', bg: 'bg-cyan-500', shadow: 'shadow-cyan-500/30' }
         ],
         optimize: [
+            { id: 'auth', label: '店铺授权', icon: 'key', color: 'text-teal-500', bg: 'bg-teal-500', shadow: 'shadow-teal-500/30' },
             { id: 'title', label: '标题优化', icon: 'type', color: 'text-indigo-600', bg: 'bg-indigo-600', shadow: 'shadow-indigo-600/30' },
             { id: 'image', label: '视觉图生图', icon: 'image', color: 'text-purple-500', bg: 'bg-purple-500', shadow: 'shadow-purple-500/30' },
             { id: 'keyword', label: '关键词衍生', icon: 'hash', color: 'text-amber-600', bg: 'bg-amber-600', shadow: 'shadow-amber-600/30' }
         ]
     };
 
-    const moduleClass = `accent-${topTab}`;
-
-    const handleTopTabChange = (tab) => {
-        setTopTab(tab);
-        const items = menuConfig[tab];
-        setSidebarItem(items.length > 0 ? items[0].id : null);
+    const handleTopTabChange = (tabId) => {
+        setTopTab(tabId);
+        setSidebarItem(menuConfig[tabId][0].id);
+        setModuleClass(`theme-${tabId}`);
     };
 
     const handleSidebarItemClick = (itemId) => {
-        if (itemId === 'sync_lark') {
-            fetch('/api/sync').then(r => r.json()).then(d => alert(d.message || 'Sync triggered')).catch(e => alert(e.message));
-            return;
-        }
-        // Data Center Tab
-
-        const dataItems = ['reputation', 'radar', 'data-overview', 'infringement', 'logistics'];
-        if (dataItems.includes(itemId) && topTab !== 'data') setTopTab('data');
-        // Ops Center Tab
-        const opsItems = ['auth', 'collect', 'maintain', 'service'];
-        if (opsItems.includes(itemId) && topTab !== 'ops') setTopTab('ops');
-        // Optimize Center Tab
-        const optimizeItems = ['title', 'image', 'keyword'];
-        if (optimizeItems.includes(itemId) && topTab !== 'optimize') setTopTab('optimize');
         setSidebarItem(itemId);
     };
 
     if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
 
     return (
-        <div className={`h-screen w-full gradient-bg flex flex-col items-stretch pt-10 pb-0 gap-4 overflow-hidden relative px-6 ${moduleClass}`}>
+        <div className="h-screen w-full bg-[#f8fafc] flex overflow-hidden text-slate-900 font-sans">
             
-            {/* Top Navigation Bar */}
-            <div className="w-full z-50 px-0 box-border shrink-0">
-                <div className="glass-effect rounded-[24px] flex md:grid md:grid-cols-[2.2fr_auto_1fr] items-center justify-between pl-8 pr-12 py-3 shadow-lg w-full">
-                    <div className="flex items-center">
-                        <Brand slogan="跨境电商智能工作台" />
+            {/* Column 1: Matrix Icons (Centers) */}
+            <div className="w-[70px] bg-[#020617] flex flex-col items-center py-8 gap-6 shrink-0 z-50">
+                <div className="mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                        <Icon name="command" className="w-6 h-6" />
                     </div>
+                </div>
 
-                    <nav className="hidden md:flex items-center gap-2">
-                        {[
-                            { id: 'home', label: '首页', icon: 'home', color: 'text-blue-500' },
-                            { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-indigo-500' },
-                            { id: 'ops', label: '运营中心', icon: 'layout', color: 'text-teal-500' },
-                            { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-amber-500' }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => handleTopTabChange(tab.id)}
-                                className={`px-6 py-2 rounded-full flex items-center gap-2.5 transition-all whitespace-nowrap ${topTab === tab.id ? 'bg-slate-900 text-white scale-105 font-black shadow-lg shadow-slate-200' : 'text-slate-500 hover:text-slate-800 font-bold hover:bg-slate-100'}`}
-                            >
-                                <Icon name={tab.icon} className={`w-4 h-4 ${topTab === tab.id ? 'text-white' : tab.color}`} />
-                                <span className="text-[12px] uppercase tracking-[0.2em]">{tab.label}</span>
-                            </button>
-                        ))}
-                    </nav>
-
-                    <div className="hidden md:flex items-center justify-end gap-6 border-l border-slate-200 ml-10 pl-10 h-10">
-                        <div className="flex flex-col items-end -space-y-1">
-                            <span className="text-slate-900 font-black text-sm tracking-tight uppercase">数据获取</span>
-                            <span className="text-emerald-500 text-[8px] font-black uppercase tracking-widest">在线 · 专业版</span>
+                {[
+                    { id: 'home', icon: 'home', label: '首页', color: 'blue' },
+                    { id: 'data', icon: 'pie-chart', label: '数据', color: 'indigo' },
+                    { id: 'ops', icon: 'layout', label: '运营', color: 'teal' },
+                    { id: 'optimize', icon: 'wand-2', label: '优化', color: 'amber' }
+                ].map(item => (
+                    <button
+                        key={item.id}
+                        onClick={() => handleTopTabChange(item.id)}
+                        className={`group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${topTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'}`}
+                    >
+                        <Icon name={item.icon} className="w-5 h-5" />
+                        
+                        {/* Tooltip */}
+                        <div className="absolute left-full ml-4 px-3 py-1 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-xl">
+                            {item.label}中心
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-slate-900 border-2 border-white shadow-xl flex items-center justify-center overflow-hidden">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Yunfan" alt="avatar" className="w-full h-full object-cover" />
+                        
+                        {/* Active Indicator */}
+                        {topTab === item.id && (
+                            <div className="absolute -left-4 w-1.5 h-8 bg-blue-500 rounded-r-full shadow-[4px_0_12px_rgba(59,130,246,0.5)]"></div>
+                        )}
+                    </button>
+                ))}
+
+                <div className="mt-auto space-y-4">
+                    <button className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-colors">
+                        <Icon name="bell" className="w-5 h-5" />
+                    </button>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Yunfan" alt="avatar" className="w-full h-full object-cover" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Column 2: Sub-menu Items */}
+            <div className="w-56 bg-[#0F172A] flex flex-col py-8 px-4 shrink-0 z-40 border-r border-white/5 shadow-2xl">
+                <div className="mb-8 px-2">
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mb-1">
+                        {topTab === 'home' ? 'Home' : topTab === 'data' ? 'Data Intelligence' : topTab === 'ops' ? 'Operations' : 'Optimization'}
+                    </p>
+                    <div className="h-1 w-8 bg-blue-600 rounded-full"></div>
+                </div>
+
+                <div className="flex-1 space-y-1.5 overflow-y-auto custom-scrollbar-dark pr-1">
+                    {menuConfig[topTab].map(item => (
+                        <button
+                            key={item.id}
+                            onClick={() => handleSidebarItemClick(item.id)}
+                            className={`w-full px-4 py-3.5 rounded-2xl flex items-center gap-3.5 transition-all text-left group relative ${sidebarItem === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 font-bold'}`}
+                        >
+                            <Icon name={item.icon} className={`w-4.5 h-4.5 transition-transform duration-500 ${sidebarItem === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+                            <span className="text-[13px] whitespace-nowrap">{item.label}</span>
+                            
+                            {item.count !== undefined && (
+                                <span className={`ml-auto px-2 py-0.5 rounded-md text-[9px] font-black ${sidebarItem === item.id ? 'bg-white/20' : 'bg-white/5 text-slate-500'}`}>
+                                    {item.count}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Account Section */}
+                <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-2">当前租户积分</p>
+                        <div className="flex items-end justify-between">
+                            <span className="text-2xl font-black text-white leading-none">444</span>
+                            <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-colors shadow-lg shadow-blue-500/10">
+                                充值
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between px-2">
+                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">内核状态</span>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse"></div>
+                            <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest">Active</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="w-full flex-1 flex flex-col md:flex-row gap-0 overflow-hidden relative px-0">
+            {/* Right Stack: Header + Content */}
+            <div className="flex-1 flex flex-col min-w-0">
                 
-                {/* Sidebar */}
-                <aside className={`hidden md:flex w-52 glass-effect rounded-tl-[32px] rounded-bl-none rounded-tr-none rounded-br-none p-3 flex-col z-40 overflow-hidden shadow-[10px_0_30px_-15px_rgba(0,0,0,0.05)] relative border-r border-slate-200/50 transition-colors duration-1000 ${
-                    topTab === 'home' ? 'bg-blue-50/30' : 
-                    topTab === 'data' ? 'bg-indigo-50/30' : 
-                    topTab === 'ops' ? 'bg-teal-50/30' : 'bg-amber-50/30'
-                }`}>
-                    {/* Tech Decor: Grid Overlay */}
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                    
-                    {/* Energy Line */}
-                    <div className={`absolute left-0 top-1/4 bottom-1/4 w-[2px] rounded-full blur-[1px] transition-all duration-700 ${
-                        topTab === 'home' ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : 
-                        topTab === 'data' ? 'bg-indigo-500 shadow-[0_0_10px_#6366f1]' : 
-                        topTab === 'ops' ? 'bg-teal-500 shadow-[0_0_10px_#14b8a6]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'
-                    }`}></div>
+                {/* Header */}
+                <header className="h-[72px] bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0 z-30">
+                    <div className="flex items-center gap-3">
+                        <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">
+                            {topTab === 'home' ? '首页' : topTab === 'data' ? '数据中心' : topTab === 'ops' ? '运营中心' : '优化中心'}
+                        </span>
+                        <span className="text-slate-300 text-sm">/</span>
+                        <h2 className="text-slate-900 text-base font-black tracking-tight">
+                            {menuConfig[topTab].find(i => i.id === sidebarItem)?.label || '加载中...'}
+                        </h2>
+                    </div>
 
-                    <div className="flex items-center justify-between mb-8 px-5 pt-5 relative z-10">
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em]">{topTab}</p>
-                        <div className="flex gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
-                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-                                topTab === 'home' ? 'bg-blue-500' : 
-                                topTab === 'data' ? 'bg-indigo-500' : 
-                                topTab === 'ops' ? 'bg-teal-500' : 'bg-amber-500'
-                            }`}></div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                            <span className="text-[10px] text-slate-500 font-bold">更新于 04/28 21:33</span>
                         </div>
-                    </div>
-
-                    <div className="flex-1 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
-                        {menuConfig[topTab].map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => handleSidebarItemClick(item.id)}
-                                className={`w-full pl-5 py-3.5 rounded-[20px] flex items-center justify-start gap-3.5 transition-all text-left border relative overflow-hidden group ${sidebarItem === item.id ? `bg-white border-slate-200 shadow-[0_10px_20px_-10px_rgba(0,0,0,0.1)] scale-[1.02] z-10` : 'text-slate-400 hover:bg-white/60 hover:text-slate-700 border-transparent'}`}
-                            >
-                                {sidebarItem === item.id && (
-                                    <div className={`absolute inset-y-0 left-0 w-1 ${item.bg}`}></div>
-                                )}
-                                <div className={`w-9 h-9 rounded-xl shrink-0 flex items-center justify-center transition-all duration-500 ${sidebarItem === item.id ? `${item.bg} text-white shadow-lg ${item.shadow} rotate-[8deg]` : `bg-slate-100/50 ${item.color} group-hover:bg-white group-hover:shadow-sm`}`}>
-                                    <Icon name={item.icon} className="w-5 h-5" />
-                                </div>
-                                <div className="flex flex-col items-start -space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-[13px] font-black uppercase tracking-[0.05em] whitespace-nowrap transition-colors ${sidebarItem === item.id ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>{item.label}</span>
-                                        {item.count !== undefined && (
-                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black tnum transition-all ${sidebarItem === item.id ? `${item.bg} text-white` : 'bg-slate-100 text-slate-400 opacity-50 group-hover:opacity-100'}`}>{item.count}</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-slate-200 px-1 mb-1 space-y-2">
-                        <button 
-                            onClick={() => handleSidebarItemClick('sync_lark')}
-                            className="w-full py-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-blue-100"
-                        >
+                        <button className="px-4 py-2 bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-slate-900/10">
                             <Icon name="refresh-cw" className="w-3.5 h-3.5" />
-                            同步至 Lark Bitable
+                            刷新
                         </button>
-                        <div className="rounded-xl p-3 space-y-2 bg-slate-50 border border-slate-100">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">引擎状态</span>
-                                <span className="flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                                    <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">运行中</span>
-                                </span>
-                            </div>
-                        </div>
+                        <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                        <button className="text-slate-400 hover:text-rose-500 transition-colors">
+                            <Icon name="log-out" className="w-5 h-5" />
+                        </button>
                     </div>
-                </aside>
+                </header>
 
-                {/* Content */}
-                <main className={`flex-1 glass-effect rounded-tr-[32px] rounded-tl-none rounded-bl-none rounded-br-none p-0 relative z-10 custom-scrollbar ${['reputation', 'infringement'].includes(sidebarItem) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-                    <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
-                        {sidebarItem === 'news' && <NewsView />}
-                        {sidebarItem === 'intro' && <BusinessIntroView />}
-                        {sidebarItem === 'activity' && <ActivityCenterView />}
-                        {sidebarItem === 'reputation' && <ShopReputationView />}
-                        {sidebarItem === 'radar' && <MarketRadarView />}
-                        {sidebarItem === 'data-overview' && <DataOverviewView />}
-                        {sidebarItem === 'infringement' && <ProductPerformanceView />}
-                        {sidebarItem === 'logistics' && <LogisticsAlertsView />}
-                        {sidebarItem === 'auth' && <AuthPrepareView />}
-                        {sidebarItem === 'collect' && <ProductCollectView />}
-                        {sidebarItem === 'maintain' && <ProductMaintainView />}
-                        {sidebarItem === 'service' && <AfterSalesView />}
+                {/* Main Content Area */}
+                <main className={`flex-1 overflow-hidden relative custom-scrollbar bg-slate-50 ${['reputation', 'infringement'].includes(sidebarItem) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                    <div className="h-full p-10">
+                        <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
+                            {sidebarItem === 'news' && <NewsView />}
+                            {sidebarItem === 'intro' && <BusinessIntroView />}
+                            {sidebarItem === 'activity' && <ActivityCenterView />}
+                            {sidebarItem === 'reputation' && <ShopReputationView />}
+                            {sidebarItem === 'radar' && <MarketRadarView />}
+                            {sidebarItem === 'data-overview' && <DataOverviewView />}
+                            {sidebarItem === 'infringement' && <ProductPerformanceView />}
+                            {sidebarItem === 'logistics' && <LogisticsAlertsView />}
+                            {sidebarItem === 'auth' && <AuthPrepareView />}
+                            {sidebarItem === 'collect' && <ProductCollectView />}
+                            {sidebarItem === 'maintain' && <ProductMaintainView />}
+                            {sidebarItem === 'service' && <AfterSalesView />}
 
-                        {!['news', 'intro', 'activity', 'reputation', 'radar', 'data-overview', 'traffic', 'infringement', 'logistics', 'auth', 'collect', 'maintain', 'service', 'title', 'image', 'keyword'].includes(sidebarItem) && (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
-                                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center">
-                                    <Icon name="construction" className="w-10 h-10" />
+                            {!['news', 'intro', 'activity', 'reputation', 'radar', 'data-overview', 'traffic', 'infringement', 'logistics', 'auth', 'collect', 'maintain', 'service', 'title', 'image', 'keyword'].includes(sidebarItem) && (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
+                                    <div className="w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                        <Icon name="construction" className="w-10 h-10" />
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">模块开发中...</p>
                                 </div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em]">模块开发中...</p>
-                            </div>
-                        )}
-                        {sidebarItem === 'title' && <OptimizeTitleView />}
-                        {sidebarItem === 'image' && <ImageLabView />}
-                        {sidebarItem === 'keyword' && <KeywordIntelView />}
-                    </Suspense>
+                            )}
+                            {sidebarItem === 'title' && <OptimizeTitleView />}
+                            {sidebarItem === 'image' && <ImageLabView />}
+                            {sidebarItem === 'keyword' && <KeywordIntelView />}
+                        </Suspense>
+                    </div>
                 </main>
             </div>
         </div>
