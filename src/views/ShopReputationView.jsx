@@ -23,6 +23,7 @@ const getGroupKey = (s) => (s.name || s.account || '').replace(/-(MLB|MLM|MLA|MC
 
 const Tooltip = ({ data, storeName, site, position, onClose }) => {
     if (!data) return null;
+    console.log('Tooltip render:', position);
     const siteInfo = SITE_COLS.find(c => c.code === site) || { flag: '🌐', name: site };
     const statusLabel = data.status === 'green' ? '健康' : data.status === 'yellow' ? '预警' : '危险';
     return (
@@ -122,9 +123,10 @@ const ShopReputationView = () => {
     const totalRed = shops.filter(s => s.status === 'red').length;
 
     const handleCellHover = (e, storeName, site, cell) => {
+        const rect = e.currentTarget.getBoundingClientRect();
         setHoveredPos({
-            x: e.clientX,
-            y: e.clientY + 8,
+            x: rect.left,
+            y: rect.bottom + 8,
         });
         setHoveredCell({ storeName, site, data: cell });
     };
