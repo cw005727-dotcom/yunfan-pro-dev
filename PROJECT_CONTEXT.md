@@ -1,5 +1,11 @@
 # 云帆跨境 PRO - 项目统一协作手册 (PROJECT_CONTEXT.md)
 
+### 🚨 核心开发准则 (Core Development Principles)
+> **致所有协作 AI：** 本项目已确立“单一事实来源”原则。
+1. **工作目录**：唯一合法的物理操作路径为 `/Users/chensan/yunfan-pro-dev/`。严禁在 Accio 默认项目目录中进行逻辑修改。
+2. **环境验证**：所有 `npm` 或 `python` 命令必须在 `/Users/chensan/yunfan-pro-dev/` 下执行，以适配 ARM64 签名环境。
+3. **数据映射**：必须遵循下方的 [数据-UI 映射协议]。
+
 ### 🗺️ 数据-UI 映射协议 (Data-to-UI Mapping Protocol)
 > **致所有协作 AI：** 为了确保“大姐店”真实在售数据精准落地，必须遵循以下映射规则。禁止跨模块混用字段。
 
