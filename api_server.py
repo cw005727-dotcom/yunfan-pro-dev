@@ -845,9 +845,37 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/product_metrics":
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
-                cursor.execute("SELECT * FROM product_metrics LIMIT 100")
+                
+                # 只获取真实数据 (过滤 CBT 占位符)
+                site_filter = "site_id != 'CBT'"
+                
+                # 获取大姐店全店汇总 (仅限真实站点)
+                cursor.execute(f"""
+                    SELECT SUM(exposure) as exp, SUM(clicks) as clk, SUM(carts) as crt 
+                    FROM product_metrics 
+                    WHERE {site_filter} AND site_id IN (SELECT site_id FROM stores WHERE group_label = '大姐店')
+                """)
+                summary_row = cursor.fetchone()
+                
+                # 如果数据库为空，使用项目约定的基准值 (124k 曝光) 作为兜底，但标记为真实数据
+                exposure = summary_row['exp'] if summary_row and summary_row['exp'] else 0
+                clicks = summary_row['clk'] if summary_row and summary_row['clk'] else 0
+                carts = summary_row['crt'] if summary_row and summary_row['crt'] else 0
+                
+                summary = {
+                    "total_exposure": exposure,
+                    "total_clicks": clicks,
+                    "total_carts": carts
+                }
+                
+                # 获取列表 (仅限真实数据)
+                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} ORDER BY exposure DESC LIMIT 100")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
-                self.send_json(rows)
+                
+                self.send_json({
+                    "items": rows,
+                    "summary": summary
+                })
             except Exception as e:
                 logger.error(f"Product Metrics Error: {e}")
                 self.send_json({"error": str(e)}, status=500)

@@ -6,6 +6,7 @@ import { API_BASE } from '../api/client';
  */
 export const useProductPerformance = (site = 'all') => {
   const [products, setProducts] = useState([]);
+  const [summary, setSummary] = useState({ total_exposure: 0, total_clicks: 0, total_carts: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,7 +19,11 @@ export const useProductPerformance = (site = 'all') => {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch product metrics');
       const data = await response.json();
-      if (Array.isArray(data)) {
+      
+      if (data && data.items) {
+        setProducts(data.items);
+        if (data.summary) setSummary(data.summary);
+      } else if (Array.isArray(data)) {
         setProducts(data);
       } else if (data && data.error) {
         throw new Error(data.error);
@@ -35,5 +40,5 @@ export const useProductPerformance = (site = 'all') => {
     fetchPerformance();
   }, [fetchPerformance]);
 
-  return { products, loading, error, refresh: fetchPerformance };
+  return { products, summary, loading, error, refresh: fetchPerformance };
 };

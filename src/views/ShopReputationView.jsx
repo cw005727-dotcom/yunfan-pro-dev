@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '../components/Icon.jsx';
 import { useReputation } from '../hooks/useReputation';
 import { useAppContext } from '../context/AppContext.jsx';
@@ -31,7 +32,9 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
             className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-4"
             style={{ 
                 left: position.x, 
-                top: position.y,
+                top: position.y, 
+                position: 'fixed', 
+                transform: 'none',
                 minWidth: '200px'
             }}
             onMouseLeave={onClose}
@@ -269,7 +272,7 @@ const ShopReputationView = () => {
 
             <p className="text-center text-[9px] text-slate-300 font-medium">悬停彩点查看详细指标</p>
 
-            {hoveredCell && (
+            {hoveredCell && createPortal((
                 <Tooltip
                     data={hoveredCell.data}
                     storeName={hoveredCell.storeName}
@@ -277,7 +280,7 @@ const ShopReputationView = () => {
                     position={hoveredPos}
                     onClose={handleCellLeave}
                 />
-            )}
+            ), document.body)}
         </div>
     );
 };

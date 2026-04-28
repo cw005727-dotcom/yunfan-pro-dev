@@ -109,7 +109,7 @@ const healthCls = (s) => {
 const ProductPerformanceView = () => {
     const [activeTab, setActiveTab] = useState('new');
     const [activeSite, setActiveSite] = useState('all');
-    const { products: allItems, loading: isLoading, refresh: refreshPerf } = useProductPerformance(activeSite);
+    const { products: allItems, summary, loading: isLoading, refresh: refreshPerf } = useProductPerformance(activeSite);
     const [selectedItem, setSelectedItem] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [imgErrors, setImgErrors] = useState({});
@@ -143,8 +143,9 @@ const ProductPerformanceView = () => {
 
     const thumbs = (key) => categorized[key].slice(0,3).map(d => ({ url: d.image_url, id: d.item_id }));
 
-    const totalExp    = allItems.reduce((s,i) => s+(i.exposure||0), 0);
-    const totalCarts  = allItems.reduce((s,i) => s+(i.carts||0), 0);
+    const totalExp    = summary?.total_exposure || allItems.reduce((s,i) => s+(i.exposure||0), 0);
+    const totalCarts  = summary?.total_carts || allItems.reduce((s,i) => s+(i.carts||0), 0);
+    const totalClicks = summary?.total_clicks || allItems.reduce((s,i) => s+(i.clicks||0), 0);
     const avgHealth   = allItems.length ? Math.round(allItems.reduce((s,i) => s+(i.health_score||0), 0) / allItems.length) : 0;
 
     const Row = ({ item, idx }) => {
@@ -271,7 +272,7 @@ const ProductPerformanceView = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-[12px] font-mono font-black text-indigo-600 truncate">{item.item_id}</p>
-                                <p className="text-[9px] text-indigo-400">{item.start_time ? `${fmtDate(item.start_time)} 上架` : '无上架时间'}</p>
+                                <p className="text-[9px] text-indigo-400">{item.start_time ? `${fmtDate(item.start_time)} 上架` : (item.last_updated ? `${fmtDate(item.last_updated.split(' ')[0])} 同步` : '待同步')}</p>
                             </div>
                             <div className="text-right shrink-0">
                                 <p className="text-[12px] font-black text-indigo-600 tabular-nums">{fmt(item.exposure)}</p>
@@ -301,7 +302,7 @@ const ProductPerformanceView = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-[12px] font-mono font-black text-violet-600 truncate">{item.item_id}</p>
-                                <p className="text-[9px] text-violet-400">{item.start_time ? `${fmtDate(item.start_time)} 上架` : '无上架时间'}</p>
+                                <p className="text-[9px] text-violet-400">{item.start_time ? `${fmtDate(item.start_time)} 上架` : (item.last_updated ? `${fmtDate(item.last_updated.split(' ')[0])} 同步` : '待同步')}</p>
                             </div>
                             <div className="text-right shrink-0">
                                 <p className="text-[12px] font-black text-violet-600 tabular-nums">{fmt(item.carts)}</p>
@@ -317,7 +318,7 @@ const ProductPerformanceView = () => {
                 <div className="flex items-center gap-2 mb-3">
                     <Icon name="mouse-pointer-click" className="w-4 h-4 text-amber-600" />
                     <span className="text-[22px] font-black text-amber-700 leading-none">总点击</span>
-                    <span className="ml-auto text-[22px] font-black text-amber-800 leading-none">{fmt(allItems.reduce((s,i)=>s+(i.clicks||0),0))}</span>
+                    <span className="ml-auto text-[22px] font-black text-amber-800 leading-none">{fmt(totalClicks)}</span>
                 </div>
                 <div className="hidden md:block space-y-2">
                     {[...allItems].sort((a,b)=>(b.clicks||0)-(a.clicks||0)).slice(0,5).map((item, idx) => (
