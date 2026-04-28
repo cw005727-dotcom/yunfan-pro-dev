@@ -12,50 +12,23 @@ const RADAR_CATEGORIES = [
 
 const MarketRadarView = () => {
     const [activeSite, setActiveSite] = useState('MLM');
-    const { items: marketProducts, trends, loading: trendsLoading, refresh: refreshRadar } = useMarketRadar(activeSite);
+    const { items: marketProducts, trends, loading: trendsLoading } = useMarketRadar(activeSite);
     const { products: items } = useProductPerformance();
     const { diagnose: runDoctor, loading: isDiagnosing } = useListingDoctor();
     
-    const [rotationSuggestion, setRotationSuggestion] = useState(null);
-    const [rotationLoading, setRotationLoading] = useState(false);
     const [diagnosisData, setDiagnosisData] = useState(null);
     const [showDoctor, setShowDoctor] = useState(false);
-    const [copiedKeyword, setCopiedKeyword] = useState(null);
 
-    useEffect(() => {
-        loadRotationSuggestion();
-    }, []);
+    // Site Metadata with Colors and Default Metrics
+    const SITES_CONFIG = [
+        { id: 'MLM', flag: '🇲🇽', label: '墨西哥', heat: 92.5, color: 'blue', border: 'border-blue-500/20', activeBorder: 'border-blue-500', bg: 'bg-blue-500/5', bar: 'bg-blue-500', text: 'text-blue-600', categories: [{ name: '电子产品', p: '42%' }, { name: '家居生活', p: '25%' }, { name: '户外运动', p: '18%' }] },
+        { id: 'MLB', flag: '🇧🇷', label: '巴西', heat: 88.1, color: 'emerald', border: 'border-emerald-500/20', activeBorder: 'border-emerald-500', bg: 'bg-emerald-500/5', bar: 'bg-emerald-500', text: 'text-emerald-600', categories: [{ name: '美妆健康', p: '38%' }, { name: '电子配饰', p: '31%' }, { name: '玩具周边', p: '12%' }] },
+        { id: 'MLC', flag: '🇨🇱', label: '智利', heat: 74.6, color: 'rose', border: 'border-rose-500/20', activeBorder: 'border-rose-500', bg: 'bg-rose-500/5', bar: 'bg-rose-500', text: 'text-rose-600', categories: [{ name: '冬季服饰', p: '55%' }, { name: '取暖设备', p: '22%' }, { name: '厨房家电', p: '10%' }] },
+        { id: 'MCO', flag: '🇨🇴', label: '哥伦比亚', heat: 62.3, color: 'amber', border: 'border-amber-500/20', activeBorder: 'border-amber-500', bg: 'bg-amber-500/5', bar: 'bg-amber-500', text: 'text-amber-600', categories: [{ name: '手机通讯', p: '41%' }, { name: '汽车配件', p: '19%' }, { name: '办公用品', p: '15%' }] },
+        { id: 'MLA', flag: '🇦🇷', label: '阿根廷', heat: 54.8, color: 'cyan', border: 'border-cyan-500/20', activeBorder: 'border-cyan-500', bg: 'bg-cyan-500/5', bar: 'bg-cyan-500', text: 'text-cyan-600', categories: [{ name: '家用电器', p: '35%' }, { name: '个人护理', p: '24%' }, { name: '户外休闲', p: '18%' }] }
+    ];
 
-    const loadRotationSuggestion = () => {
-        fetch('/api/smart_rotation')
-            .then(r => r.json())
-            .then(data => { if (data.has_suggestion) setRotationSuggestion(data.suggestion); })
-            .catch(() => {});
-    };
-
-    const handleRotate = async () => {
-        if (!rotationSuggestion) return;
-        setRotationLoading(true);
-        try {
-            const res = await fetch('/api/apply_rotation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    remove_id: rotationSuggestion.current_item_id,
-                    add_id: rotationSuggestion.new_item_id
-                })
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                setRotationSuggestion(null);
-                refreshRadar();
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setRotationLoading(false);
-        }
-    };
+    const currentTrends = trends[activeSite] || {};
 
     const handleDiagnose = async (marketP) => {
         setShowDoctor(true);
@@ -75,191 +48,166 @@ const MarketRadarView = () => {
 
     const copyKeyword = (kw) => {
         navigator.clipboard.writeText(kw);
-        setCopiedKeyword(kw);
-        setTimeout(() => setCopiedKeyword(null), 2000);
     };
-
-    const bubbleSize = (index) => {
-        if (index < 2) return 'text-sm font-black px-5 py-2.5';
-        if (index < 7) return 'text-[12px] font-bold px-3.5 py-2';
-        return 'text-[11px] font-medium px-3 py-1.5';
-    };
-
-    const bubbleDelay = (index) => index * 30;
-
-    const currentTrends = trends[activeSite] || {};
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
+        <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 overflow-hidden">
             <DiagnosticModal isOpen={showDoctor} onClose={() => setShowDoctor(false)} data={diagnosisData} isDiagnosing={isDiagnosing} />
 
-            {rotationSuggestion && (
-                <div className="relative overflow-hidden rounded-[32px] p-1 bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 shadow-xl shadow-indigo-100 group">
-                    <div className="bg-white/95 backdrop-blur-md rounded-[28px] px-8 py-5 flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center">
-                                <Icon name="refresh-cw" className={`w-6 h-6 text-indigo-500 ${rotationLoading ? 'animate-spin' : ''}`} />
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-widest">智能建议</span>
-                                    <p className="text-sm font-black text-slate-900">核心 Scout 品类轮替提醒</p>
-                                </div>
-                                <p className="text-[11px] text-slate-500 font-medium">
-                                    检测到 {rotationSuggestion.current_item_name} (曝光 {rotationSuggestion.current_exposure}) 表现下滑，建议替换为高潜新品 {rotationSuggestion.new_item_name} (预估潜力 +{Math.round(rotationSuggestion.potential_gain*100)}%)
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <button onClick={handleRotate} disabled={rotationLoading} className="px-8 py-3.5 rounded-2xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg active:scale-95 disabled:opacity-50">
-                                {rotationLoading ? '执行中...' : '立即轮替'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="flex items-center justify-between">
+            {/* 1. Header Section */}
+            <div className="flex items-center justify-between shrink-0">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">爆品雷达</h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Market Intelligent Radar</p>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">爆品雷达</h3>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Market Intelligent Radar Matrix</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Live Updates</span>
+                <div className="flex items-center gap-3">
+                    <div className="px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">全域实时监控中</span>
                     </div>
                 </div>
             </div>
 
-            <div className="solid-card rounded-[24px] border border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm shadow-xl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-200">
-                            <Icon name="zap" className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-900">市场搜索热词</p>
-                            <p className="text-[9px] text-slate-400 font-medium">根据全平台搜索量实时排序 · 自动匹配相关类目</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {[
-                            { code: 'MLM', label: '墨西哥' },
-                            { code: 'MLB', label: '巴西' },
-                            { code: 'MLC', label: '智利' },
-                            { code: 'MCO', label: '哥伦比亚' }
-                        ].map(site => (
-                            <button key={site.code} onClick={() => setActiveSite(site.code)} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all duration-200 ${activeSite === site.code ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>
+            {/* 2. Five-Site Matrix Grid */}
+            <div className="grid grid-cols-5 gap-4 shrink-0">
+                {SITES_CONFIG.map(site => (
+                    <button 
+                        key={site.id} 
+                        onClick={() => setActiveSite(site.id)}
+                        className={`group relative p-5 rounded-[28px] border transition-all duration-500 text-left overflow-hidden
+                            ${activeSite === site.id 
+                                ? `bg-white ${site.activeBorder} shadow-[0_20px_40px_rgba(0,0,0,0.08)] -translate-y-1` 
+                                : `${site.bg} ${site.border} hover:bg-white hover:border-slate-300`}`}
+                    >
+                        {/* Top Indicator Bar */}
+                        <div className={`absolute top-0 left-0 w-full h-1 transition-opacity duration-500 ${activeSite === site.id ? 'opacity-100' : 'opacity-0'} ${site.bar}`} />
+
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="text-base leading-none">{site.flag}</span>
+                            <span className={`text-[11px] font-black tracking-tight ${site.text}`}>
                                 {site.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div className="px-6 py-5">
-                    {trendsLoading ? (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3">
-                            <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-violet-500 animate-spin" />
-                            <span className="text-slate-400 text-[10px] font-medium">加载市场趋势...</span>
+                            </span>
                         </div>
-                    ) : (
-                        <div>
-                            {RADAR_CATEGORIES.map(cat => {
-                                const words = currentTrends[cat.key] || [];
-                                return (
-                                    <div key={cat.key} className="mb-5 last:mb-0">
+                        
+                        <div className="mb-4">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">全网热度</p>
+                            <span className="text-3xl font-black tracking-tighter text-slate-900">
+                                {site.heat}
+                            </span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {site.categories.map((cat, idx) => (
+                                <div key={idx} className="space-y-1">
+                                    <div className="flex justify-between text-[9px] font-bold">
+                                        <span className="text-slate-600">{cat.name}</span>
+                                        <span className={site.text}>{cat.p}</span>
+                                    </div>
+                                    <div className="h-1 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full transition-all duration-1000 ${site.bar}`}
+                                            style={{ width: cat.p }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            {/* 3. Bottom Viewport Area (Flex-1) */}
+            <div className="flex-1 grid grid-cols-3 gap-6 min-h-0 overflow-hidden">
+                {/* Left: Intelligence Keywords */}
+                <div className="col-span-1 flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-xl min-h-0">
+                    <div className="px-6 py-5 border-b border-slate-50 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                <Icon name="search" className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <p className="text-[13px] font-black text-slate-900">搜索热词快讯</p>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Live Search Pulse</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar pr-2">
+                        {trendsLoading ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40">
+                                <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin" />
+                                <span className="text-[10px] font-bold text-slate-400">正在同步站点数据...</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {RADAR_CATEGORIES.map(cat => (
+                                    <div key={cat.key}>
                                         <div className="flex items-center gap-2 mb-3">
-                                            <div className={`w-2 h-2 rounded-full ${cat.dot}`} />
+                                            <div className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
                                             <span className={`text-[10px] font-black uppercase tracking-widest ${cat.textColor}`}>{cat.label}</span>
-                                            <span className="text-[9px] text-slate-400 font-medium">{cat.desc}</span>
-                                            <span className="text-[9px] text-slate-300 font-medium">· {words.length}个词</span>
                                         </div>
-                                        <div className="flex flex-wrap gap-2.5 items-center" style={{alignItems: 'center'}}>
-                                            {words.map((w, i) => (
+                                        <div className="flex flex-wrap gap-2">
+                                            {(currentTrends[cat.key] || []).map((w, i) => (
                                                 <button
                                                     key={i}
                                                     onClick={() => copyKeyword(w.keyword)}
-                                                    title={`${w.category || ''} · 点击复制`}
-                                                    className={`relative rounded-full whitespace-nowrap transition-all duration-300 cursor-pointer group/btn
-                                                        ${cat.bg} ${cat.textColor}
-                                                        ${bubbleSize(i)}
-                                                        ${copiedKeyword === w.keyword ? 'ring-2 ring-offset-1 ring-blue-400 scale-105' : ''}
-                                                    `}
-                                                    style={{
-                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                                                        animationDelay: `${bubbleDelay(i)}ms`,
-                                                    }}
-                                                    onMouseEnter={e => {
-                                                        e.currentTarget.style.transform = 'translateY(-2px) scale(1.04)';
-                                                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.14)';
-                                                    }}
-                                                    onMouseLeave={e => {
-                                                        e.currentTarget.style.transform = '';
-                                                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-                                                    }}
+                                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border ${cat.bg} ${cat.textColor} ${cat.border} hover:scale-105 active:scale-95`}
                                                 >
-                                                    <span className="mr-1.5 inline-block transform group-hover/btn:scale-125 transition-transform duration-300">
-                                                        {[...(w.category || '')][0]}
-                                                    </span>
-                                                    <span>{w.keyword}</span>
-                                                    <span className={`ml-2 text-[9px] opacity-40 font-medium ${i < 7 ? 'inline' : 'hidden group-hover/btn:inline'}`}>
-                                                        {w.category ? w.category.slice(2) : '综合'}
-                                                    </span>
+                                                    {w.keyword}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="solid-card rounded-[24px] border border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm shadow-xl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200">
-                            <Icon name="trending-up" className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-900">实时爆品雷达</p>
-                            <p className="text-[9px] text-slate-400 font-medium">根据当前趋势词自动检索市场最火商品 · 实时主图</p>
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="p-6">
-                    {trendsLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-amber-500 animate-spin" />
-                            <span className="text-slate-400 text-[10px] font-medium">正在扫描市场爆品...</span>
+                {/* Right: Explosive Product Scanner */}
+                <div className="col-span-2 flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-xl min-h-0 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-200">
+                                <Icon name="trending-up" className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-[13px] font-black text-slate-900">实时爆品扫描仪</p>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Market Top Performers</p>
+                            </div>
                         </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                            {marketProducts.length > 0 ? marketProducts.slice(0, 12).map((p, i) => (
-                                <div key={i} className="group relative flex flex-col bg-white rounded-2xl border border-slate-100 hover:border-amber-200 transition-all hover:shadow-xl hover:-translate-y-1">
-                                    <div className="aspect-square w-full rounded-t-2xl overflow-hidden bg-slate-50 relative">
-                                        <img src={p.image || p.thumbnail} alt={p.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                        <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[9px] font-black">已售 {p.sales}+</div>
-                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg">{i + 1}</div>
-                                    </div>
-                                    <div className="p-3 space-y-2">
-                                        <div className="min-h-[32px]">
-                                            <p className="text-slate-800 font-bold text-[10px] leading-tight line-clamp-2 group-hover:text-amber-600 transition-colors">{p.title}</p>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-amber-600 font-black text-xs">{p.currency === 'MXN' ? '$' : p.currency} {p.price}</span>
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{p.keyword}</span>
-                                        </div>
-                                        <button onClick={() => handleDiagnose(p)} className="w-full mt-2 py-2 rounded-xl bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">AI 诊断对比</button>
-                                    </div>
-                                </div>
-                            )) : (
-                                <div className="col-span-full py-12 text-center"><p className="text-slate-400 text-xs font-medium">当前站点暂无爆品扫描结果</p></div>
-                            )}
+                        <div className="px-3 py-1 rounded-full bg-slate-50 text-slate-400 text-[9px] font-black tracking-widest">
+                            {marketProducts.length} REAL ITEMS SCANNED
                         </div>
-                    )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        {trendsLoading ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40">
+                                <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-amber-500 animate-spin" />
+                                <span className="text-[10px] font-bold text-slate-400">正在扫描全球爆款...</span>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-5 gap-3">
+                                {marketProducts.map((p, i) => (
+                                    <div key={i} className="group bg-white rounded-2xl border border-slate-50 p-2 hover:border-amber-400 transition-all hover:shadow-xl hover:-translate-y-1">
+                                        <div className="aspect-square rounded-xl overflow-hidden bg-slate-50 relative mb-2">
+                                            <img src={p.image || p.thumbnail} alt={p.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                            {p.sales > 500 && (
+                                                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-rose-600 text-white text-[8px] font-black tracking-tighter shadow-lg animate-pulse">HOT</div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-slate-800 font-black text-[9px] line-clamp-2 min-h-[24px] leading-tight">{p.title}</p>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-amber-600 font-black text-[11px] tracking-tight">${p.price}</span>
+                                                <span className="text-[8px] text-slate-400 font-bold px-1 py-0.5 bg-slate-50 rounded">售 {p.sales}+</span>
+                                            </div>
+                                            <button onClick={() => handleDiagnose(p)} className="w-full mt-1.5 py-1.5 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest hover:bg-amber-500 transition-all active:scale-95">AI 诊断</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
