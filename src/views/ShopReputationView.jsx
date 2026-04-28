@@ -24,7 +24,6 @@ const getGroupKey = (s) => (s.name || s.account || '').replace(/-(MLB|MLM|MLA|MC
 
 const Tooltip = ({ data, storeName, site, position, onClose }) => {
     if (!data) return null;
-    console.log('Tooltip render:', position);
     const siteInfo = SITE_COLS.find(c => c.code === site) || { flag: '🌐', name: site };
     const statusLabel = data.status === 'green' ? '健康' : data.status === 'yellow' ? '预警' : '危险';
     return (
@@ -190,6 +189,46 @@ const ShopReputationView = () => {
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
             </div>
+
+            {/* 风险预警跑马灯 */}
+            {(() => {
+                const riskItems = [];
+                shops.forEach(s => {
+                    if (s.site === 'CBT' || !s.status) return;
+                    if (s.status === 'red') {
+                        riskItems.push({ site: s.site, name: s.store_name || s.nickname || s.account, type: '危险', bg: 'bg-rose-50 border border-rose-200', dotColor: 'bg-rose-500', textColor: 'text-rose-600', reason: `投诉率${s.complaints_rate || 0}% · 延误率${s.delayed_rate || 0}%` });
+                    } else if (s.status === 'yellow') {
+                        riskItems.push({ site: s.site, name: s.store_name || s.nickname || s.account, type: '预警', bg: 'bg-amber-50 border border-amber-200', dotColor: 'bg-amber-500', textColor: 'text-amber-600', reason: `投诉率${s.complaints_rate || 0}% · 延误率${s.delayed_rate || 0}%` });
+                    }
+                });
+                if (riskItems.length === 0) return null;
+                const marqueeList = [...riskItems, ...riskItems];
+                const siteLabels = { MX: '🇲🇽墨西哥', BR: '🇧🇷巴西', AR: '🇦🇷阿根廷', CO: '🇨🇴哥伦比亚', CL: '🇨🇱智利', MLM: '🇲🇽墨西哥', MLB: '🇧🇷巴西', MLA: '🇦🇷阿根廷', MCO: '🇨🇴哥伦比亚' };
+                return (
+                    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100">
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-700">风险预警透视</p>
+                            <div className="flex-1 h-px bg-slate-100"></div>
+                            <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">实时监控中</p>
+                        </div>
+                        <div className="relative overflow-hidden py-4">
+                            <div className="flex gap-5 marquee-track">
+                                <div className="animate-marquee flex items-center gap-5 shrink-0">
+                                    {marqueeList.map((item, i) => (
+                                        <div key={i} className={`flex items-center gap-2.5 px-4 py-2 rounded-full shrink-0 ${item.bg}`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${item.dotColor} shrink-0`}></div>
+                                            <span className={`text-[10px] font-black uppercase tracking-wide ${item.textColor}`}>{item.type}</span>
+                                            <span className="text-[11px] font-black text-slate-800">{siteLabels[item.site] || item.site}</span>
+                                            <span className="text-[11px] text-slate-500">· {item.reason}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Matrix Table */}
             <div className="rounded-3xl border border-slate-200 overflow-hidden bg-white shadow-sm">

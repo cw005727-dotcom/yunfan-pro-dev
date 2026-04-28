@@ -1,5 +1,30 @@
 # 云帆跨境 PRO - 项目统一协作手册 (PROJECT_CONTEXT.md)
 
+### 🗺️ 数据-UI 映射协议 (Data-to-UI Mapping Protocol)
+> **致所有协作 AI：** 为了确保“大姐店”真实在售数据精准落地，必须遵循以下映射规则。禁止跨模块混用字段。
+
+#### 1. 商品性能板块 (Product Performance)
+*   **前端组件**：`src/views/ProductPerformanceView.jsx`
+*   **后端接口**：`/api/product_metrics`
+*   **物理表**：`mercadolibre.db` -> `product_metrics`
+*   **过滤条件**：`status = 'active' AND site_id != 'CBT'` (仅限真实在售商品)
+*   **核心映射**：
+    | UI 模块/卡片 | 数据字段 (Database/API) | 业务逻辑定义 |
+    | :--- | :--- | :--- |
+    | **总曝光 (KPI)** | `SUM(exposure)` | 全店 Active 在售商品的总 visits |
+    | **总点击 (KPI)** | `SUM(clicks)` | 全店 Active 在售商品的总点击 |
+    | **总加车 (KPI)** | `SUM(carts)` | 全店 Active 在售商品的总加车数 |
+    | **健康度 (仪表盘)** | `health_score` | 直接取自 API `health_score` (0-100) |
+    | **上架时间** | `start_time` | 映射自 API `date_created` (ISO -> YYYY-MM-DD) |
+    | **价格指数** | `price_index` | 算法：`current_price / category_avg_price` |
+
+#### 2. 状态码规范
+*   `active`: 在售 (Listing is live and purchasable)
+*   `under_review`: 审核中 (Risk module focuses here)
+*   `closed`: 已下架 (Do not show in Performance module)
+
+---
+
 ### 🚨 核心数据治理与准入标准 (2026-04-28 增补)
 > **致所有 AI：本项目已建立物理级数据准入防线，任何违反以下规则的写入都将被系统拦截。**
 
