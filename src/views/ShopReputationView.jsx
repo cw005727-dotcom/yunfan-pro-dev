@@ -122,12 +122,10 @@ const ShopReputationView = () => {
     const totalRed = shops.filter(s => s.status === 'red').length;
 
     const handleCellHover = (e, storeName, site, cell) => {
-        const rect = e.currentTarget.getBoundingClientRect();
         setHoveredPos({
-            x: rect.left,
-            y: rect.bottom + 8,
+            x: e.clientX,
+            y: e.clientY + 8,
         });
-        console.log('hover pos:', { x: rect.left, y: rect.bottom + 8, rectLeft: rect.left, rectRight: rect.right, rectWidth: rect.width, windowInnerW: window.innerWidth });
         setHoveredCell({ storeName, site, data: cell });
     };
 

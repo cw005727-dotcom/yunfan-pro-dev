@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云帆跨境 PRO V5.2 - 商品性能深度优化预览</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #fdfdfd; color: #0f172a; }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(24px); border: 1px solid rgba(0, 0, 0, 0.05); }
+        .premium-card { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 4px 20px rgba(0,0,0,0.03); border-radius: 24px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .premium-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.08); border-color: rgba(79, 70, 229, 0.2); }
+        
+        /* 状态灯呼吸动画 */
+        @keyframes breathe {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+        .status-dot-active { animation: breathe 2s infinite ease-in-out; }
+        
+        /* 漏斗形状模拟 */
+        .funnel-step { height: 4px; border-radius: 2px; transition: all 1s ease-out; }
+        
+        /* 能量条背景 */
+        .energy-bg { background: linear-gradient(90deg, #4f46e5 0%, #10b981 100%); }
+        
+        .tab-active { background: #ffffff; color: #4f46e5; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="bg-slate-50/50 min-h-screen">
+    <div style="position:fixed;top:0;left:0;background:#4f46e5;color:white;z-index:9999;padding:6px 16px;font-size:11px;font-weight:900;letter-spacing:0.1em;box-shadow:0 4px 15px rgba(79, 70, 229, 0.3);border-bottom-right-radius:12px;">
+        ✨ V5.2_PERFORMANCE_OPTIMIZED_PREVIEW
+    </div>
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const SITE_FLAGS = { MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾', CBT: '🌐' };
+
+        // 高清图逻辑
+        const getHighResImg = (url) => url ? url.replace(/-I\.jpg$/, '-V.jpg') : '';
+
+        // 核心优化组件：能效漏斗
+        const PerformanceFunnel = ({ exposure, clicks, carts }) => {
+            const ctr = (clicks / (exposure || 1) * 100).toFixed(1);
+            const cartRate = (carts / (clicks || 1) * 100).toFixed(1);
+            
+            return (
+                <div className="flex flex-col gap-1 w-full max-w-[100px] mx-auto">
+                    <div className="flex justify-between items-end text-[8px] font-black text-slate-400 uppercase">
+                        <span>漏斗效能</span>
+                        <span className="text-indigo-600">{ctr}%</span>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-slate-400" style={{ width: '100%' }}></div>
+                        </div>
+                        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-400" style={{ width: `${Math.min(ctr * 5, 100)}%` }}></div>
+                        </div>
+                        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-400" style={{ width: `${Math.min(cartRate * 2, 100)}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 能量得分卡片
+        const EnergyScore = ({ score }) => {
+            const color = score > 80 ? 'text-emerald-500' : score > 50 ? 'text-indigo-500' : 'text-rose-500';
+            const bgColor = score > 80 ? 'bg-emerald-50' : score > 50 ? 'bg-indigo-50' : 'bg-rose-50';
+            
+            return (
+                <div className={`px-3 py-1 rounded-full ${bgColor} ${color} flex items-center gap-1.5 border border-current/10`}>
+                    <div className={`w-1.5 h-1.5 rounded-full bg-current ${score > 70 ? 'status-dot-active' : ''}`}></div>
+                    <span className="text-[10px] font-black tracking-tighter">{score.toFixed(0)} Pts</span>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [metrics, setMetrics] = useState([]);
+            const [reputation, setReputation] = useState([]);
+            const [activeTab, setActiveTab] = useState('all');
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                Promise.all([
+                    fetch('http://localhost:8506/api/shop_reputation').then(r => r.json()),
+                    fetch('http://localhost:8506/api/product_metrics').then(r => r.json())
+                ]).then(([repData, metricsData]) => {
+                    setReputation(repData);
+                    const rawMetrics = Array.isArray(metricsData) ? metricsData : (metricsData.metrics || []);
+                    
+                    // 计算增强指标
+                    const enhancedMetrics = rawMetrics.map(item => {
+                        const ctr = item.clicks / (item.exposure || 1);
+                        const cr = item.carts / (item.clicks || 1);
+                        // 能量得分逻辑
+                        const energy = (Math.log10(item.exposure || 1) * 10) + (item.cart_rate * 200) + (item.health_score * 0.4);
+                        // 风险检测逻辑
+                        const isSensitive = /abib|skin|medication|mask/i.test(item.name);
+                        return { ...item, energy, isSensitive, ctr, cr };
+                    });
+                    
+                    setMetrics(enhancedMetrics);
+                    setLoading(false);
+                }).catch(() => setLoading(false));
+            }, []);
+
+            const filteredMetrics = useMemo(() => {
+                let list = [...metrics];
+                if (activeTab === 'risk') return list.filter(m => m.health_score < 70 || m.isSensitive || m.claims > 0);
+                if (activeTab === 'hot') return list.sort((a, b) => b.energy - a.energy).slice(0, 10);
+                return list;
+            }, [metrics, activeTab]);
+
+            if (loading) return (
+                <div className="flex flex-col items-center justify-center h-screen space-y-4">
+                    <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">V5.2 性能引擎加载中...</p>
+                </div>
+            );
+
+            return (
+                <div className="max-w-7xl mx-auto px-8 py-16">
+                    {/* Header */}
+                    <div className="flex items-end justify-between mb-12">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">PRO V5.2</span>
+                                <span className="text-slate-300 font-black">/</span>
+                                <h1 className="text-3xl font-black text-slate-900 tracking-tight">智能性能矩阵</h1>
+                            </div>
+                            <p className="text-slate-400 text-sm font-medium">深度解析曝光转化链路，自动识别类目风险与爆款潜力。</p>
+                        </div>
+                        <div className="flex p-1.5 bg-slate-200/50 backdrop-blur rounded-2xl border border-slate-200">
+                            {[
+                                { id: 'all', label: '全部 Listings' },
+                                { id: 'hot', label: '爆款潜力榜' },
+                                { id: 'risk', label: '异常/敏感项' }
+                            ].map(tab => (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id ? 'tab-active' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Table Container */}
+                    <div className="premium-card overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-100">
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Listing 资产详情</th>
+                                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">核心漏斗</th>
+                                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">能量得分</th>
+                                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">价格指数</th>
+                                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">健康状态</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">诊断决策</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filteredMetrics.map((item, i) => (
+                                    <tr key={i} className="hover:bg-slate-50/40 transition-colors group">
+                                        {/* 商品基础信息 */}
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-5">
+                                                <div className="relative w-16 h-16 rounded-2xl bg-white border border-slate-100 p-1 shrink-0 overflow-hidden shadow-sm group-hover:border-indigo-200 transition-all">
+                                                    <img src={getHighResImg(item.image_url)} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                                                    {item.isSensitive && (
+                                                        <div className="absolute top-0 left-0 w-full h-full bg-rose-500/10 flex items-center justify-center">
+                                                            <div className="bg-rose-500 text-white text-[7px] font-black px-1 rounded-sm uppercase tracking-tighter">Sensitive</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">{SITE_FLAGS[item.site_id]} {item.site_id}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-200"></span>
+                                                        <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">#{item.item_id}</span>
+                                                    </div>
+                                                    <h3 className="text-[13px] font-black text-slate-800 leading-snug truncate group-hover:text-indigo-600 transition-colors">{item.name}</h3>
+                                                    {item.isSensitive && (
+                                                        <div className="mt-2 flex items-center gap-1">
+                                                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                                            <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest animate-pulse">敏感词预警: 跨境准入风险</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* 能效漏斗 */}
+                                        <td className="px-4 py-6">
+                                            <PerformanceFunnel exposure={item.exposure} clicks={item.clicks} carts={item.carts} />
+                                        </td>
+
+                                        {/* 能量得分 */}
+                                        <td className="px-4 py-6 text-center">
+                                            <div className="flex justify-center">
+                                                <EnergyScore score={item.energy} />
+                                            </div>
+                                        </td>
+
+                                        {/* 价格指数 */}
+                                        <td className="px-4 py-6 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <span className={`text-sm font-black ${item.price_index > 1.1 ? 'text-rose-500' : 'text-slate-800'}`}>
+                                                        {item.price_index || '1.00'}
+                                                    </span>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${item.price_index > 1.1 ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'}`}></div>
+                                                </div>
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                                    {item.price_index > 1.1 ? '竞争力弱' : '价格稳健'}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        {/* 健康状态 */}
+                                        <td className="px-4 py-6 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <div className="relative w-10 h-10 flex items-center justify-center mb-1">
+                                                    <svg width="40" height="40" className="-rotate-90">
+                                                        <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                                                        <circle 
+                                                            cx="20" cy="20" r="16" 
+                                                            fill="none" 
+                                                            stroke={item.health_score > 80 ? '#10b981' : item.health_score > 60 ? '#f59e0b' : '#f43f5e'} 
+                                                            strokeWidth="3" 
+                                                            strokeDasharray={`${item.health_score} 100`} 
+                                                            strokeLinecap="round" 
+                                                        />
+                                                    </svg>
+                                                    <span className="absolute text-[10px] font-black text-slate-700">{item.health_score}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* 诊断决策 */}
+                                        <td className="px-8 py-6 text-right">
+                                            {item.isSensitive ? (
+                                                <button className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-600 hover:text-white transition-all">
+                                                    立即下架风险项
+                                                </button>
+                                            ) : item.energy > 80 ? (
+                                                <button className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all">
+                                                    追加广告预算
+                                                </button>
+                                            ) : (
+                                                <button className="bg-slate-50 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 hover:bg-indigo-600 hover:text-white transition-all">
+                                                    优化转化链路
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        
+                        {/* Footer Summary */}
+                        <div className="bg-slate-50/80 px-8 py-5 border-t border-slate-100 flex justify-between items-center">
+                            <div className="flex gap-8">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full energy-bg shadow-sm"></div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">能量指数：AI 潜力评分系统已激活</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">红线预警：检测到 {metrics.filter(m => m.isSensitive).length} 项跨境违禁风险</span>
+                                </div>
+                            </div>
+                            <div className="text-[10px] font-black text-slate-300 uppercase italic">
+                                Yunfan Intelligence Engine V5.2.4 — Precise Sync
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
