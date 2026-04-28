@@ -30,8 +30,7 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
             className="fixed z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-in fade-in zoom-in-95 duration-150"
             style={{ 
                 left: position.x, 
-                top: position.y + 2,
-                transform: 'translateX(-50%)',
+                top: position.y,
                 minWidth: '200px'
             }}
             onMouseLeave={onClose}
@@ -125,8 +124,8 @@ const ShopReputationView = () => {
     const handleCellHover = (e, storeName, site, cell) => {
         const rect = e.currentTarget.getBoundingClientRect();
         setHoveredPos({
-            x: Math.min(rect.left + window.scrollX, window.innerWidth - 240),
-            y: rect.bottom + window.scrollY + 8,
+            x: rect.left,
+            y: rect.bottom + 8,
         });
         setHoveredCell({ storeName, site, data: cell });
     };
@@ -153,12 +152,21 @@ const ShopReputationView = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">店铺信誉中心</h3>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">店铺声誉中心</h3>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                         {shops.length} 个站点 · {sortedStores.length} 个店铺
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* Group filter */}
+                    <select
+                      value={activeShop || ''}
+                      onChange={e => { const v = e.target.value; setActiveShop(v || null); }}
+                      className="text-[10px] font-black rounded-xl px-3 py-2 border border-slate-200 shadow-sm bg-white"
+                    >
+                      <option value="">全部店铺</option>
+                      {shopList.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                     <div className="flex items-center gap-4 px-4 py-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -175,15 +183,6 @@ const ShopReputationView = () => {
                             <span className="text-[10px] font-black text-slate-600">{totalRed} 危险</span>
                         </div>
                     </div>
-                    {/* Group filter */}
-                    <select
-                      value={activeShop || ''}
-                      onChange={e => { const v = e.target.value; setActiveShop(v || null); }}
-                      className="text-[10px] font-black rounded-xl px-3 py-2 border border-slate-200 shadow-sm bg-white"
-                    >
-                      <option value="">全部店铺</option>
-                      {shopList.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
             </div>
@@ -194,12 +193,17 @@ const ShopReputationView = () => {
                     <table className="w-full">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-100">
-                                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-48">店铺</th>
+                                <th className="px-6 py-4 text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-xl">🏪</span>
+                                            <span className="text-[10px] text-slate-600 font-bold normal-case tracking-normal">店铺</span>
+                                        </div>
+                                    </th>
                                 {SITE_COLS.map(site => (
                                     <th key={site.code} className="px-3 py-4 text-center">
                                         <div className="flex flex-col items-center gap-1">
-                                            <span className="text-base">{site.flag}</span>
-                                            <span className="text-[8px] text-slate-400 font-medium normal-case tracking-normal">{site.name}</span>
+                                            <span className="text-xl">{site.flag}</span>
+                                            <span className="text-[10px] text-slate-600 font-bold normal-case tracking-normal">{site.name}</span>
                                         </div>
                                     </th>
                                 ))}
@@ -216,16 +220,8 @@ const ShopReputationView = () => {
                                 }[stats.overall];
                                 return (
                                     <tr key={storeName} className="border-b border-slate-100 hover:bg-slate-50/40 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${stats.overall === 'green' ? 'bg-emerald-400' : stats.overall === 'yellow' ? 'bg-amber-400' : 'bg-rose-400 animate-pulse'}`} />
-                                                <div>
-                                                    <p className="text-[13px] font-black text-slate-800 leading-tight">{storeName}</p>
-                                                    <p className="text-[9px] text-slate-400 mt-0.5">
-                                                        {stats.counts.green} 🟢 · {stats.counts.yellow} 🟡 · {stats.counts.red} 🔴
-                                                    </p>
-                                                </div>
-                                            </div>
+                                        <td className="px-6 py-4 text-center">
+                                            <p className="text-[16px] font-black text-slate-800 leading-tight">{storeName}</p>
                                         </td>
                                         {SITE_COLS.map(site => {
                                             const cell = stats.siteMap[site.code];
@@ -255,8 +251,8 @@ const ShopReputationView = () => {
                                             );
                                         })}
                                         <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black uppercase ${overallMeta.badge}`}>
-                                                {overallMeta.label}
+                                            <span className="text-[11px] font-black text-slate-500">
+                                                {stats.counts.green} 🟢 · {stats.counts.yellow} 🟡 · {stats.counts.red} 🔴
                                             </span>
                                         </td>
                                     </tr>
