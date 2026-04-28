@@ -18,6 +18,9 @@
         .animate-marquee { animation: marquee 40s linear infinite; }
         .rep-cell { width: 36px; height: 36px; border-radius: 12px; display: flex; items-center: center; justify-content: center; transition: all 0.2s; cursor: pointer; }
         .rep-cell:hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .metric-badge { padding: 2px 6px; border-radius: 6px; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
+        .score-ring { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; position: relative; }
+        .score-ring svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -147,16 +150,20 @@
         const App = () => {
             const [orders, setOrders] = useState([]);
             const [reputation, setReputation] = useState([]);
+            const [metrics, setMetrics] = useState([]);
+            const [activeMetricTab, setActiveMetricTab] = useState('all');
             const [filter, setFilter] = useState('all');
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
                 Promise.all([
                     fetch('http://localhost:8506/api/orders').then(r => r.json()),
-                    fetch('http://localhost:8506/api/shop_reputation').then(r => r.json())
-                ]).then(([ordersData, repData]) => {
+                    fetch('http://localhost:8506/api/shop_reputation').then(r => r.json()),
+                    fetch('http://localhost:8506/api/product_metrics').then(r => r.json())
+                ]).then(([ordersData, repData, metricsData]) => {
                     setOrders(Array.isArray(ordersData) ? ordersData : (ordersData.orders || []));
                     setReputation(repData);
+                    setMetrics(Array.isArray(metricsData) ? metricsData : (metricsData.metrics || []));
                     setLoading(false);
                 }).catch(() => setLoading(false));
             }, []);
@@ -264,6 +271,106 @@
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {filtered.map(o => <LogisticsCard key={o.id} order={o} />)}
+                    </div>
+
+                    {/* Product Performance Section */}
+                    <div className="mt-16 mb-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-6 bg-indigo-600 rounded-full"></div>
+                                <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">商品性能表 (Performance Metrics)</h4>
+                            </div>
+                            <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                                {['all', 'hot', 'risk'].map(t => (
+                                    <button 
+                                        key={t} 
+                                        onClick={() => setActiveMetricTab(t)}
+                                        className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeMetricTab === t ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        {t === 'all' ? '全部' : t === 'hot' ? '爆款' : '风险'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden p-2">
+                            <div className="grid grid-cols-12 gap-2 px-6 py-4 bg-slate-50/50 rounded-t-[24px] border-b border-slate-100">
+                                <div className="col-span-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">商品详情</div>
+                                <div className="col-span-1 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">曝光</div>
+                                <div className="col-span-1 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">点击</div>
+                                <div className="col-span-1 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">加车率</div>
+                                <div className="col-span-1 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">转化</div>
+                                <div className="col-span-1 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">投诉</div>
+                                <div className="col-span-1 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">健康度</div>
+                                <div className="col-span-2 text-[9px] font-black text-slate-400 uppercase text-center tracking-widest">价格指数</div>
+                            </div>
+                            <div className="divide-y divide-slate-50">
+                                {metrics.slice(0, 10).map((item, i) => {
+                                    const ctr = (item.clicks / (item.exposure || 1) * 100).toFixed(1);
+                                    const healthColor = item.health_score > 80 ? 'text-emerald-500' : item.health_score > 60 ? 'text-amber-500' : 'text-rose-500';
+                                    const strokeColor = item.health_score > 80 ? '#10b981' : item.health_score > 60 ? '#f59e0b' : '#f43f5e';
+                                    
+                                    return (
+                                        <div key={i} className="grid grid-cols-12 gap-2 px-6 py-5 items-center hover:bg-slate-50 transition-all group">
+                                            <div className="col-span-4 flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-50 overflow-hidden border border-slate-100 shrink-0 shadow-inner">
+                                                    <img src={getHighResImg(item.image_url)} className="w-full h-full object-contain" />
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[11px] font-black text-slate-800 truncate leading-tight group-hover:text-indigo-600 transition-colors">{item.name}</span>
+                                                    <div className="flex items-center gap-2 mt-1.5">
+                                                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-black font-mono tracking-tighter uppercase">{item.item_id}</span>
+                                                        <span className="text-[8px] font-black text-slate-300 uppercase">{SITE_FLAGS[item.site_id]} {item.site_id}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="col-span-1 text-center font-black text-slate-700 text-xs tracking-tighter">{item.exposure?.toLocaleString()}</div>
+                                            <div className="col-span-1 text-center font-black text-slate-700 text-xs tracking-tighter">{item.clicks?.toLocaleString()} <span className="block text-[8px] text-slate-300 font-bold">{ctr}%</span></div>
+                                            <div className="col-span-1 text-center font-black text-indigo-500 text-xs">{(item.cart_rate * 100).toFixed(1)}%</div>
+                                            <div className="col-span-1 text-center font-black text-slate-700 text-xs">{(item.conversion_rate || 0).toFixed(1)}%</div>
+                                            <div className="col-span-1 text-center">
+                                                {item.claims > 0 ? (
+                                                    <span className="metric-badge bg-rose-100 text-rose-500">{item.claims}</span>
+                                                ) : (
+                                                    <span className="text-slate-200 text-xs font-black">-</span>
+                                                )}
+                                            </div>
+                                            <div className="col-span-1 flex justify-center">
+                                                <div className={`score-ring ${healthColor}`}>
+                                                    <svg width="32" height="32">
+                                                        <circle cx="16" cy="16" r="14" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                                                        <circle cx="16" cy="16" r="14" fill="none" stroke={strokeColor} strokeWidth="3" strokeDasharray={`${item.health_score * 0.88} 100`} strokeLinecap="round" />
+                                                    </svg>
+                                                    {item.health_score}
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2 flex flex-col items-center">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-xs font-black text-slate-800 tracking-tighter">{item.price_index || '1.00'}</span>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${item.price_index > 1.1 ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
+                                                </div>
+                                                <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest mt-0.5">Price Index</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+                                <div className="flex gap-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">健康状态良好</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">需优化/风险</span>
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest italic">
+                                    数据同步于：{new Date().toLocaleString()} · 实时对齐
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
