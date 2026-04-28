@@ -34,9 +34,13 @@ const doTranslate = async (text, from = 'auto', to = 'zh-CN') => {
             body: JSON.stringify({ text, from, to })
         });
         const d = await r.json();
+        console.log('[translate]', text.substring(0, 30), '->', d.translated);
         translateCache[key] = d.translated || '';
         return translateCache[key];
-    } catch { return ''; }
+    } catch (e) {
+        console.error('[translate error]', e);
+        return '';
+    }
 };
 
 const MsgBubble = ({ msg, siteId }) => {
@@ -48,12 +52,11 @@ const MsgBubble = ({ msg, siteId }) => {
 
     useEffect(() => {
         if (isBuyer || isAi) {
-            const lang = siteId === 'MLB' ? 'pt' : 'es';
-            doTranslate(msg.content, lang, 'zh-CN').then(setZh);
+            doTranslate(msg.content, 'auto', 'zh-CN').then(r => setZh(r)).catch(() => setZh(''));
         } else if (isSeller) {
-            doTranslate(msg.content, 'zh-CN', siteId === 'MLB' ? 'pt' : 'es').then(setZh);
+            doTranslate(msg.content, 'auto', 'es').then(r => setZh(r)).catch(() => setZh(''));
         }
-    }, [msg.content, isBuyer, isAi, isSeller, siteId]);
+    }, [msg.content, msg.role, isBuyer, isAi, isSeller]);
 
     const bubbleClass = isSeller
         ? 'bg-slate-900 text-white rounded-tr-none'
@@ -71,18 +74,10 @@ const MsgBubble = ({ msg, siteId }) => {
                 {/* Original text */}
                 <p>{msg.content}</p>
 
-                {/* Translation toggle (for buyer/ai messages) */}
-                {(isBuyer || isAi) && zh && (
-                    <button
-                        onClick={() => setShowZh(s => !s)}
-                        className="mt-2 text-[9px] font-bold text-indigo-400 hover:text-indigo-600 transition-all"
-                    >
-                        {showZh ? '🔍 隐藏中文' : '🔍 查看中文'}
-                    </button>
-                )}
-                {showZh && zh && (
-                    <p className="mt-1 pt-1.5 border-t border-current/10 text-[11px] text-indigo-600 font-medium">
-                        💬 {zh}
+                {/* Translation — auto-show for buyer/ai */}
+                {(isBuyer || isAi) && (
+                    <p className="mt-1.5 pt-1.5 border-t border-current/10 text-[11px] text-indigo-600">
+                        💬 {zh || '翻译中...'}
                     </p>
                 )}
 

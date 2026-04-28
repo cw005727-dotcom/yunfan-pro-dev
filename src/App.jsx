@@ -141,7 +141,7 @@ const App = () => {
     if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
 
     return (
-        <div className={`h-screen w-full gradient-bg flex flex-col items-stretch pt-4 pb-0 gap-4 overflow-hidden relative px-6 ${moduleClass}`}>
+        <div className={`h-screen w-full gradient-bg flex flex-col items-stretch pt-10 pb-0 gap-4 overflow-hidden relative px-6 ${moduleClass}`}>
             
             {/* Top Navigation Bar */}
             <div className="w-full z-50 px-0 box-border shrink-0">
@@ -183,7 +183,7 @@ const App = () => {
             <div className="w-full flex-1 flex flex-col md:flex-row gap-0 overflow-hidden relative px-0">
                 
                 {/* Sidebar */}
-                <aside className={`hidden md:flex w-56 glass-effect rounded-tl-[32px] rounded-bl-none rounded-tr-none rounded-br-none p-3 flex-col z-40 overflow-hidden shadow-[10px_0_30px_-15px_rgba(0,0,0,0.05)] relative border-r border-slate-200/50 transition-colors duration-1000 ${
+                <aside className={`hidden md:flex w-52 glass-effect rounded-tl-[32px] rounded-bl-none rounded-tr-none rounded-br-none p-3 flex-col z-40 overflow-hidden shadow-[10px_0_30px_-15px_rgba(0,0,0,0.05)] relative border-r border-slate-200/50 transition-colors duration-1000 ${
                     topTab === 'home' ? 'bg-blue-50/30' : 
                     topTab === 'data' ? 'bg-indigo-50/30' : 
                     topTab === 'ops' ? 'bg-teal-50/30' : 'bg-amber-50/30'
