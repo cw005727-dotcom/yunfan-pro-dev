@@ -1228,7 +1228,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json({"error": str(e)}, status=500)
 
         elif path.startswith("/api/"):
-            self.send_json({"error": "Not found"}, status=404)
+            try:
+                self.send_json({"error": "Not found"}, status=404)
+            except Exception as e:
+                logger.error(f"Catchall error: {e}")
 
     def do_POST(self):
         parsed_path = urlparse(self.path)
@@ -1519,8 +1522,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
         elif path == "/api/generate_auth_url":
             # Just return the URL for now, store_name could be used to track state
-            auth_url = f"https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id={ML_APP_ID}&redirect_uri={ML_REDIRECT_URI}"
-            self.wfile.write(json.dumps({"auth_url": auth_url}).encode())
+            try:
+                auth_url = f"https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id={ML_APP_ID}&redirect_uri={ML_REDIRECT_URI}"
+                self.wfile.write(json.dumps({"auth_url": auth_url}).encode())
+            except Exception as e:
+                logger.error(f"Auth URL error: {e}")
         elif path == "/api/apply_rotation":
             try:
                 remove_id = payload.get("remove_id")
