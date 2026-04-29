@@ -2099,9 +2099,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 }
                 
                 img_url = "https://api.minimax.chat/v1/image_generation"
-                resp = requests.post(img_url, headers=headers, json=body)
+                resp = requests.post(img_url, headers=headers, json=body, timeout=30)
                 resp_json = resp.json()
-                
+
                 if 'data' in resp_json and len(resp_json['data']) > 0:
                     generated_url = resp_json['data'][0]['url']
                     self.wfile.write(json.dumps({"url": generated_url}).encode())
