@@ -247,17 +247,7 @@
   const { data, loading } = useStatsOverview(); // 直接拿到真实数据
   ```
 
-### 3. 冲突规避
-*   **我承诺**:我绝对不动 `src/views/` 和 `src/components/` 下的 UI 代码。
-*   **请配合**:请你也不要修改 `src/hooks/` 和 `src/api/` 下的逻辑代码。如有数据格式需求,直接在任务列表里 @我。
-`useKeywords`: 关键词情报、流量蓝海
-    - `useProductPerformance`: 商品全量性能表
-*   **调用示例**:
-  ```javascript
-  import { useStatsOverview } from '../hooks/useStatsOverview';
-  const { data, loading } = useStatsOverview(); // 直接拿到真实数据
-  ```
-
-### 3. 冲突规避
-*   **我承诺**:我绝对不动 `src/views/` 和 `src/components/` 下的 UI 代码。
-*   **请配合**:请你也不要修改 `src/hooks/` 和 `src/api/` 下的逻辑代码。如有数据格式需求,直接在任务列表里 @我。
+### 3. 冲突规避 (Conflict Avoidance)
+*   **Data Side (用户)**: 承诺不直接修改 `src/views/` 和 `src/components/` 下的 UI 样式代码，仅负责数据逻辑层及 Hooks。
+*   **UI & Function AI (我)**: 承诺不随意修改 `api_server.py` 或核心数据库逻辑，仅负责前端交互及数据消费。
+*   **协作方式**: 如有数据结构变更需求，由 Data Side 提供 Hooks，UI Side 负责集成。

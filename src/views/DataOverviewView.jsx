@@ -205,8 +205,8 @@ export default function DataOverviewView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none whitespace-nowrap">数据大盘</h2>
-          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2 whitespace-nowrap">Industrial Logistics Cockpit v4.3</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none whitespace-nowrap">数据大盘</h2>
+          <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Industrial Logistics Cockpit v4.29.33</p>
         </div>
         
         <div className="flex items-center gap-3">

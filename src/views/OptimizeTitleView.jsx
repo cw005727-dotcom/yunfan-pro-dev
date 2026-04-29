@@ -82,12 +82,12 @@ const OptimizeTitleView = () => {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
-                    <h3 className="text-[26px] font-black text-slate-800 tracking-tight">标题优化</h3>
-                    <p className="text-[11px] text-slate-500 font-medium mt-1">AI 生成 · MercadoLibre 西语标题</p>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">标题优化</h3>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Smart Listing Optimizer</p>
                 </div>
-                <div className="flex items-center gap-2 mt-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                    <span className="text-[11px] text-slate-500 font-bold">实时生成</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900 text-amber-500 shadow-lg shadow-amber-500/10 shrink-0">
+                    <Icon name="zap" className="w-3.5 h-3.5" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest">实时生成</span>
                 </div>
             </div>
 
