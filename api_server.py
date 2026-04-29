@@ -77,7 +77,7 @@ MINIMAX_CONFIG = {
 }
 
 import os
-DB_PATH = "/home/admin/yunfan-pro-dev/mercadolibre.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mercadolibre.db")
 
 def background_notification_worker():
     """后台处理美客多 Webhook 通知"""
@@ -136,11 +136,22 @@ def background_notification_worker():
                             tracking_id = ship_data.get('tracking_number')
                             last_ship_date = order_data.get('expiration_date')
                             
+                            # Extract weight from ship_data
+                            weight = 0
+                            if ship_data.get('base_cost_detail'):
+                                weight = ship_data['base_cost_detail'].get('weight', 0)
+                            elif ship_data.get('dimensions'):
+                                weight = ship_data['dimensions'].get('weight', 0)
+                            
+                            # Normalize to KG if likely in grams
+                            if weight > 50: 
+                                weight = round(weight / 1000.0, 3)
+                            
                             cursor.execute("""
                                 UPDATE orders_v2 
-                                SET shipping_status = ?, shipping_substatus = ?, tracking_id = ?, last_ship_date = ?
+                                SET shipping_status = ?, shipping_substatus = ?, tracking_id = ?, last_ship_date = ?, weight = ?
                                 WHERE id = ?
-                            """, (shipping_status, shipping_substatus, tracking_id, last_ship_date, order_id))
+                            """, (shipping_status, shipping_substatus, tracking_id, last_ship_date, weight, order_id))
                             
                             logger.info(f"[Worker] Updated order {order_id}")
                     
@@ -158,8 +169,8 @@ def background_notification_worker():
             time.sleep(30)
 
 # MercadoLibre OAuth Config
-ML_APP_ID = "2853782117476515"
-ML_CLIENT_SECRET = "0pxmJU6zBiOJ4LyNokerwH4I835ykX3F"
+ML_APP_ID = "8105299077213607"
+ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
 ML_REDIRECT_URI = "http://localhost:8506/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
