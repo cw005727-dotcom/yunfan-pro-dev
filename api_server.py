@@ -1586,7 +1586,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 }
                 
                 # 获取列表
-                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} AND start_time IS NOT NULL AND start_time != 0 ORDER BY is_core DESC, exposure DESC LIMIT 500")
+                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} AND start_time IS NOT NULL AND start_time != 0 ORDER BY is_core DESC, exposure DESC LIMIT 2000")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
 
                 # ---- 已上架天数计算 ----
@@ -1628,9 +1628,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 # Prioritize 'Core' products (Dajie Shop) then by sales/exposure
                 site_filter = query.get('site', [''])[0]
                 if site_filter and site_filter != 'all':
-                    cursor.execute(f"SELECT * FROM product_metrics WHERE site_id = ? AND {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 500", (site_filter,))
+                    cursor.execute(f"SELECT * FROM product_metrics WHERE site_id = ? AND {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 2000", (site_filter,))
                 else:
-                    cursor.execute(f"SELECT * FROM product_metrics WHERE {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 500")
+                    cursor.execute(f"SELECT * FROM product_metrics WHERE {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 2000")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
                 
                 # ---- Ecosystem Buffet (全家桶) 逻辑注入 ----
@@ -2093,7 +2093,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 body = {
                     "model": "image-01",
                     "prompt": prompt,
-                    "aspect_ratio": "1:1",
+                    "aspect_ratio": payload.get("aspect_ratio", "1:1"),
                     "response_format": "url",
                     "n": 1
                 }
