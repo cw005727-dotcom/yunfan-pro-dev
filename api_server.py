@@ -898,7 +898,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                                             "price": item.get('price'),
                                             "currency": item.get('currency', amz_curr),
                                             "image": img,
-                                            "sales": random.randint(5000, 20000),
+                                            "sales": item.get('sales', 0),
                                             "is_real": True,
                                             "keyword": "Bestseller"
                                         })
@@ -918,7 +918,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                                     "price": round(f['price'] * random.uniform(0.9, 1.1), 2),
                                     "currency": amz_curr,
                                     "image": f['img'],
-                                    "sales": random.randint(100, 1000),
+                                    "sales": 0,
                                     "is_real": False,
                                     "keyword": "Trending"
                                 })
@@ -969,7 +969,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                             "price": round(random.uniform(299, 1299), 2),
                             "currency": curr,
                             "image": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg",
-                            "sales": random.randint(100, 1000),
+                            "sales": 0,
                             "is_real": False
                         })
                     self.send_json(data)
@@ -1480,7 +1480,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 try:
                     res = requests.get(f"https://api.mercadolibre.com/trends/{site_id}", timeout=5)
                     if res.status_code == 200:
-                        trending = [{"word": t['keyword'], "growth": f"+{random.randint(10, 99)}%"} for t in res.json()[:8]]
+                        trending = [{"word": t['keyword'], "growth": "+0%"} for t in res.json()[:8]]
                 except: pass
                 
                 if not trending: # Fallback to DB
@@ -1858,7 +1858,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         competitors.append({
                             "title": titles[i].strip(),
                             "price": p_val,
-                            "sales": int(sales_info[i]) if i < len(sales_info) else random.randint(10, 100),
+                            "sales": int(sales_info[i]) if i < len(sales_info) else 0,
                             "seller": "Market Competitor"
                         })
                     except:
@@ -2131,9 +2131,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 if rows:
                     for i, (kw, ktype) in enumerate(rows):
                         if i < 5:
-                            trending.append({"word": kw, "growth": f"+{random.randint(40, 150)}%"})
+                            trending.append({"word": kw, "growth": "+0%"})
                         else:
-                            gaps.append({"word": kw, "competition": random.choice(["低", "极低", "中"])})
+                            gaps.append({"word": kw, "competition": "未知"})
                 else:
                     # Fallback to mock if table is empty
                     trending = [

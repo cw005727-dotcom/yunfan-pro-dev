@@ -2,11 +2,11 @@ import Icon from '../components/Icon.jsx';
 
 const ProductCollectView = () => {
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
-            <div className="flex items-center justify-between">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">产品采集</h3>
-                    <p className="text-slate-500 text-[11px] font-medium mt-1">竞品数据抓取与市场调研</p>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">产品采集</h3>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase mt-1 whitespace-nowrap tracking-wider">Product Sourcing Intelligence</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>

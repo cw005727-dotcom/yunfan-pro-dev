@@ -85,6 +85,106 @@
 *   [x] **高密度排版**:爆品网格切换为 1x5 阵列,适配 Viewport-First 监控逻辑。
 *   [x] **服务稳定性**:优化 api_server.py 进程管理,解决旧进程残留导致的逻辑未更新问题。
 
+### 架构 AI 工作记录 (2026-04-30)
+*   [x] **api_server.py 虚假数据清理**:删除 7 处 `random.randint` 虚假销量/竞争度填充，保留必要的 fallback 和第三方图片种子
+*   [ ] **FastAPI 重构**:已规划分工表，待数据 AI 执行
+*   [ ] **脚本整理**:已规划结构，待执行
+
+---
+
+## FastAPI 重构计划 (2026-04-30)
+
+### 重构目标
+将 `api_server.py` (2650行) 从内置 `http.server` 迁移到 FastAPI 框架，路由用装饰器声明，结构更清晰。
+
+### 端点分工表
+
+#### 第一批：核心业务（数据 AI）
+| 模块 | 端点 | 行号范围 |
+|------|------|---------|
+| 店铺/认证 | `/api/meli-auth`、`/api/stores`、`/api/generate_auth_url`、`/api/shops` | 478-2208 |
+| 商品管理 | `/api/item/update`、`/api/listing_doctor`、`/api/optimize_title` | 1967-2253 |
+| 物流 | `/api/logistics/stats`、`/api/logistics/detail` | 633-768 |
+
+#### 第二批：数据统计（数据 AI）
+| 模块 | 端点 |
+|------|------|
+| 数据统计 | `/api/stats`、`/api/stats_overview`、`/api/conversion_stats` |
+| 商品数据 | `/api/product_metrics`、`/api/product_performance`、`/api/product_history` |
+| 店铺信誉 | `/api/shop_reputation` |
+
+#### 第三批：智能运营+雷达（数据 AI）
+| 模块 | 端点 |
+|------|------|
+| 智能调价 | `/api/smart_rotation`、`/api/apply_rotation` |
+| 市场雷达 | `/api/market_radar`、`/api/market_radar/analyze`、`/api/market_radar/search` |
+| 价格监控 | `/api/price_check/*`、`/api/trends`、`/api/competitor_prices` |
+
+#### 第四批：客服+监控+AI（数据 AI）
+| 模块 | 端点 |
+|------|------|
+| 客服消息 | `/api/customer_service/*` |
+| 系统监控 | `/api/monitoring_logs`、`/api/monitoring/stream` |
+| AI 功能 | `/api/ai/keywords`、`/api/ai/generate-images`、`/api/translate`、`/api/chat_assistant` |
+
+#### 第五批：订单+同步+系统（数据 AI）
+| 模块 | 端点 |
+|------|------|
+| 订单 | `/api/orders` |
+| 同步 | `/api/sync`、`/api/global_sync` |
+| Webhook | `/api/ml/notifications`、`/api/ml/webhook/relay` |
+
+#### 架构 AI 负责
+- 基础设施：FastAPI 项目结构、数据库封装、Token 管理中间件、公共依赖注入
+- Admin 接口：`/api/deploy`、`/api/admin/*`、`/api/cms/articles`
+
+---
+
+## 脚本整理计划 (2026-04-30)
+
+### 整理结构
+```
+scripts/
+  archive/              # 一次性脚本归档（不参与调度）
+    fix_*.py
+    get_*.py
+    populate_*.py
+    verify_*.py
+    generate_*.py
+    list_*.py
+    count_*.py
+    ...
+  sync/                 # 定时同步脚本
+    __init__.py
+    scheduler.py        # 统一调度入口
+    products.py         # sync_products.py
+    reputation.py       # sync_reputation.py
+    logistics.py        # sync_logistics.py
+    visits.py          # sync_visits.py
+    orders.py          # pull_real_orders.py
+  workers/              # 后台常驻进程
+    __init__.py
+    monitor.py         # monitor_worker.py
+    notifications.py   # notification_processor.py
+    telegram.py        # telegram_listener.py + telegram_client.py
+  utils/                # 工具函数
+    __init__.py
+    database.py        # database.py
+    token_manager.py   # token_manager.py
+    minimax.py         # minimax_client.py
+    ml_client.py       # ml_api_client.py
+    deploy.py          # remote_deploy_v2.py
+```
+
+### 调度方案
+- **主调度**：FastAPI BackgroundTasks（重构完成后）
+- **兜底**：服务器 cron → 调用 FastAPI 接口触发同步
+
+### 执行顺序
+1. 先归档一次性脚本到 `scripts/archive/`
+2. FastAPI 重构期间逐步整理 sync/ 和 workers/
+3. FastAPI 完成后接入 BackgroundTasks
+
 ### 架构 AI 工作记录 (2026-04-28)
 *   [x] **版本存档 (v4.28.2051)**:完成"单屏全显"重构,消除全局滚动,实现声誉监控大屏化。
 *   [x] **UI 易读性飞跃**:全面加深标签颜色(slate-600),提升核心指标字号(14px),并为核心字段注入品牌色。

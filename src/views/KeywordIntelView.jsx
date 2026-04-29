@@ -8,10 +8,12 @@ const KeywordIntelView = (props) => {
     const { trending, gaps, loading, error } = useKeywords('MLM');
 
             return (
-                <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
-                <div className="text-center space-y-4">
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">关键词情报局</h3>
-                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">Real-time Semantic Analysis</p>
+                <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div>
+                        <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">关键词情报局</h3>
+                        <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Real-time Semantic Analysis</p>
+                    </div>
                 </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
