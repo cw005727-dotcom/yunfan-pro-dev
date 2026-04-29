@@ -325,7 +325,7 @@ const ShopReputationView = () => {
                                             <span className="text-sm">{col.flag}</span>
                                             <div className="flex flex-col">
                                                 <span className="text-[12px] font-black text-slate-800">{col.name}</span>
-                                                {siteData?.alert_date && <span className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">Sync: {siteData.alert_date}</span>}
+                                                {siteData?.last_updated && <span className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">刷新 {siteData.last_updated.slice(11, 16)}</span>}
                                             </div>
                                         </div>
                                         {siteData?.is_suspended && <span className="px-1 py-0.5 rounded-lg bg-rose-50 text-rose-500 text-[8px] font-black uppercase">Suspended</span>}

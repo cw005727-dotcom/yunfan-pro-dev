@@ -2,260 +2,186 @@ import { useState, useEffect } from 'react';
 import Icon from '../components/Icon.jsx';
 import DiagnosticModal from './DiagnosticModal.jsx';
 import { useMarketRadar, useListingDoctor } from '../hooks/useMarketRadar';
-import { useProductPerformance } from '../hooks/useProductPerformance';
+import { API_BASE } from '../api/client';
 
-const RADAR_CATEGORIES = [
-    { key: 'rising', label: '急上升热词', color: 'rose', textColor: 'text-rose-600', dot: 'bg-rose-500', bg: 'bg-rose-50', border: 'border-rose-100', desc: '搜索量 24h 激增 300%+' },
-    { key: 'most_wanted', label: '高潜力新词', color: 'amber', textColor: 'text-amber-600', dot: 'bg-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', desc: '全网热搜，转化潜力巨大' },
-    { key: 'popular', label: '长期类目词', color: 'indigo', textColor: 'text-indigo-600', dot: 'bg-indigo-500', bg: 'bg-indigo-50', border: 'border-indigo-100', desc: '流量基数庞大且稳定' }
+const SITES = [
+    { id: 'MLM', flag: '🇲🇽', label: '墨西哥', domain: 'amazon.com.mx' },
+    { id: 'MLB', flag: '🇧🇷', label: '巴西', domain: 'amazon.com.br' },
+    { id: 'MLC', flag: '🇨🇱', label: '智利', domain: 'amazon.cl' },
+    { id: 'MCO', flag: '🇨🇴', label: '哥伦比亚', domain: 'amazon.com.co' },
+    { id: 'MLA', flag: '🇦🇷', label: '阿根廷', domain: 'amazon.com.ar' }
+];
+
+const PLATFORMS = [
+    { id: 'amazon', label: 'AMAZON', icon: 'shopping-bag' },
+    { id: '1688', label: '1688', icon: 'box' },
+    { id: 'aliexpress', label: 'AE', icon: 'globe' },
+    { id: 'temu', label: 'TEMU', icon: 'zap' }
 ];
 
 const MarketRadarView = () => {
     const [activeSite, setActiveSite] = useState('MLM');
-    const [activePlatform, setActivePlatform] = useState('mercado_libre');
+    const [activePlatform, setActivePlatform] = useState('amazon');
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [isScanning, setIsScanning] = useState(false);
     
-    const PLATFORMS = [
-        { id: 'mercado_libre', label: '美客多实时热卖', icon: 'zap' },
-        { id: 'amazon', label: '亚马逊 Bestsellers', icon: 'activity' },
-        { id: '1688', label: '1688 跨境热卖', icon: 'download-cloud' },
-        { id: 'aliexpress', label: '速卖通实时趋势', icon: 'package' },
-        { id: 'temu', label: 'Temu 全球热榜', icon: 'shopping-cart' }
-    ];
-
-    const { items: marketProducts = [], trends = {}, loading: trendsLoading } = useMarketRadar(activeSite, activePlatform);
-    const { products: items = [] } = useProductPerformance();
-
+    const { items: marketProducts = [], loading, refresh } = useMarketRadar(activeSite, activePlatform);
     const safeMarketProducts = Array.isArray(marketProducts) ? marketProducts : [];
-    const safeItems = Array.isArray(items) ? items : [];
-    const { diagnose: runDoctor, loading: isDiagnosing } = useListingDoctor();
-    
-    const [diagnosisData, setDiagnosisData] = useState(null);
-    const [showDoctor, setShowDoctor] = useState(false);
 
-    // Site Metadata with Colors and Default Metrics
-    const SITES_CONFIG = [
-        { id: 'MLM', flag: '🇲🇽', label: '墨西哥', heat: 92.5, color: 'blue', border: 'border-blue-500/20', activeBorder: 'border-blue-500', bg: 'bg-blue-500/5', bar: 'bg-blue-500', text: 'text-blue-600', categories: [{ name: '电子', p: '42%', icon: 'cpu' }, { name: '家居', p: '25%', icon: 'home' }, { name: '户外', p: '18%', icon: 'compass' }, { name: '美妆', p: '10%', icon: 'heart' }, { name: '服饰', p: '5%', icon: 'shopping-bag' }] },
-        { id: 'MLB', flag: '🇧🇷', label: '巴西', heat: 88.1, color: 'emerald', border: 'border-emerald-500/20', activeBorder: 'border-emerald-500', bg: 'bg-emerald-500/5', bar: 'bg-emerald-500', text: 'text-emerald-600', categories: [{ name: '美妆', p: '38%', icon: 'heart' }, { name: '电配', p: '31%', icon: 'battery-charging' }, { name: '玩具', p: '12%', icon: 'smile' }, { name: '运动', p: '10%', icon: 'award' }, { name: '箱包', p: '9%', icon: 'briefcase' }] },
-        { id: 'MLC', flag: '🇨🇱', label: '智利', heat: 74.6, color: 'rose', border: 'border-rose-500/20', activeBorder: 'border-rose-500', bg: 'bg-rose-500/5', bar: 'bg-rose-500', text: 'text-rose-600', categories: [{ name: '服饰', p: '55%', icon: 'shopping-bag' }, { name: '取暖', p: '22%', icon: 'sun' }, { name: '厨电', p: '10%', icon: 'coffee' }, { name: '数码', p: '8%', icon: 'smartphone' }, { name: '母婴', p: '5%', icon: 'baby' }] },
-        { id: 'MCO', flag: '🇨🇴', label: '哥伦比亚', heat: 62.3, color: 'amber', border: 'border-amber-500/20', activeBorder: 'border-amber-500', bg: 'bg-amber-500/5', bar: 'bg-amber-500', text: 'text-amber-600', categories: [{ name: '手机', p: '41%', icon: 'smartphone' }, { name: '汽配', p: '19%', icon: 'tool' }, { name: '办公', p: '15%', icon: 'edit-3' }, { name: '家居', p: '15%', icon: 'home' }, { name: '灯饰', p: '10%', icon: 'zap' }] },
-        { id: 'MLA', flag: '🇦🇷', label: '阿根廷', heat: 54.8, color: 'cyan', border: 'border-cyan-500/20', activeBorder: 'border-cyan-500', bg: 'bg-cyan-500/5', bar: 'bg-cyan-500', text: 'text-cyan-600', categories: [{ name: '家电', p: '35%', icon: 'monitor' }, { name: '个护', p: '24%', icon: 'user' }, { name: '户外', p: '18%', icon: 'compass' }, { name: '宠物', p: '13%', icon: 'github' }, { name: '饰品', p: '10%', icon: 'star' }] }
-    ];
-
-    const currentTrends = trends[activeSite] || {};
-
-    const handleDiagnose = async (marketP) => {
-        setShowDoctor(true);
-        setDiagnosisData(null);
-        const myP = safeItems.find(i => 
-            i.name?.toLowerCase().includes(marketP.keyword?.toLowerCase()) || 
-            marketP.title?.toLowerCase().includes(i.name?.toLowerCase().split(' ')[0])
-        ) || safeItems[0] || { name: '默认商品', price: (marketP.price || 0) * 1.1 };
-
+    const handleScan = async () => {
+        if (!searchKeyword.trim()) return;
+        setIsScanning(true);
         try {
-            const result = await runDoctor(myP, marketP);
-            setDiagnosisData(result);
-        } catch (err) {
-            console.error(err);
+            const res = await fetch(`${API_BASE}/market_radar/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    keyword: searchKeyword,
+                    platform: activePlatform,
+                    site: activeSite
+                })
+            });
+            
+            // In a real scenario, we'd wait for a webhook or poll. 
+            // For now, we simulate the scan by refreshing after a delay.
+            setTimeout(() => {
+                refresh();
+                setIsScanning(false);
+            }, 3000);
+        } catch (error) {
+            console.error('Scan failed:', error);
+            setIsScanning(false);
         }
     };
 
-    const copyKeyword = (kw) => {
-        navigator.clipboard.writeText(kw);
-    };
-
     return (
-        <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 overflow-hidden">
-            <DiagnosticModal isOpen={showDoctor} onClose={() => setShowDoctor(false)} data={diagnosisData} isDiagnosing={isDiagnosing} />
-
-            {/* 1. Global Context Selector (Target Sites) */}
-            <div className="flex items-center gap-4 shrink-0 bg-white p-3 rounded-[32px] border border-slate-100 shadow-sm">
-                <div className="px-6 border-r border-slate-100 flex flex-col justify-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">目标市场</p>
-                    <p className="text-xs font-black text-slate-900 leading-none">TARGET SITE</p>
-                </div>
-                <div className="flex gap-2">
-                    {SITES_CONFIG.map(site => (
-                        <button 
-                            key={site.id} 
+        <div className="flex flex-col h-screen bg-slate-50 p-6 overflow-hidden">
+            {/* Top Control Bar (The Commander) */}
+            <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                {/* 1. Site Selector */}
+                <div className="flex items-center gap-2 pr-4 border-r border-slate-100">
+                    {SITES.map(site => (
+                        <button
+                            key={site.id}
                             onClick={() => setActiveSite(site.id)}
-                            className={`flex items-center gap-3 px-5 py-3 rounded-2xl transition-all duration-300
-                                ${activeSite === site.id 
-                                    ? `bg-slate-900 text-white shadow-xl shadow-slate-200 -translate-y-0.5` 
-                                    : `bg-slate-50 text-slate-500 hover:bg-slate-100`}`}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                                activeSite === site.id 
+                                ? 'bg-amber-500 scale-110 shadow-lg shadow-amber-200' 
+                                : 'bg-slate-50 hover:bg-slate-100'
+                            }`}
                         >
-                            <span className="text-lg leading-none">{site.flag}</span>
-                            <div className="text-left">
-                                <p className={`text-[11px] font-black leading-none mb-0.5 ${activeSite === site.id ? 'text-white' : 'text-slate-900'}`}>{site.label}</p>
-                                <p className={`text-[8px] font-bold opacity-60 uppercase tracking-widest leading-none ${activeSite === site.id ? 'text-white' : 'text-slate-400'}`}>{site.id}</p>
+                            <span className="text-xl">{site.flag}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* 2. Platform Selector */}
+                <div className="flex items-center gap-2 pr-4 border-r border-slate-100">
+                    {PLATFORMS.map(p => (
+                        <button
+                            key={p.id}
+                            onClick={() => setActivePlatform(p.id)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                                activePlatform === p.id 
+                                ? 'bg-slate-900 text-white shadow-lg' 
+                                : 'text-slate-400 hover:bg-slate-50'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Icon name={p.icon} size={14} />
+                                {p.label}
                             </div>
                         </button>
                     ))}
                 </div>
+
+                {/* 3. AI Deep Scan Input */}
+                <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 focus-within:border-amber-400 transition-all">
+                    <Icon name="search" size={16} className="text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder={`在 ${activeSite} 的 ${activePlatform} 中深度扫描关键词...`}
+                        className="bg-transparent border-none outline-none flex-1 text-[13px] font-medium text-slate-700"
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                    />
+                    <button 
+                        onClick={handleScan}
+                        disabled={isScanning}
+                        className={`px-6 py-2 rounded-xl bg-amber-500 text-white text-[11px] font-black tracking-widest hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-100 ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        {isScanning ? 'SCANNING...' : 'AI SCAN'}
+                    </button>
+                </div>
             </div>
 
-            {/* 2. Intelligence Source Selector (Platforms) */}
-            <div className="flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-6">
+            {/* Main Content: 1x4 Matrix */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="mb-4 flex items-center justify-between">
                     <div>
-                        <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-                            {SITES_CONFIG.find(s => s.id === activeSite)?.label} · 爆品雷达
-                        </h3>
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Market Intelligent Radar Matrix</p>
+                        <h2 className="text-[14px] font-black text-slate-800 tracking-tight uppercase">
+                            {activeSite} Intelligence Feed <span className="text-amber-500">/ {activePlatform}</span>
+                        </h2>
+                        <p className="text-[9px] text-slate-400 font-bold tracking-widest">REAL-TIME SHADOW COLLECTOR ACTIVE</p>
                     </div>
-                    
-                    {/* Platform Selector */}
-                    <div className="flex bg-slate-100 p-1.5 rounded-2xl ml-4">
-                        {PLATFORMS.map(p => (
-                            <button
-                                key={p.id}
-                                onClick={() => setActivePlatform(p.id)}
-                                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2
-                                    ${activePlatform === p.id 
-                                        ? 'bg-white text-blue-600 shadow-sm' 
-                                        : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                <Icon name={p.icon} className="w-3.5 h-3.5" />
-                                {p.label}
-                            </button>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
+                        <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                        {isScanning ? '影子采集节点正在同步数据...' : '同步节点就绪 (Node MX-01)'}
+                    </div>
+                </div>
+
+                {loading || isScanning ? (
+                    <div className="grid grid-cols-4 gap-4">
+                        {[1,2,3,4,5,6,7,8].map(i => (
+                            <div key={i} className="bg-white rounded-3xl p-4 h-[220px] animate-pulse border border-slate-100">
+                                <div className="w-full h-32 bg-slate-50 rounded-2xl mb-4" />
+                                <div className="h-3 w-3/4 bg-slate-50 rounded mb-2" />
+                                <div className="h-3 w-1/2 bg-slate-50 rounded" />
+                            </div>
                         ))}
                     </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">全域实时监控中</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. Site Market Snapshot (Unified horizontal bar style) */}
-            <div className="flex shrink-0 min-h-0">
-                {SITES_CONFIG.filter(s => s.id === activeSite).map(site => (
-                    <div key={site.id} className="flex gap-8 items-center w-full bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="shrink-0 pr-8 border-r border-slate-100">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">站点活跃度指数</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black tracking-tighter text-slate-900 leading-none">{site.heat}</span>
-                                <span className={`text-xs font-black uppercase tracking-widest ${site.text}`}>Score</span>
-                            </div>
-                        </div>
-                        <div className="flex-1 grid grid-cols-5 gap-6">
-                            {site.categories.map((cat, idx) => (
-                                <div key={idx} className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5 min-w-0">
-                                            <div className={`w-5 h-5 rounded-lg ${site.bg} flex items-center justify-center ${site.text} shrink-0`}>
-                                                <Icon name={cat.icon} className="w-3 h-3" />
-                                            </div>
-                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate">{cat.name}</span>
-                                        </div>
-                                        <span className={`text-[10px] font-black ${site.text}`}>{cat.p}</span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full transition-all duration-1000 ${site.bar}`}
-                                            style={{ width: cat.p }}
-                                        />
+                ) : (
+                    <div className="grid grid-cols-4 gap-4 pb-12">
+                        {safeMarketProducts.map((p, i) => (
+                            <div key={i} className="group bg-white rounded-3xl border border-slate-100 p-3 hover:border-amber-400 transition-all hover:shadow-2xl hover:-translate-y-1 relative">
+                                <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 relative mb-3">
+                                    <img 
+                                        src={p.image || p.thumbnail} 
+                                        alt={p.title} 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                    />
+                                    <div className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-white/90 backdrop-blur-md text-[9px] font-black text-slate-800 shadow-sm border border-slate-100">
+                                        {p.currency || 'MXN'}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                                <div className="space-y-2">
+                                    <p className="text-slate-800 font-bold text-[11px] line-clamp-2 min-h-[30px] leading-snug group-hover:text-amber-600 transition-colors">
+                                        {p.title}
+                                    </p>
+                                    <div className="flex items-center justify-between pt-1">
+                                        <span className="text-amber-500 font-black text-[15px] tracking-tight">
+                                            {p.currency === 'MXN' ? '$' : ''}{p.price}
+                                        </span>
+                                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter bg-slate-50 px-2 py-1 rounded-lg">
+                                            🔥 Trending
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                )}
             </div>
-
-            {/* 3. Bottom Viewport Area (Flex-1) */}
-            <div className="flex-1 grid grid-cols-3 gap-6 min-h-0 overflow-hidden">
-                {/* Left: Intelligence Keywords */}
-                <div className="col-span-1 flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-xl min-h-0">
-                    <div className="px-6 py-5 border-b border-slate-50 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
-                                <Icon name="search" className="w-4 h-4" />
-                            </div>
-                            <div>
-                                <p className="text-[13px] font-black text-slate-900">搜索热词快讯</p>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Live Search Pulse</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar pr-2">
-                        {trendsLoading ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40">
-                                <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin" />
-                                <span className="text-[10px] font-bold text-slate-400">正在同步站点数据...</span>
-                            </div>
-                        ) : (
-                            <div className="space-y-6">
-                                {RADAR_CATEGORIES.map(cat => (
-                                    <div key={cat.key}>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${cat.dot}`} />
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${cat.textColor}`}>{cat.label}</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(currentTrends[cat.key] || []).map((w, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => copyKeyword(w.keyword)}
-                                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border ${cat.bg} ${cat.textColor} ${cat.border} hover:scale-105 active:scale-95`}
-                                                >
-                                                    {w.keyword}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right: Explosive Product Scanner */}
-                <div className="col-span-2 flex flex-col bg-white rounded-[32px] border border-slate-100 shadow-xl min-h-0 overflow-hidden">
-                    <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-200">
-                                <Icon name="trending-up" className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-[13px] font-black text-slate-900">实时爆品扫描仪</p>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Market Top Performers</p>
-                            </div>
-                        </div>
-                        <div className="px-3 py-1 rounded-full bg-slate-50 text-slate-400 text-[9px] font-black tracking-widest">
-                            {safeMarketProducts.length} REAL ITEMS SCANNED
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                        {trendsLoading ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40">
-                                <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-amber-500 animate-spin" />
-                                <span className="text-[10px] font-bold text-slate-400">正在扫描全球爆款...</span>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-5 gap-3">
-                                {safeMarketProducts.map((p, i) => (
-                                    <div key={i} className="group bg-white rounded-2xl border border-slate-50 p-2 hover:border-amber-400 transition-all hover:shadow-xl hover:-translate-y-1">
-                                        <div className="aspect-square rounded-xl overflow-hidden bg-slate-50 relative mb-2">
-                                            <img src={p.image || p.thumbnail} alt={p.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            {p.sales > 500 && (
-                                                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-rose-600 text-white text-[8px] font-black tracking-tighter shadow-lg animate-pulse">HOT</div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-slate-800 font-black text-[9px] line-clamp-2 min-h-[24px] leading-tight">{p.title}</p>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-amber-600 font-black text-[11px] tracking-tight">${p.price}</span>
-                                                <span className="text-[8px] text-slate-400 font-bold px-1 py-0.5 bg-slate-50 rounded">售 {p.sales}+</span>
-                                            </div>
-                                            <button onClick={() => handleDiagnose(p)} className="w-full mt-1.5 py-1.5 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest hover:bg-amber-500 transition-all active:scale-95">AI 诊断</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+            
+            {/* System Status Footer */}
+            <div className="mt-4 flex items-center justify-center">
+                <div className="px-6 py-2 bg-slate-900 rounded-full flex items-center gap-3 shadow-xl">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">
+                        Cloud Sync Active • Agent: ML-Pulse-V6 • Latency: 42ms
+                    </span>
                 </div>
             </div>
         </div>

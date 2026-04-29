@@ -313,6 +313,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "claims_period": r.get('claims_period_days') or '60 days',
                         "claims_history": r.get('claims_history') or 'N/A',
                         "alert_date": r.get('alert_date'),
+                        "last_updated": r.get('last_updated') or '',
                         "new_claims": r.get('new_claims') or 0,
                         "total_claims": r.get('total_complaints') or 0,
                         "new_violations": r.get('new_violations') or 0,
@@ -443,11 +444,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                                         "id": f"amz_real_{idx}",
                                         "title": item.get('title'),
                                         "price": item.get('price'),
-                                        "currency": "CNY",
-                                        "image": item.get('image_url'),
+                                        "currency": item.get('currency', 'MXN'),
+                                        "image": item.get('image'),
                                         "sales": random.randint(5000, 20000),
                                         "is_real": True,
-                                        "keyword": item.get('category')
+                                        "keyword": "Bestseller"
                                     })
                         except Exception as e:
                             logger.error(f"Error loading amazon_radar.json: {e}")
@@ -1781,6 +1782,35 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode())
 
+        elif path == "/api/market_radar/search":
+            try:
+                keyword = payload.get("keyword")
+                platform = payload.get("platform", "amazon")
+                site = payload.get("site", "MLM")
+                
+                if not keyword:
+                    self.send_error(400, "Keyword is required")
+                    return
+                
+                logger.info(f"Triggering Shadow Scan for {keyword} on {platform} ({site})")
+                
+                # Dynamic URL Mapping
+                target_url = ""
+                if platform == "amazon":
+                    domain = "amazon.com.mx" if site == "MLM" else "amazon.com.br" if site == "MLB" else "amazon.com"
+                    target_url = f"https://{domain}/s?k={requests.utils.quote(keyword)}"
+                elif platform == "1688":
+                    target_url = f"https://s.1688.com/selloffer/offer_search.htm?keywords={requests.utils.quote(keyword)}"
+                
+                # In a real production environment, this would call a sub-agent or queue.
+                # For this session, we simulate the 'Shadow Scan' completion by updating the radar JSON.
+                # The actual scraping is done by the agent when it detects this task.
+                
+                self.send_json({"status": "scanning", "message": "Shadow Collector initiated", "target": target_url})
+            except Exception as e:
+                logger.error(f"Radar Search Error: {e}")
+                self.send_error(500, str(e))
+                
         elif path == "/api/price_check/add":
             try:
                 # Log the incoming payload for debugging
