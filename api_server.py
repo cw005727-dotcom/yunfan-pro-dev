@@ -426,7 +426,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                 events = []
 
-                # 4.1 超期预警 - 归类为“物流类”
+                # 4.1 超期预警 - 归类为“物流类” (第4类：有异常)
                 now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
                 cursor.execute("""
                     SELECT o.id, o.last_ship_date, s.nickname, o.site_id 
@@ -444,7 +444,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "label": "物流",
                         "desc": f"({row['id']}) 发货已超期",
                         "time": "紧急",
-                        "urgent": True
+                        "urgent": True,
+                        "category": 4
                     })
 
                 # 1. 基础违规记录 - 违规类
@@ -516,8 +517,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "urgent": row['status'] in ['yellow', 'orange', 'red']
                     })
 
-                # 4. 物流类
-                cursor.execute("SELECT id, shipping_status FROM orders_v2 ORDER BY order_date DESC LIMIT 3")
+                # 4. 物流类 (第2类：在途中)
+                cursor.execute("SELECT id, shipping_status, tracking_id FROM orders_v2 WHERE shipping_status NOT IN ('delivered', 'pending', 'ready_to_ship') ORDER BY order_date DESC LIMIT 3")
                 real_orders = cursor.fetchall()
                 for row in real_orders:
                     log_states = ['包裹已到达扫描中心', '海关清关完成', '末端派送中', '干线运输启动', '派送异常']
@@ -527,7 +528,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "label": "物流",
                         "desc": f"({row['id']}) {random.choice(log_states)}",
                         "time": "更新",
-                        "urgent": False
+                        "urgent": False,
+                        "category": 2,
+                        "lp": row['tracking_id']
                     })
                 
                 conn.close()
@@ -535,6 +538,47 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 print(f"Monitoring Error: {e}")
                 self.send_json({"events": [], "error": str(e)}, 500)
+            return
+
+        # 1.2 /api/logistics/stats (For the Ribbon)
+        elif path == "/api/logistics/stats":
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+                
+                # Category 1: Preparing (待处理)
+                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('pending', 'ready_to_ship', 'ready_to_print', 'printed')")
+                cat1 = cursor.fetchone()[0]
+                
+                # Category 2: In Transit (在途中)
+                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('shipped', 'in_transit', 'at_customs', 'left_customs', 'picked_up', 'dropped_off')")
+                cat2 = cursor.fetchone()[0]
+                
+                # Category 3: Delivered (已妥投)
+                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status = 'delivered'")
+                cat3 = cursor.fetchone()[0]
+                
+                # Category 4: Overdue/Issues (有异常)
+                # Overdue
+                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('pending', 'ready_to_ship') AND last_ship_date < ?", (now_str,))
+                overdue = cursor.fetchone()[0]
+                # Other issues
+                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('cancelled', 'returned', 'detained_at_origin', 'fraudulent')")
+                issues = cursor.fetchone()[0]
+                cat4 = overdue + issues
+                
+                conn.close()
+                self.send_json({
+                    "preparing": cat1,
+                    "in_transit": cat2,
+                    "delivered": cat3,
+                    "issues": cat4,
+                    "total": cat1 + cat2 + cat3 + cat4
+                })
+            except Exception as e:
+                print(f"Logistics Stats Error: {e}")
+                self.send_json({"error": str(e)}, 500)
             return
 
         # 2. /api/orders

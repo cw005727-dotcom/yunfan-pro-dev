@@ -95,7 +95,7 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
                 
                 {/* SKU & 上架日期 */}
                 <div className="min-w-0">
-                    <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight">SKU: {item.item_id?.split('-').pop() || 'N/A'}</div>
+                    <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-300 text-[8px]">📋</span></div>
                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
                 </div>
 
@@ -246,7 +246,7 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
 
             {/* SKU & 上架日期 */}
             <div className="min-w-0">
-                <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight">SKU: {item.item_id?.split('-').pop() || 'N/A'}</div>
+                <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-300 text-[8px]">📋</span></div>
                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
             </div>
 
@@ -421,7 +421,7 @@ const ProductDetailPerspective = ({ product }) => {
                             <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/20 text-white font-black">{product.site_id}</span>
                             <h4 className="text-[12px] font-black text-white truncate leading-none">{product.name}</h4>
                         </div>
-                        <p className="text-[9px] text-white/60 font-bold tracking-tight">ID: {product.item_id}</p>
+                        <p className="text-[9px] text-white/60 font-bold tracking-tight cursor-pointer hover:text-amber-300 transition-colors" onClick={() => { const id = product.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">ID: {product.item_id?.split('-').pop() || product.item_id} <span className="text-white/30">📋</span></p>
                     </div>
                 </div>
 
@@ -706,7 +706,7 @@ const ProductPerformanceView = () => {
 
                                                     {/* SKU & 日期 */}
                                                     <div className="min-w-0">
-                                                        <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight">SKU: {item.item_id?.split('-').pop() || 'N/A'}</div>
+                                                        <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-300 text-[8px]">📋</span></div>
                                                         <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
                                                     </div>
                                                     
