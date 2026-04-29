@@ -79,6 +79,84 @@ MINIMAX_CONFIG = {
 import os
 DB_PATH = "/Users/chensan/yunfan-pro-dev/mercadolibre.db"
 
+def background_notification_worker():
+    """后台处理美客多 Webhook 通知"""
+    logger.info("Background Notification Worker Started.")
+    while True:
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # 获取待处理的通知
+            cursor.execute("SELECT * FROM ml_notifications WHERE status = 'pending' ORDER BY received_at ASC LIMIT 10")
+            rows = cursor.fetchall()
+            
+            if not rows:
+                conn.close()
+                time.sleep(10)
+                continue
+                
+            token = None
+            tokens = load_tokens()
+            if tokens and tokens.get('access_token'):
+                token = tokens['access_token']
+                
+            if not token:
+                logger.warning("No ML access token available for background worker.")
+                conn.close()
+                time.sleep(60)
+                continue
+                
+            for row in rows:
+                notify_id = row['id']
+                resource = row['resource']
+                topic = row['topic']
+                
+                logger.info(f"[Worker] Processing: {topic} {resource}")
+                
+                try:
+                    if topic == 'orders_v2':
+                        # 获取订单详情
+                        resp = requests.get(f"https://api.mercadolibre.com{resource}", headers={"Authorization": f"Bearer {token}"})
+                        if resp.status_code == 200:
+                            order_data = resp.json()
+                            order_id = str(order_data['id'])
+                            shipping_id = order_data.get('shipping', {}).get('id')
+                            
+                            # 获取物流详情
+                            ship_data = {}
+                            if shipping_id:
+                                ship_resp = requests.get(f"https://api.mercadolibre.com/shipments/{shipping_id}", headers={"Authorization": f"Bearer {token}"})
+                                if ship_resp.status_code == 200:
+                                    ship_data = ship_resp.json()
+                            
+                            shipping_status = ship_data.get('status', 'pending')
+                            shipping_substatus = ship_data.get('substatus')
+                            tracking_id = ship_data.get('tracking_number')
+                            last_ship_date = order_data.get('expiration_date')
+                            
+                            cursor.execute("""
+                                UPDATE orders_v2 
+                                SET shipping_status = ?, shipping_substatus = ?, tracking_id = ?, last_ship_date = ?
+                                WHERE id = ?
+                            """, (shipping_status, shipping_substatus, tracking_id, last_ship_date, order_id))
+                            
+                            logger.info(f"[Worker] Updated order {order_id}")
+                    
+                    cursor.execute("UPDATE ml_notifications SET status = 'completed', processed_at = ? WHERE id = ?", (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), notify_id))
+                    
+                except Exception as e:
+                    logger.error(f"[Worker] Error processing notification {notify_id}: {e}")
+                    cursor.execute("UPDATE ml_notifications SET status = 'failed' WHERE id = ?", (notify_id,))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            logger.error(f"[Worker] Global error: {e}")
+            time.sleep(30)
+
 # MercadoLibre OAuth Config
 ML_APP_ID = "2853782117476515"
 ML_CLIENT_SECRET = "0pxmJU6zBiOJ4LyNokerwH4I835ykX3F"
@@ -626,6 +704,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 where = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
                 
                 sql = f"SELECT * FROM orders_v2{where} ORDER BY order_date DESC LIMIT 100"
+                logger.info(f"[Orders] SQL: {sql} | Params: {params}")
                 cursor.execute(sql, params)
                 
                 orders = []
@@ -637,6 +716,18 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     d['status_zh'] = "发货超期" if is_overdue else STATUS_MAP.get(d['shipping_status'], d['shipping_status'])
                     d['is_overdue'] = is_overdue
                     
+                    # 统一计算最晚发货时间：下单后5个自然日内
+                    if d.get('order_date'):
+                        try:
+                            dt_str = d['order_date'][:19]
+                            dt = datetime.fromisoformat(dt_str)
+                            deadline = dt + timedelta(days=5)
+                            d['ship_deadline'] = deadline.strftime('%Y-%m-%d')
+                        except:
+                            d['ship_deadline'] = None
+                    else:
+                        d['ship_deadline'] = None
+
                     # Map to category for UI
                     if is_overdue or d['shipping_status'] in ['cancelled', 'returned', 'detained_at_origin', 'fraudulent']:
                         d['category'] = 4
@@ -646,14 +737,6 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         d['category'] = 2
                     else:
                         d['category'] = 1
-                        # 计算最晚发货时间：下单后5个自然日内
-                        if d.get('order_date'):
-                            dt_str = d['order_date'][:19]
-                            dt = datetime.fromisoformat(dt_str)
-                            deadline = dt + timedelta(days=5)
-                            d['ship_deadline'] = deadline.strftime('%Y-%m-%d')
-                        else:
-                            d['ship_deadline'] = None
                     orders.append(d)
                 
                 conn.close()
@@ -2447,7 +2530,69 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/cms/articles":
             # Placeholder for news articles
             self.send_json([])
-        
+
+        # ─── ML Webhook Relay ────────────────────────────────────────
+        elif path == "/api/ml/webhook/relay" and self.command == "POST":
+            try:
+                # NOTE: do_POST already read the body into `payload` at entry.
+                # Re-reading self.rfile here returns empty bytes (stream already consumed).
+                # Use the `payload` dict directly.
+                order = payload
+
+                conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                cursor.execute("SELECT 1 FROM orders_v2 WHERE id = ?", (order.get('id'),))
+                exists = cursor.fetchone() is not None
+
+                cursor.execute("""
+                    INSERT OR REPLACE INTO orders_v2
+                    (id, user_id, site_id, order_date, product_name, quantity, amount,
+                     platform_fee, tax, net_profit, last_ship_date, status, shipping_status,
+                     shipping_substatus, tracking_id, logistic_type, seller_sku, thumbnail,
+                     cancel_detail_group, mediations_count, paid_amount, cancel_code,
+                     logistic_company, tracking_status, receiver_city, receiver_state,
+                     estimated_delivery_date)
+                    VALUES
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    order.get('id'),
+                    order.get('user_id'),
+                    order.get('site_id'),
+                    order.get('order_date'),
+                    order.get('product_name'),
+                    order.get('quantity'),
+                    order.get('amount'),
+                    order.get('platform_fee'),
+                    order.get('tax'),
+                    order.get('net_profit'),
+                    order.get('last_ship_date'),
+                    order.get('status'),
+                    order.get('shipping_status'),
+                    order.get('shipping_substatus'),
+                    order.get('tracking_id'),
+                    order.get('logistic_type'),
+                    order.get('seller_sku'),
+                    order.get('thumbnail'),
+                    order.get('cancel_detail_group'),
+                    order.get('mediations_count'),
+                    order.get('paid_amount'),
+                    order.get('cancel_code'),
+                    order.get('logistic_company'),
+                    order.get('tracking_status'),
+                    order.get('receiver_city'),
+                    order.get('receiver_state'),
+                    order.get('estimated_delivery_date'),
+                ))
+                conn.commit()
+                conn.close()
+                logger.info(f"[Webhook Relay] order {order.get('id')} saved (updated={exists})")
+                self.send_json({"ok": True, "id": order.get('id'), "updated": exists})
+            except Exception as e:
+                logger.error(f"[Webhook Relay] error: {e}")
+                self.send_json({"error": str(e)}, status=500)
+            return
+
         else:
             self.send_json({"status": "ok"})
 
@@ -2461,6 +2606,8 @@ if __name__ == "__main__":
     refresh_access_token()
     # 启动后台刷新线程
     start_token_refresh_thread()
+    # 启动后台通知处理线程
+    threading.Thread(target=background_notification_worker, daemon=True).start()
     socketserver.TCPServer.allow_reuse_address = True
     with ThreadedTCPServer(("", PORT), MyHandler) as httpd:
         print(f"API Server serving at port {PORT}")
