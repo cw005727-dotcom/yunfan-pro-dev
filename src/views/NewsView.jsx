@@ -27,7 +27,13 @@ const NewsView = () => {
     ];
 
     return (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700 flex flex-col items-stretch">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-8">
+                <div>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">云帆资讯</h3>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase mt-1 whitespace-nowrap tracking-wider">Cross-border Intelligence Stream</p>
+                </div>
+            </div>
             <div className="grid grid-cols-1 gap-4">
                 {displayArticles.map((news, i) => (
                     <div key={i} className="bg-white p-5 rounded-[20px] border border-slate-100 hover:border-blue-500/30 transition-all cursor-pointer group shadow-sm">

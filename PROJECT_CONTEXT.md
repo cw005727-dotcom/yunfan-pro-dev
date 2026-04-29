@@ -86,9 +86,10 @@
 *   [x] **服务稳定性**:优化 api_server.py 进程管理,解决旧进程残留导致的逻辑未更新问题。
 
 ### 架构 AI 工作记录 (2026-04-30)
-*   [x] **api_server.py 虚假数据清理**:删除 7 处 `random.randint` 虚假销量/竞争度填充，保留必要的 fallback 和第三方图片种子
-*   [ ] **FastAPI 重构**:已规划分工表，待数据 AI 执行
-*   [ ] **脚本整理**:已规划结构，待执行
+* [x] **api_server.py 虚假数据清理**:删除 7 处 `random.randint` 虚假销量/竞争度填充，保留必要的 fallback 和第三方图片种子
+* [x] **脚本整理**:39个一次性脚本归档到 `scripts/archive/`，6个同步脚本入 `scripts/sync/`，4个worker入 `scripts/workers/`，4个工具入 `scripts/utils/`
+* [x] **FastAPI 骨架搭建**:创建 `fastapi_server/` 项目结构，含 main.py、config.py、db.py、16个路由模块
+* [x] **FastAPI 部署安全策略**:8506（旧）不动，8507（新）验证通过后再切换 Nginx
 
 ---
 
@@ -258,21 +259,34 @@ scripts/
 
 ---
 
-## AI 协作分工(三方协同)
+## AI 协作分工(2026-04-30 更新)
 
-### 角色定义
+### 当前协作模式
+- **架构 AI（Hermes）**：技术架构 + DevOps + Bug医生 + QA（不改 src/ 代码）
+- **功能 AI**：src/views/ + src/components/（UI 层）
+- **数据 AI**：api_server.py + src/hooks/ + src/api/（数据逻辑层）
+- **任务协调**：通过共享文档 PROJECT_CONTEXT.md + 用户转发
 
-| AI | 角色定位 | 职责范围 | 禁止事项 |
-|----|---------|---------|---------|
-| **UI & Function AI (我)** | UI/UX & 业务专家 | 负责 `src/` 目录下所有前端代码、组件、样式、Hooks 以及前端状态管理 (AppContext) | 禁止修改 `api_server.py`、数据库及底层同步脚本 |
-| **Data Side (用户)** | 数据专家/逻辑引擎 | 负责 `api_server.py`、数据库 (mercadolibre.db)、以及所有底层数据抓取与修复脚本 | 禁止修改 `src/views/` 等 UI 表现层文件 |
-| **Hermes** | 架构师/DevOps/Bug 医生 | 技术架构设计、服务器部署、Bug 排查、QA 验证 | 不直接写业务代码 |
+### 架构 AI 职责
+1. **技术架构**：FastAPI 重构、数据库设计、技术方案选型
+2. **服务器/DevOps**：阿里云服务器维护、Nginx配置、pm2部署、git工作流
+3. **Bug 医生**：白屏问题排查、API报错定位、数据库问题诊断
+4. **QA 验证**：新功能上线前验证、数据一致性检查、接口稳定性测试
 
-### 协作规则
+### FastAPI 重构分工
+- **数据 AI**：按分工表实现 5 批路由（店铺/认证 → 商品 → 物流 → 统计 → 智能运营 → 客服 → 同步）
+- **架构 AI**：基础设施（config.py、db.py、Token管理中间件、公共依赖注入）+ Admin接口
 
-1. **信息同步**:任何 AI 对项目结构或协议的修改,必须同步更新到共享文档(`PROJECT_CONTEXT.md`、`API_PROTOCOL.md`)
-2. **冲突解决**:如果功能 AI 和数据 AI 对接口格式有分歧,提交给 Hermes 裁定
-3. **问题上报**:Bug 排查和服务器问题优先提交给 Hermes 处理
+### AI 任务交接规则
+- AI 每完成一个任务，必须主动通知架构 AI
+- 架构 AI 负责核实交付物真实性（文件路径、数据库查询、截图）
+- 核实通过后才能继续下一个任务
+- 不允许先说"已完成"再给虚假证据
+
+### 部署安全策略
+- **开发流程**：本地 Mac 修改 → git push → 服务器 git pull → pm2 restart
+- **FastAPI 迁移**：8506（旧）不动，8507（新）验证通过后再切换 Nginx
+- **验证流程**：8507 测试 → Nginx 切换 → 8506 下线
 
 ### Hermes 职责详解
 
