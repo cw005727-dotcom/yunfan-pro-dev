@@ -80,7 +80,7 @@ const MarketRadarView = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 p-4 md:p-10 overflow-hidden relative select-none">
+        <div className="flex flex-col h-full bg-slate-50 p-4 md:p-10 overflow-y-auto lg:overflow-hidden relative select-none no-scrollbar">
             <style dangerouslySetInnerHTML={{ __html: `
                 body, html { overflow: hidden !important; height: 100% !important; }
                 #root { height: 100% !important; overflow: hidden !important; }
