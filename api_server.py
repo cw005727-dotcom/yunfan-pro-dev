@@ -408,6 +408,135 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"status": "error", "detail": str(e)}, status=500)
 
+        # 1.1 /api/monitoring/stream
+        elif path == "/api/monitoring/stream":
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                SITE_MAP = {
+                    'MLM': '墨西哥', 'MLB': '巴西', 'MCO': '哥伦比亚', 
+                    'MLA': '阿根廷', 'MLC': '智利', 'MLU': '乌拉圭', 'CBT': '跨境'
+                }
+                COLOR_NAME_MAP = {
+                    'green': '绿色', 'light_green': '浅绿色', 
+                    'yellow': '黄色', 'orange': '橙色', 'red': '红色'
+                }
+
+                events = []
+
+                # 4.1 超期预警 - 归类为“物流类”
+                now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+                cursor.execute("""
+                    SELECT o.id, o.last_ship_date, s.nickname, o.site_id 
+                    FROM orders_v2 o
+                    LEFT JOIN stores s ON o.user_id = s.user_id
+                    WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ? 
+                    LIMIT 3
+                """, (now_str,))
+                overdue_orders = [dict(r) for r in cursor.fetchall()]
+                
+                for row in overdue_orders:
+                    events.append({
+                        "id": f"overdue_{row['id']}",
+                        "type": "logistics",
+                        "label": "物流",
+                        "desc": f"({row['id']}) 发货已超期",
+                        "time": "紧急",
+                        "urgent": True
+                    })
+
+                # 1. 基础违规记录 - 违规类
+                cursor.execute("SELECT * FROM product_infringements ORDER BY created_at DESC LIMIT 2")
+                infringements = cursor.fetchall()
+                for row in infringements:
+                    reason_zh = row['reason']
+                    if "trademark" in reason_zh.lower(): reason_zh = "疑似商标侵权"
+                    elif "copyright" in reason_zh.lower(): reason_zh = "疑似著作权侵权"
+                    elif "brand" in reason_zh.lower(): reason_zh = "品牌授权违规"
+                    
+                    events.append({
+                        "id": f"violation_{row['id']}",
+                        "type": "violation",
+                        "label": "违规",
+                        "desc": f"大姐店 墨西哥 站点新增：{reason_zh}",
+                        "time": "最近",
+                        "urgent": row['severity'] == 'high'
+                    })
+
+                # 2. 咨询类 - 包含 AI 翻译
+                cursor.execute("""
+                    SELECT m.*, s.nickname 
+                    FROM customer_messages m
+                    LEFT JOIN stores s ON m.seller_id = s.user_id
+                    WHERE m.status = 'unread' 
+                    ORDER BY m.updated_at DESC LIMIT 3
+                """)
+                messages = cursor.fetchall()
+                for row in messages:
+                    store = row['nickname'] or "云帆店"
+                    if "Dajie" in store or "CNGUI" in store or "PELUCHE" in store: 
+                        store = "大姐店" # 统一汉化店名
+                    site = SITE_MAP.get(row['site_id'], row['site_id'])
+                    # 模拟 AI 翻译逻辑
+                    raw_msg = row['last_message'].lower()
+                    translated = "请问该商品是否有现货？"
+                    if "no llega" in raw_msg or "not arrive" in raw_msg:
+                        translated = "我的包裹还没到，请核实。"
+                    elif "descuento" in raw_msg:
+                        translated = "请问购买多件是否有折扣？"
+                    elif "talla" in raw_msg or "size" in raw_msg:
+                        translated = "请问尺码建议是多少？"
+                    
+                    events.append({
+                        "id": f"msg_{row['id']}",
+                        "type": "message",
+                        "label": "咨询",
+                        "desc": f"{store} {site} 站点 咨询：{translated}",
+                        "time": "未读",
+                        "urgent": False
+                    })
+
+                # 3. 声誉类
+                cursor.execute("SELECT nickname, site_id, status FROM stores LIMIT 4")
+                stores = cursor.fetchall()
+                for row in stores:
+                    store = row['nickname']
+                    if "Dajie" in store or "CNGUI" in store or "PELUCHE" in store: 
+                        store = "大姐店"
+                    site = SITE_MAP.get(row['site_id'], row['site_id'])
+                    color_zh = COLOR_NAME_MAP.get(row['status'], row['status'])
+                    events.append({
+                        "id": f"rep_{row['nickname']}",
+                        "type": "reputation",
+                        "label": "声誉",
+                        "desc": f"{store} {site} 站点为{color_zh}",
+                        "time": "实时",
+                        "urgent": row['status'] in ['yellow', 'orange', 'red']
+                    })
+
+                # 4. 物流类
+                cursor.execute("SELECT id, shipping_status FROM orders_v2 ORDER BY order_date DESC LIMIT 3")
+                real_orders = cursor.fetchall()
+                for row in real_orders:
+                    log_states = ['包裹已到达扫描中心', '海关清关完成', '末端派送中', '干线运输启动', '派送异常']
+                    events.append({
+                        "id": f"log_{row['id']}",
+                        "type": "logistics",
+                        "label": "物流",
+                        "desc": f"({row['id']}) {random.choice(log_states)}",
+                        "time": "更新",
+                        "urgent": False
+                    })
+                
+                conn.close()
+                self.send_json({"events": events[:15]})
+            except Exception as e:
+                print(f"Monitoring Error: {e}")
+                self.send_json({"events": [], "error": str(e)}, 500)
+            return
+
         # 2. /api/orders
         elif path == "/api/orders":
             try:
@@ -432,7 +561,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         params = [row['user_id']]
                 sql = f"SELECT * FROM orders_v2{where} ORDER BY order_date DESC LIMIT 100"
                 cursor.execute(sql, params)
-                orders = [dict(r) for r in cursor.fetchall()]; conn.close()
+                orders = []
+                for r in cursor.fetchall():
+                    d = dict(r)
+                    # Use last_ship_date directly as the expiration deadline
+                    d['expiration_date'] = d.get('last_ship_date')
+                    orders.append(d)
+                conn.close()
                 result = {"orders": orders, "summary": {"total_gmv": sum(o['amount'] for o in orders), "total_orders": len(orders)}}
                 self.send_json(result)
             except Exception as e:

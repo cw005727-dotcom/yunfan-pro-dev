@@ -4,6 +4,7 @@
 策略：5并发 + 每200条提交 + 及时释放
 """
 
+import re
 import requests
 import sqlite3
 import time
@@ -103,12 +104,19 @@ def save_batch(items, site_id):
         category_id = detail.get("category_id", "")
 
         # date_created → start_time (毫秒时间戳)
-        date_created = detail.get("date_created", "")
+        date_created = detail.get("date_created", "") or ""
+        start_ts = 0
         if date_created:
-            dt = datetime.fromisoformat(date_created.replace('Z', '+00:00'))
-            start_ts = int(dt.timestamp() * 1000)
-        else:
-            start_ts = 0
+            try:
+                # Normalize: "2026-03-29T06:06:43.52+00:00" → "2026-03-29T06:06:43.520000+00:00"
+                dc = re.sub(r'\.(\d{1,5})(\+\d{2}:\d{2})',
+                    lambda m: '.' + m.group(1).ljust(6,'0') + m.group(2),
+                    date_created)
+                dc = dc.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(dc)
+                start_ts = int(dt.timestamp() * 1000)
+            except Exception:
+                pass
 
         cursor.execute("""
             INSERT OR REPLACE INTO product_metrics

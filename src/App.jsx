@@ -3,7 +3,7 @@ import Icon from './components/Icon';
 import Brand from './components/Brand';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Views - Lazy Loading
+// Lazy Load Views
 const NewsView = lazy(() => import('./views/NewsView'));
 const ShopReputationView = lazy(() => import('./views/ShopReputationView'));
 const MarketRadarView = lazy(() => import('./views/MarketRadarView'));
@@ -21,111 +21,112 @@ const ImageLabView = lazy(() => import('./views/ImageLabView'));
 const KeywordIntelView = lazy(() => import('./views/KeywordIntelView'));
 const SmartPriceCheckView = lazy(() => import('./views/SmartPriceCheckView'));
 
-const LoginPage = ({ onLogin }) => {
-    return (
-        <div className="h-screen flex bg-slate-50 overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
-            {/* Sidebar (Fixed Navigation) */}
-            <div className="hidden lg:flex flex-col justify-center p-32 w-1/2 relative z-10">
-                <div className="space-y-10">
-                    <Brand slogan="跨境 AI 协作平台" />
-                    <h1 className="text-8xl font-black text-slate-900 tracking-tighter leading-[0.9]">
-                        智领<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 italic">拉美出海</span>
-                    </h1>
-                    <p className="text-slate-600 text-xl max-w-sm font-medium leading-relaxed">
-                        基于生成式 AI 的全链路运营引擎,重新定义跨境卖家的增长极限。
-                    </p>
-                    <div className="flex items-center gap-16 pt-12">
-                        <div className="space-y-2">
-                            <p className="text-slate-900 text-5xl font-black italic tnum tracking-tighter leading-none">5,820+</p>
-                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">已集成订单</p>
-                        </div>
-                        <div className="space-y-2">
-                            <p className="text-blue-600 text-5xl font-black italic tnum tracking-tighter leading-none">$12,402,000</p>
-                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">累计成交总额</p>
-                        </div>
-                    </div>
+const LoginPage = ({ onLogin }) => (
+    <div className="h-screen w-full bg-[#020617] flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-slate-900 border border-white/10 p-12 space-y-8 shadow-2xl">
+            <div className="text-center space-y-4">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-none mb-4">
+                    <Icon name="command" className="w-10 h-10 text-emerald-500" />
                 </div>
+                <h1 className="text-3xl font-black text-white tracking-tighter uppercase">云帆 PRO</h1>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">指挥官 V4.29.33</p>
             </div>
-
-            <div className="flex-1 flex items-center justify-center p-6 md:p-12 relative z-10 bg-white/40 backdrop-blur-3xl border-l border-slate-200">
-                <div className="w-full max-w-md space-y-8 md:space-y-12">
-                    <div className="space-y-6">
-                        <div className="md:hidden mb-12">
-                            <Brand />
-                        </div>
-                        <div className="flex gap-8 border-b border-slate-200 mb-10">
-                            <button className="pb-5 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-blue-600 border-b-2 border-blue-600">账号登录</button>
-                            <button className="pb-5 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600 transition-colors">注册申请</button>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">电子邮箱</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="your@email.com" 
-                                    className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-medium"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">访问密码</label>
-                                <input 
-                                    type="password" 
-                                    placeholder="••••••••" 
-                                    className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-medium"
-                                />
-                            </div>
-                        </div>
-                        <button 
-                            onClick={onLogin}
-                            className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 active:scale-[0.98]"
-                        >
-                            即刻进入引擎
-                        </button>
-                    </div>
-                </div>
+            <div className="space-y-4 pt-4">
+                <button 
+                    onClick={onLogin}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 group"
+                >
+                    <Icon name="zap" className="w-5 h-5 group-hover:animate-pulse" />
+                    进入作战室
+                </button>
             </div>
         </div>
-    );
-};
+    </div>
+);
 
 const MonitoringSidebar = () => {
-    const [logs, setLogs] = useState([
-        { id: 1, type: 'violation', label: '违规警报', desc: '检测到新增 1 条知识产权投诉', time: '现在', urgent: true },
-        { id: 2, type: 'logistics', label: '物流预警', desc: '#ML-0842 超期发货预警', time: '5分前', urgent: true },
-        { id: 3, type: 'message', label: '客户消息', desc: 'Carlos: 发货了吗?', time: '12分前', urgent: false },
-        { id: 4, type: 'reputation', label: '声誉变化', desc: 'MX站评分波动提醒', time: '1h前', urgent: false },
-        { id: 5, type: 'order', label: '订单产生', desc: '#ML-2931 新订单待处理', time: '2h前', urgent: false },
-    ]);
+    const [logs, setLogs] = useState([]);
+
+    const fetchLogs = async () => {
+        try {
+            const res = await fetch('/api/monitoring/stream');
+            const data = await res.json();
+            if (data.events) {
+                setLogs(data.events);
+            }
+        } catch (err) {
+            console.error("Failed to fetch logs:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchLogs();
+        const interval = setInterval(fetchLogs, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     const typeConfig = {
-        violation:  { icon: 'alert-circle', color: 'text-red-500', bg: 'bg-red-50' },
-        logistics:  { icon: 'truck', color: 'text-amber-500', bg: 'bg-amber-50' },
-        message:    { icon: 'message-square', color: 'text-blue-500', bg: 'bg-blue-50' },
-        reputation: { icon: 'shield', color: 'text-purple-500', bg: 'bg-purple-50' },
-        order:      { icon: 'shopping-bag', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-        complaint:  { icon: 'info', color: 'text-rose-500', bg: 'bg-rose-50' }
+        complaint:  { theme: 'orange', hex: '#F97316', bg: 'bg-orange-500/10', border: 'border-orange-500/20' }, // 橙色: 投诉
+        violation:  { theme: 'red',    hex: '#EF4444', bg: 'bg-red-500/10',    border: 'border-red-500/20' },    // 红色: 违规
+        logistics:  { theme: 'khaki',  hex: '#C3B091', bg: 'bg-[#C3B091]/15', border: 'border-[#C3B091]/30' }, // 卡其色: 物流
+        message:    { theme: 'blue',   hex: '#3B82F6', bg: 'bg-blue-500/10',   border: 'border-blue-500/20' },   // 蓝色: 咨询
+        reputation: { theme: 'purple', hex: '#A855F7', bg: 'bg-purple-500/10', border: 'border-purple-500/20' }, // 紫色: 声誉
+        order:      { theme: 'pink',   hex: '#EC4899', bg: 'bg-pink-500/10',   border: 'border-pink-500/20' },   // 粉色: 成交
+        radar:      { theme: 'yellow', hex: '#EAB308', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' }  // 黄色: 机会
     };
 
     return (
-        <div className="w-[180px] bg-slate-50 border-r border-slate-200 flex flex-col h-full overflow-hidden shrink-0">
-            <div className="h-[50px] border-b border-slate-200 flex items-center px-4 bg-white shrink-0">
-                <span className="text-[11px] font-black text-slate-900 tracking-tight">实时监控日志</span>
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+        <div className="w-[220px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full overflow-hidden shrink-0 relative">
+            {/* Ambient Glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-blue-500/10 blur-[60px] pointer-events-none"></div>
+            
+            <div className="h-[64px] border-b border-white/5 flex items-center px-6 shrink-0 z-20">
+                <div className="flex flex-col">
+                    <span className="text-[13px] font-black text-white tracking-widest uppercase">实时监控</span>
+                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tight">Intelligence Stream</span>
+                </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-                {logs.map(log => {
+            
+            <div className="flex-1 overflow-y-auto px-3 py-6 space-y-4 no-scrollbar z-10">
+                {logs.map((log) => {
                     const cfg = typeConfig[log.type] || typeConfig.order;
                     return (
-                        <div key={log.id} className={`h-[42px] px-3 flex flex-col justify-center border transition-all cursor-pointer hover:border-slate-300 ${log.urgent ? 'bg-white border-red-100' : 'bg-white border-slate-100'}`}>
-                            <div className="flex items-center justify-between">
-                                <span className={`text-[8px] font-black uppercase tracking-wider ${cfg.color}`}>{log.label}</span>
-                                <span className="text-[7px] text-slate-400 font-bold">{log.time}</span>
+                        <div 
+                            key={log.id} 
+                            className={`animate-log-eject group relative flex flex-col rounded-2xl backdrop-blur-xl border transition-all duration-300 cursor-pointer overflow-hidden
+                                ${cfg.bg} ${cfg.border} hover:bg-white/5 hover:border-white/20 shadow-sm`}
+                        >
+                            <div className="p-4 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-1.5 h-1.5 rounded-full`} style={{ backgroundColor: cfg.hex, boxShadow: `0 0 8px ${cfg.hex}` }}></div>
+                                        <span className="text-[10px] font-black text-white/90 uppercase tracking-tight">{log.label}</span>
+                                    </div>
+                                    <span className="text-[8px] text-slate-500 font-mono italic">{log.time}</span>
+                                </div>
+                                
+                                <p className="text-[11px] text-slate-300 font-bold leading-relaxed group-hover:text-white transition-colors">
+                                    {log.desc}
+                                </p>
                             </div>
-                            <p className="text-[9px] text-slate-700 font-medium leading-tight truncate">{log.desc}</p>
+
+                            {/* Option B: Bottom Status Bar for Urgent Logs */}
+                            {log.urgent && (
+                                <div className="bg-red-500/20 border-t border-red-500/30 px-4 py-1.5 flex items-center justify-center gap-2">
+                                    <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></div>
+                                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">紧急预警</span>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
+            </div>
+
+            <div className="h-12 border-t border-white/5 flex items-center px-6 shrink-0">
+                <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Active Connection</span>
+                </div>
             </div>
         </div>
     );
@@ -138,7 +139,7 @@ const App = () => {
 
     const menuConfig = {
         home: [
-            { id: 'auth', label: '前期准备', icon: 'key', color: 'text-teal-500', bg: 'bg-teal-500', shadow: 'shadow-teal-500/30' },
+            { id: 'auth', label: '前期准备', icon: 'key', color: 'text-slate-400', active: 'bg-slate-500/10 border-slate-500/30' },
             { id: 'news', label: '最新资讯', icon: 'newspaper', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'intro', label: '业务介绍', icon: 'info', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30' },
             { id: 'activity', label: '活动中心', icon: 'star', color: 'text-amber-500', bg: 'bg-amber-500', shadow: 'shadow-amber-500/30' }
@@ -163,12 +164,10 @@ const App = () => {
         ]
     };
 
-    // Hash sync logic
     useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash.replace('#/', '');
             if (hash) {
-                // Find which tab this item belongs to
                 for (const [tabId, items] of Object.entries(menuConfig)) {
                     if (items.some(item => item.id === hash)) {
                         setTopTab(tabId);
@@ -178,9 +177,8 @@ const App = () => {
                 }
             }
         };
-
         window.addEventListener('hashchange', handleHashChange);
-        handleHashChange(); // Init
+        handleHashChange();
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
 
@@ -188,73 +186,76 @@ const App = () => {
 
     return (
         <div className="h-screen w-full bg-white flex overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
-            
-            {/* Column 1: Functional Navigation (Flattened) */}
-            <div className="w-[130px] bg-slate-100 border-r border-slate-200 flex flex-col h-full shrink-0 overflow-hidden">
-                <div className="h-[50px] flex items-center justify-center border-b border-slate-200 bg-slate-50 shrink-0">
-                    <span className="text-xs font-black text-blue-600 tracking-tighter uppercase">云帆 PRO</span>
+            {/* Column 1: Functional Navigation */}
+            <div className="w-[170px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full shrink-0 overflow-hidden relative">
+                <div className="absolute left-0 top-0 w-[4px] h-full bg-emerald-500 shadow-[2px_0_12px_rgba(16,185,129,0.3)]"></div>
+                <div className="h-[64px] flex items-center justify-center border-b border-white/5 bg-white/[0.02] shrink-0">
+                    <span className="text-xs font-black text-white tracking-[0.2em] uppercase">云帆 PRO</span>
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-2 space-y-6 no-scrollbar">
+                <div className="flex-1 overflow-hidden p-2 space-y-7 pt-6">
                     {[
-                        { id: 'home', label: '首页', icon: 'home' },
-                        { id: 'data', label: '数据中心', icon: 'pie-chart' },
-                        { id: 'ops', label: '运营中心', icon: 'zap' },
-                        { id: 'optimize', label: '优化中心', icon: 'wand-2' }
+                        { id: 'home', label: '首页', icon: 'home', color: 'text-slate-400', active: 'bg-slate-500', shadow: 'shadow-slate-500/20' },
+                        { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-blue-400', active: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
+                        { id: 'ops', label: '运营中心', icon: 'zap', color: 'text-emerald-500', active: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
+                        { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-purple-400', active: 'bg-purple-500', shadow: 'shadow-purple-500/20' }
                     ].map(group => (
-                        <div key={group.id} className="space-y-2">
-                            {/* Group Header */}
-                            <div className={`px-2 py-1 flex items-center gap-2 ${topTab === group.id ? 'text-blue-600' : 'text-slate-400'}`}>
-                                <Icon name={group.icon} className="w-4 h-4" />
-                                <span className="text-[15px] font-black tracking-tight">{group.label}</span>
+                        <div key={group.id} className="space-y-3">
+                            {/* Group Header (Clickable & Reverse Highlight) */}
+                            <div 
+                                onClick={() => {
+                                    setTopTab(group.id);
+                                    const firstItem = menuConfig[group.id][0];
+                                    if (firstItem) {
+                                        setSidebarItem(firstItem.id);
+                                        window.location.hash = `#/${firstItem.id}`;
+                                    }
+                                }}
+                                className={`px-3 py-2 flex items-center gap-2 transition-all cursor-pointer ${topTab === group.id ? `${group.active} text-white shadow-lg` : 'border-l-2 border-transparent opacity-60 hover:opacity-100'}`}
+                            >
+                                <Icon name={group.icon} className={`w-5 h-5 ${topTab === group.id ? 'text-white' : group.color}`} />
+                                <span className={`text-[16px] font-black tracking-tight ${topTab === group.id ? 'text-white' : group.color}`}>{group.label}</span>
                             </div>
                             
                             {/* Sub Items */}
-                            <div className="space-y-1">
-                                {menuConfig[group.id].map(item => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => {
-                                            setTopTab(group.id);
-                                            setSidebarItem(item.id);
-                                            window.location.hash = `#/${item.id}`;
-                                        }}
-                                        className={`w-full text-left px-4 py-1.5 rounded-md text-[10px] font-bold transition-all ${sidebarItem === item.id ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:bg-slate-200/50'}`}
-                                    >
-                                        ● {item.label}
-                                    </button>
-                                ))}
+                            <div className="space-y-1.5 px-1">
+                                {menuConfig[group.id].map(item => {
+                                    const isActive = sidebarItem === item.id;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => {
+                                                setTopTab(group.id);
+                                                setSidebarItem(item.id);
+                                                window.location.hash = `#/${item.id}`;
+                                            }}
+                                            className={`w-full text-left pl-8 pr-1 py-1.5 rounded-sm text-[12px] font-bold transition-all ${isActive ? `bg-white/10 text-white border-l-2 ${group.color.replace('text-', 'border-')}` : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Column 2: Real-time Monitoring */}
+            {/* Column 2: Monitoring */}
             <MonitoringSidebar />
 
-            {/* Column 3: Main View (Sharp Edges, Top Aligned) */}
-            <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
-                {/* Global Header (Top Aligned) */}
-                <div className="h-[50px] border-b border-slate-200 flex items-center px-6 bg-white shrink-0">
+            {/* Column 3: Main View */}
+            <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
+                <div className="h-[64px] border-b border-slate-200 flex items-center px-10 bg-white shrink-0">
                     <div className="flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full ${sidebarItem === 'logistics' ? 'bg-cyan-500' : 'bg-blue-500'} animate-pulse`}></div>
-                        <h2 className="text-xs font-black text-slate-900 tracking-tight uppercase">
-                            指挥空间：{
-                                Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '监控中心'
-                            }
+                        <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase">
+                            指挥空间：{Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '监控中心'}
                         </h2>
                     </div>
                 </div>
-
-                {/* View Content (Sharp, Zero Scroll Body) */}
-                <div className="flex-1 overflow-hidden bg-slate-50/30">
+                <div className="flex-1 m-4 bg-white border border-slate-200 overflow-hidden shadow-sm relative">
                     <ErrorBoundary key={sidebarItem}>
-                        <Suspense fallback={
-                            <div className="h-full flex items-center justify-center">
-                                <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
-                            </div>
-                        }>
+                        <Suspense fallback={<div className="h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div></div>}>
                             <div className="h-full overflow-hidden">
                                 {sidebarItem === 'news' && <NewsView />}
                                 {sidebarItem === 'reputation' && <ShopReputationView />}

@@ -67,3 +67,49 @@
     .no-scrollbar-on-mobile::-webkit-scrollbar { display: none; }
     .no-scrollbar-on-mobile { -ms-overflow-style: none; scrollbar-width: none; }
 }
+
+/* Commander V8 Global Overrides */
+.no-round * { border-radius: 0 !important; }
+.force-round { border-radius: 9999px !important; }
+.capsule-round { border-radius: 12px !important; }
+
+/* Radar & Monitoring Animations */
+@keyframes radar-scan-line {
+    0% { top: 0; opacity: 0; }
+    5% { opacity: 1; }
+    95% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+.animate-radar-scan-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #10b981, transparent);
+    box-shadow: 0 0 15px #10b981;
+    animation: radar-scan-line 4s linear infinite;
+    z-index: 5;
+}
+
+@keyframes log-eject {
+    0% { opacity: 0; transform: translateX(-10px) rotateX(20deg); }
+    100% { opacity: 1; transform: translateX(0) rotateX(0); }
+}
+.animate-log-eject {
+    animation: log-eject 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes laser-move {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+.animate-laser-move {
+    position: absolute;
+    width: 50%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ef4444, transparent);
+    animation: laser-move 2s linear infinite;
+}
+
+.perspective-1000 {
+    perspective: 1000px;
+}

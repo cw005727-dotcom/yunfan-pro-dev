@@ -47,11 +47,11 @@ const LogisticsDetailModal = ({ order, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white">
+            <div className="w-10 h-10 bg-blue-500 flex items-center justify-center text-white">
               <Icon name="truck" className="w-6 h-6" />
             </div>
             <div>
@@ -59,19 +59,19 @@ const LogisticsDetailModal = ({ order, onClose }) => {
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">#{order.tracking_id || 'N/A'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors">
+          <button onClick={onClose} className="w-8 h-8 hover:bg-slate-200 flex items-center justify-center transition-colors">
             <Icon name="x" className="w-5 h-5 text-slate-500" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Order Brief */}
-          <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <img src={order.thumbnail} className="w-16 h-16 rounded-xl object-cover" alt="" />
+          <div className="flex gap-4 p-4 bg-slate-50 border border-slate-100">
+            <img src={order.thumbnail} className="w-16 h-16 object-cover" alt="" />
             <div className="flex-1">
               <p className="text-xs font-black text-slate-800 line-clamp-1">{order.product_name}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 rounded-lg font-black">{order.logistic_company || '官方物流'}</span>
+                <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 font-black">{order.logistic_company || '官方物流'}</span>
                 <span className="text-[10px] font-bold text-slate-400">{SITE_FLAGS[order.site_id]} {order.site_id}</span>
               </div>
             </div>
@@ -79,7 +79,7 @@ const LogisticsDetailModal = ({ order, onClose }) => {
 
           {/* Risk Alert if any */}
           {details?.risk && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3">
+            <div className="p-4 bg-red-50 border border-red-100 flex items-start gap-3">
               <Icon name="alert-triangle" className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-black text-red-700">异常风险警示</p>
@@ -118,7 +118,7 @@ const LogisticsDetailModal = ({ order, onClose }) => {
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-           <button className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[11px] font-black hover:bg-slate-800 transition-colors">导出报告</button>
+           <button className="px-5 py-2.5 bg-slate-900 text-white text-[11px] font-black hover:bg-slate-800 transition-colors">导出报告</button>
         </div>
       </div>
     </div>
@@ -209,6 +209,57 @@ const ProgressBar = ({ stage }) => {
   );
 };
 
+// ─── Ship Timer Component (Countdown) ──────────────────────────────────────────
+const ShipTimer = ({ expirationDate }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
+  const [isOverdue, setIsOverdue] = useState(false);
+
+  useEffect(() => {
+    if (!expirationDate) return;
+    const updateTimer = () => {
+      const now = new Date();
+      const expire = new Date(expirationDate);
+      const diff = expire - now;
+      
+      if (diff <= 0) {
+        setTimeLeft('已超期');
+        setIsOverdue(true);
+        setIsUrgent(false);
+      } else {
+        const hours = Math.floor(diff / 3600000);
+        const mins = Math.floor((diff % 3600000) / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+        setIsUrgent(diff < 2 * 3600000); // Less than 2 hours
+        setIsOverdue(false);
+      }
+    };
+    
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
+    return () => clearInterval(timer);
+  }, [expirationDate]);
+
+  if (!expirationDate) return null;
+
+  return (
+    <div className={`mt-3 flex items-center gap-2 px-3 py-2 border relative overflow-hidden transition-all duration-300
+      ${isOverdue ? 'bg-red-600 text-white border-red-700 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 
+        isUrgent ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 animate-pulse' : 
+        'bg-slate-50 border-slate-100 text-slate-500'}`}
+    >
+      {isUrgent && !isOverdue && (
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-red-500 animate-laser-move"></div>
+      )}
+      <Icon name={isOverdue ? 'alert-octagon' : 'clock'} className={`w-3.5 h-3.5 ${isOverdue ? 'animate-bounce' : ''}`} />
+      <span className="text-[10px] font-black tracking-widest uppercase">
+        {isOverdue ? '发货超期 - 立即处理' : `剩余发货时间: ${timeLeft}`}
+      </span>
+    </div>
+  );
+};
+
 // ─── Logistics Card ─────────────────────────────────────────────────────────
 const LogisticsCard = ({ order, onClick }) => {
   // 优先级：tracking_status(shipments API) > shipping_substatus > shipping_status
@@ -233,8 +284,15 @@ const LogisticsCard = ({ order, onClick }) => {
   return (
     <div 
       onClick={() => onClick(order)}
-      className="solid-card rounded-[24px] p-5 border border-slate-200 bg-white hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-200/80 transition-all duration-300 cursor-pointer group relative"
+      className={`solid-card p-5 border transition-all duration-300 cursor-pointer group relative overflow-hidden
+        ${ts === 'at_customs' ? 'border-amber-500/50 bg-amber-50/20' : 'border-slate-200 bg-white'}
+        hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-200/80`}
     >
+      {/* Ship Expiration Alert for Pending Orders */}
+      {order.expiration_date && (ts === 'pending' || ts === 'ready_to_ship') && (
+        <ShipTimer expirationDate={order.expiration_date} />
+      )}
+
       {/* Risk Indicator */}
       {isHighRisk && (
         <div className="absolute -top-1 -right-1 z-20 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white border-4 border-white shadow-lg animate-bounce">
@@ -243,7 +301,7 @@ const LogisticsCard = ({ order, onClick }) => {
       )}
 
       {/* Image */}
-      <div className="relative rounded-2xl overflow-hidden bg-slate-50 mb-4" style={{ height: '140px' }}>
+      <div className="relative overflow-hidden bg-slate-50 mb-4" style={{ height: '140px' }}>
         <img
           src={imgUrl}
           alt={order.product_name}
@@ -254,11 +312,11 @@ const LogisticsCard = ({ order, onClick }) => {
           }}
         />
         {/* Status badge overlay */}
-        <div className={`absolute top-2.5 right-2.5 ${status.badge} px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm`}>
+        <div className={`absolute top-2.5 right-2.5 ${status.badge} px-2.5 py-1 text-[9px] font-black uppercase tracking-widest shadow-sm`}>
           {status.label}
         </div>
         {/* Site flag */}
-        <div className="absolute bottom-2 left-2.5 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-black shadow-sm">
+        <div className="absolute bottom-2 left-2.5 bg-white/90 backdrop-blur-sm px-2 py-1 text-xs font-black shadow-sm">
           {flag}
         </div>
       </div>
@@ -301,7 +359,7 @@ const MarqueeTicker = ({ orders }) => {
   const items = [...orders, ...orders];
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm mb-5">
+    <div className="w-full overflow-hidden border border-slate-200 bg-white shadow-sm mb-5">
       <div
         className="flex items-center"
         style={{
@@ -409,10 +467,17 @@ const LogisticsAlertsView = (props) => {
       const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
       return ['failed', 'exception', 'returned', 'delayed', 'not_delivered', 'pending_recovery'].includes(s) || ['failed', 'exception', 'returned'].includes(ss);
     }),
+    overdue: orders.filter(o => {
+      if (!o.expiration_date) return false;
+      const s = getEffectiveStatus(o);
+      if (!['pending', 'ready_to_ship'].includes(s)) return false;
+      return new Date(o.expiration_date) - new Date() < 2 * 3600000; // Less than 2 hours or negative
+    }),
   };
 
   const FILTERS = [
     { key: 'all',        label: '全部',   color: 'slate',  icon: '📦' },
+    { key: 'overdue',    label: '超期预警', color: 'red',    icon: '🚨' },
     { key: 'transit',    label: '在途',   color: 'blue',   icon: '🚚' },
     { key: 'pending',    label: '待取件', color: 'amber',  icon: '📋' },
     { key: 'delivered',  label: '已签收', color: 'emerald',icon: '✅' },
@@ -456,7 +521,7 @@ const LogisticsAlertsView = (props) => {
   return (
     <div className="space-y-5 px-6 py-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-white border border-slate-200 rounded-[32px] shadow-sm">
+      <div className="flex items-center justify-between p-6 bg-white border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -488,10 +553,10 @@ const LogisticsAlertsView = (props) => {
             <button
               key={filter.key}
               onClick={() => setActiveFilter(filter.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[11px] font-black transition-all duration-200 ${getFilterBtnClass(filter)}`}
+              className={`flex items-center gap-2 px-4 py-2.5 border text-[11px] font-black transition-all duration-200 ${getFilterBtnClass(filter)}`}
             >
               {filter.icon}{filter.label}
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-lg text-[10px] ${
+              <span className={`inline-flex items-center justify-center w-5 h-5 text-[10px] ${
                 activeFilter === filter.key
                   ? 'bg-white/20 text-white'
                   : cnt > 0
@@ -511,7 +576,7 @@ const LogisticsAlertsView = (props) => {
 
       {/* Card Grid */}
       {currentOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200">
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 border border-dashed border-slate-200">
           <Icon name="package" className="w-12 h-12 text-slate-200 mx-auto mb-3" />
           <p className="text-sm font-black text-slate-500 uppercase tracking-widest">暂无相关订单</p>
           <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-widest">当前分类下没有需要处理的包裹</p>
