@@ -46,6 +46,9 @@ export const useReputation = (group = null) => {
 
   useEffect(() => {
     fetchData();
+    // 💡 开启 10 秒高频轮询，确保前端指标与后端同步实时
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   return { reputation, dailyAlerts, loading, error, refresh: fetchData };

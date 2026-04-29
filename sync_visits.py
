@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""
+Step 2: 拉取商品真实访客量 (exposure)，写入 product_metrics
+"""
+import requests, sqlite3, time
+from token_manager import load_tokens
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+DB_PATH = "/Users/chensan/yunfan-pro-dev/mercadolibre.db"
+TOKEN = None
+
+def get_token():
+    global TOKEN
+    if TOKEN is None:
+        TOKEN = load_tokens()['access_token']
+    return TOKEN
+
+def fetch_visits(item_id):
+    try:
+        token = get_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        r = requests.get(
+            f"https://api.mercadolibre.com/visits/items?ids={item_id}",
+            headers=headers, timeout=15
+        )
+        if r.status_code == 200:
+            d = r.json()
+            return item_id, d.get(item_id, 0)
+    except Exception as e:
+        pass
+    return item_id, 0
+
+def main():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # 取所有有销量的商品（重点品）
+    c.execute("""
+        SELECT item_id, site_id, sales FROM product_metrics
+        WHERE sales > 0
+        ORDER BY site_id, sales DESC
+    """)
+    items = c.fetchall()
+    conn.close()
+
+    print(f"拉取 {len(items)} 个有销量商品的访客量...")
+    start = time.time()
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        futures = {ex.submit(fetch_visits, i[0]): i for i in items}
+        for future in as_completed(futures):
+            item_id, site_id, sales = futures[future]
+            item_id_fetched, views = future.result()
+            results[item_id_fetched] = views
+            
+            # 每 50 个打一行
+            if len(results) % 50 == 0:
+                print(f"  进度: {len(results)} / {len(items)}")
+
+    elapsed = time.time() - start
+    print(f"\n完成: {len(results)} 个，耗时 {elapsed:.1f}秒")
+
+    # 批量写入 DB
+    conn2 = sqlite3.connect(DB_PATH)
+    c2 = conn2.cursor()
+    for item_id, views in results.items():
+        c2.execute(
+            "UPDATE product_metrics SET exposure=? WHERE item_id=?",
+            (views, item_id)
+        )
+    conn2.commit()
+
+    # 验证各站点已更新数量
+    c2.execute("""
+        SELECT site_id, COUNT(*), AVG(exposure), SUM(exposure)
+        FROM product_metrics WHERE sales > 0 GROUP BY site_id ORDER BY site_id
+    """)
+    print("\n各站点访客量统计 (仅销量>0的商品):
+    for r in c2.fetchall():
+        print(f"  {r[0]}: {r[1]}品, 均访客:{r[2]:.0f}/品, 总访客:{r[3]}")
+    conn2.close()
+
+    print(f"\n✅ 写入了 {len(results)} 条访客量数据")
+
+if __name__ == `__main__`:
+    main()

@@ -44,3 +44,11 @@
 - infringement (商品性能表) 已接入渲染
 - logistics / auth / collect / maintain / service 均已接入
 
+
+## 2026-04-29 - 访客数据填充 + clicks/carts 列永久移除
+- sync_visits.py 完成：12521品访客数据入库（MLB/MLA/MCO/MLU/MLM/MLM_R/CBT 7站点）
+  - 真实曝光：MLB 13891访/1878品 | MLA 914访/100品 | MLM 310万访/27品
+  - product_metrics.exposure 已填充完毕，无 null 值
+- ML Global Selling API 确认无 clicks/carts 端点，前端永久移除
+- ProductPerformanceView.jsx 移除 clicks/carts 列及相关逻辑（智能诊断/排序/top20Avg）
+- 潜在爆款 hot 定义：从"曝光+点击+加车三维度前20"改为"仅曝光前20"

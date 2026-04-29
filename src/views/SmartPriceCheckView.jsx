@@ -3,10 +3,15 @@ import Icon from '../components/Icon';
 import { usePriceCheck } from '../hooks/usePriceCheck';
 
 const SmartPriceCheckView = () => {
-    const { queue = [], loading, calculateProfit, deleteItem } = usePriceCheck();
+    const { queue = [], loading, calculateProfit, deleteItem, refresh } = usePriceCheck();
     const [selectedItem, setSelectedItem] = useState(null);
     const [results, setResults] = useState(null);
     const [isCalculating, setIsCalculating] = useState(false);
+    const [editParams, setEditParams] = useState({
+        cost_cny: 0,
+        weight_g: 0,
+        target_price_local: 0
+    });
 
     const safeQueue = Array.isArray(queue) ? queue : [];
 
@@ -15,47 +20,28 @@ const SmartPriceCheckView = () => {
         setResults(null);
         setIsCalculating(true);
         
-        // Default check params
-        const params = {
+        const initialParams = {
             cost_cny: item.price_cny || 25,
             weight_g: item.weight_g || 300,
             site: item.target_site || 'MLM',
             target_price_local: 499 // Initial target
         };
         
-        const res = await calculateProfit(params);
+        setEditParams(initialParams);
+        const res = await calculateProfit(initialParams);
         setResults(res);
         setIsCalculating(false);
     };
 
-    const [isSyncing, setIsSyncing] = useState(false);
-    const handleApprove = async () => {
-        if (!selectedItem || !results) return;
-        setIsSyncing(true);
-        try {
-            const response = await fetch(`${window.location.protocol}//${window.location.hostname}:8506/api/bitable/add`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    item: selectedItem,
-                    results: results
-                })
-            });
-            const resData = await response.json();
-            if (resData.status === 'success') {
-                alert('已成功刊登至 Bitable 待处理清单');
-                deleteItem(selectedItem.id);
-                setSelectedItem(null);
-                setResults(null);
-            } else {
-                alert('同步失败: ' + resData.message);
-            }
-        } catch (err) {
-            console.error(err);
-            alert('网络错误');
-        } finally {
-            setIsSyncing(false);
-        }
+    const handleRecalculate = async () => {
+        if (!selectedItem) return;
+        setIsCalculating(true);
+        const res = await calculateProfit({
+            ...editParams,
+            site: selectedItem.target_site || 'MLM'
+        });
+        setResults(res);
+        setIsCalculating(false);
     };
 
     return (
@@ -79,7 +65,13 @@ const SmartPriceCheckView = () => {
                 <div className="flex-1 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
                         <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">待核价队列 ({safeQueue.length})</h4>
-                        <button className="text-[10px] font-bold text-blue-600 hover:underline">清空队列</button>
+                        <div className="flex items-center gap-4">
+                            <button onClick={refresh} className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                <Icon name="refresh-cw" className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                                刷新
+                            </button>
+                            <button className="text-[10px] font-bold text-slate-400 hover:text-slate-600">清空队列</button>
+                        </div>
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
@@ -90,8 +82,12 @@ const SmartPriceCheckView = () => {
                                 className={`group p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4
                                     ${selectedItem?.id === item.id ? 'bg-blue-50 border-blue-200 shadow-md' : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-sm'}`}
                             >
-                                <div className="w-16 h-16 rounded-xl bg-slate-50 overflow-hidden shrink-0 border border-slate-100">
-                                    <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <div className="w-16 h-16 rounded-xl bg-slate-50 overflow-hidden shrink-0 border border-slate-100 flex items-center justify-center">
+                                    {item.image_url ? (
+                                        <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    ) : (
+                                        <Icon name="image" className="w-6 h-6 text-slate-200" />
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
@@ -102,11 +98,15 @@ const SmartPriceCheckView = () => {
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-1 text-[11px] font-black text-slate-500">
                                             <span className="text-slate-300">成本:</span>
-                                            <span className="text-slate-900">¥{item.price_cny || '--'}</span>
+                                            <span className={item.price_cny ? "text-slate-900" : "text-rose-500"}>
+                                                {item.price_cny ? `¥${item.price_cny}` : '未抓取'}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-1 text-[11px] font-black text-slate-500">
                                             <span className="text-slate-300">重量:</span>
-                                            <span className="text-slate-900">{item.weight_g || '--'}g</span>
+                                            <span className={item.weight_g ? "text-slate-900" : "text-amber-500"}>
+                                                {item.weight_g ? `${item.weight_g}g` : '预估300g'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -147,6 +147,45 @@ const SmartPriceCheckView = () => {
 
                             {selectedItem ? (
                                 <div className="flex-1 flex flex-col">
+                                    <div className="mb-8 p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
+                                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">核价参数调整 (Adjust Params)</p>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="block text-[9px] text-white/40 mb-1">成本 (CNY)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={editParams.cost_cny}
+                                                    onChange={(e) => setEditParams({...editParams, cost_cny: parseFloat(e.target.value)})}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold focus:border-blue-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[9px] text-white/40 mb-1">重量 (g)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={editParams.weight_g}
+                                                    onChange={(e) => setEditParams({...editParams, weight_g: parseFloat(e.target.value)})}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold focus:border-blue-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[9px] text-white/40 mb-1">售价 (Local)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={editParams.target_price_local}
+                                                    onChange={(e) => setEditParams({...editParams, target_price_local: parseFloat(e.target.value)})}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold focus:border-blue-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={handleRecalculate}
+                                            className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                        >
+                                            重新计算利润 (Recalculate)
+                                        </button>
+                                    </div>
+
                                     <div className="mb-10 text-center">
                                         <p className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">预计净利润率</p>
                                         <h2 className="text-8xl font-black italic tracking-tighter tnum leading-none">
@@ -181,12 +220,10 @@ const SmartPriceCheckView = () => {
                                     </div>
 
                                     <button 
-                                        onClick={handleApprove}
-                                        disabled={isSyncing}
-                                        className={`w-full py-5 rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl active:scale-[0.98] mt-6
-                                            ${isSyncing ? 'bg-slate-700 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'}`}
+                                        onClick={() => { deleteItem(selectedItem.id); setSelectedItem(null); setResults(null); }}
+                                        className="w-full py-5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-[0.3em] transition-all border border-white/10 mt-6"
                                     >
-                                        {isSyncing ? '同步中...' : '准予上架 (刊登至 Bitable)'}
+                                        从核价队列移除 (Finished)
                                     </button>
                                 </div>
                             ) : (

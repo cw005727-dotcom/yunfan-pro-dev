@@ -28,6 +28,11 @@ export const usePriceCheck = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)
       });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Calculation Error:', errText);
+        return null;
+      }
       return await res.json();
     } catch (err) {
       console.error(err);

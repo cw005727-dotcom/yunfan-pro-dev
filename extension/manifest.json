@@ -11,7 +11,7 @@
     "https://*.1688.com/*",
     "https://*.temu.com/*",
     "https://*.amazon.com/*",
-    "http://localhost:8506/*"
+    "http://127.0.0.1:8506/*"
   ],
   "content_scripts": [
     {

@@ -49,13 +49,14 @@ def sync_reputation():
         
         cursor.execute("""
             UPDATE stores SET 
-                seller_id = ?, reputation_level = ?, 
+                reputation_level = ?, 
                 complaints_rate = ?, claims_value = ?,
                 delayed_rate = ?, delayed_value = ?,
                 cancellations_rate = ?, cancel_value = ?,
-                total_transactions = ?
-            WHERE site_id = ?
-        """, (str(user_id), level, complaints_rate, claims_v, delayed_rate, delayed_v, cancellations_rate, cancel_v, total_v, target_site))
+                total_transactions = ?,
+                last_updated = CURRENT_TIMESTAMP
+            WHERE user_id = ? OR site_id = ?
+        """, (level, complaints_rate, claims_v, delayed_rate, delayed_v, cancellations_rate, cancel_v, total_v, int(user_id), target_site))
         
         if cursor.rowcount == 0:
             print(f"Warning: No store found for site_id {target_site}")

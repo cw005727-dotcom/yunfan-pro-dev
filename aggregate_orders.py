@@ -140,16 +140,17 @@ def aggregate_by_site(site_id, user_id, conn):
     status = compute_status(complaints_rate, cancellations_rate, delayed_rate)
     
     # 新增计数（本次 vs 上次 stored value）
+    # 逻辑优化：如果旧值为 0 且之前从未记录过基准，说明是初始化，不计入新增
     cursor.execute("SELECT new_claims, new_cancel, new_delayed, claims_value, cancel_value, delayed_value FROM stores WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
-    prev_claims, prev_cancel, prev_delayed = row[0], row[1], row[2] if row else (0, 0, 0)
-    prev_claims_v = row[3] if row else 0
-    prev_cancel_v = row[4] if row else 0
-    prev_delayed_v = row[5] if row else 0
+    prev_claims_v = row[3] if (row and row[3] is not None) else -1
+    prev_cancel_v = row[4] if (row and row[4] is not None) else -1
+    prev_delayed_v = row[5] if (row and row[5] is not None) else -1
     
-    new_claims = complaints - prev_claims_v
-    new_cancel = cancellations - prev_cancel_v
-    new_delayed = delayed - prev_delayed_v
+    # 第一次同步（prev_v == -1）时，新增设为 0，防止把历史纠纷当成今日新增
+    new_claims = (complaints - prev_claims_v) if prev_claims_v >= 0 else 0
+    new_cancel = (cancellations - prev_cancel_v) if prev_cancel_v >= 0 else 0
+    new_delayed = (delayed - prev_delayed_v) if prev_delayed_v >= 0 else 0
     
     return {
         'total': total,
@@ -207,12 +208,9 @@ def run():
             if agg['total'] > 5 and agg['complaints'] == 0 and agg['cancellations'] == 0 and agg['delayed'] == 0:
                 logger.warning(f"[{site_id}] 订单{total}但三率全零，数据可能异常")
             
-            # 更新 stores 表
+            # 更新 stores 表（仅更新原始数值和新增数值，不覆盖 API 拉取的声誉比例和状态）
             cursor.execute("""
                 UPDATE stores SET
-                    complaints_rate = ?,
-                    delayed_rate = ?,
-                    cancellations_rate = ?,
                     claims_value = ?,
                     cancel_value = ?,
                     delayed_value = ?,
@@ -220,14 +218,10 @@ def run():
                     new_claims = ?,
                     new_cancel = ?,
                     new_delayed = ?,
-                    status = ?,
                     alert_date = ?,
                     last_updated = CURRENT_TIMESTAMP
                 WHERE user_id = ?
             """, (
-                format_rate(agg['complaints_rate']),
-                format_rate(agg['delayed_rate']),
-                format_rate(agg['cancellations_rate']),
                 agg['complaints'],
                 agg['cancellations'],
                 agg['delayed'],
@@ -235,7 +229,6 @@ def run():
                 agg['new_claims'],
                 agg['new_cancel'],
                 agg['new_delayed'],
-                agg['status'],
                 today_str,
                 user_id
             ))

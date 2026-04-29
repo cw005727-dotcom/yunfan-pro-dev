@@ -106,63 +106,6 @@ def start_token_refresh_thread():
 # 鉴权 Token
 ADMIN_TOKEN = "YUNFAN_ADMIN_2026"
 
-# Lark Bitable Config
-LARK_APP_ID = "cli_a966c01747b9dbc8"
-LARK_APP_SECRET = "HrtiCMZqiiVyKE8M7TKK3ewoJwO0blSh"
-LARK_CONFIG_FILE = "lark_config.json"
-
-def get_lark_token():
-    url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
-    payload = json.dumps({"app_id": LARK_APP_ID, "app_secret": LARK_APP_SECRET})
-    headers = {'Content-Type': 'application/json'}
-    try:
-        res = requests.post(url, headers=headers, data=payload).json()
-        return res.get("tenant_access_token")
-    except: return None
-
-def get_or_create_listing_table():
-    token = get_lark_token()
-    if not token: return None, None
-    
-    config = {}
-    if os.path.exists(LARK_CONFIG_FILE):
-        with open(LARK_CONFIG_FILE, 'r') as f:
-            config = json.load(f)
-            
-    app_token = config.get("app_token")
-    table_id = config.get("table_id")
-    
-    if not app_token:
-        # Create Base
-        url = "https://open.feishu.cn/open-apis/bitable/v1/apps"
-        res = requests.post(url, headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}, 
-                            json={"name": "云帆跨境-刊登工作台"}).json()
-        app_token = res.get("data", {}).get("app", {}).get("app_token")
-        if not app_token: return None, None
-        
-        # Create Table
-        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables"
-        fields = [
-            {"field_name": "商品标题", "type": 1},
-            {"field_name": "来源平台", "type": 1},
-            {"field_name": "原价", "type": 2},
-            {"field_name": "原币种", "type": 1},
-            {"field_name": "目标站点", "type": 1},
-            {"field_name": "核价利润率", "type": 1},
-            {"field_name": "预估实收(CNY)", "type": 2},
-            {"field_name": "成本(CNY)", "type": 2},
-            {"field_name": "重量(g)", "type": 2},
-            {"field_name": "图片地址", "type": 1}
-        ]
-        res = requests.post(url, headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}, 
-                            json={"table": {"name": "待刊登清单", "fields": fields}}).json()
-        table_id = res.get("data", {}).get("table_id")
-        
-        with open(LARK_CONFIG_FILE, 'w') as f:
-            json.dump({"app_token": app_token, "table_id": table_id}, f)
-            
-    return app_token, table_id
-
 class MyHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -210,10 +153,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             logger.error(f"Error in send_json: {e}")
 
     def do_OPTIONS(self):
+        logger.info(f"OPTIONS {self.path} from {self.client_address}")
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Token')
         self.end_headers()
 
     def do_GET(self):
@@ -326,20 +270,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     if 'red' in level or 'suspended' in level: status = 'red'
                     elif 'yellow' in level or 'orange' in level: status = 'yellow'
                     
-                    # 2. 指标驱动修正 (如果指标过高，强制转色)
-                    def get_val(s):
-                        if not s: return 0.0
-                        try: return float(str(s).replace('%', ''))
-                        except: return 0.0
-                    
-                    claims_pct = get_val(r.get('complaints_rate'))
-                    delayed_pct = get_val(r.get('delayed_rate'))
-                    cancel_pct = get_val(r.get('cancellations_rate'))
-                    
-                    if claims_pct > 3.0 or delayed_pct > 20.0 or cancel_pct > 5.0:
-                        status = 'red'
-                    elif claims_pct > 1.0 or delayed_pct > 10.0 or cancel_pct > 2.0:
-                        if status != 'red': status = 'yellow'
+                    # 2. 指标驱动修正 (完全信任 stores 表里的官方 status，不再本地判定)
+                    # 如果需要本地强制覆盖逻辑，再开启以下代码
+                    # claims_pct = get_val(r.get('complaints_rate'))
+                    # delayed_pct = get_val(r.get('delayed_rate'))
+                    # cancel_pct = get_val(r.get('cancellations_rate'))
+                    # if claims_pct > 3.0 or delayed_pct > 20.0 or cancel_pct > 5.0: status = 'red'
+                    # elif claims_pct > 1.0 or delayed_pct > 10.0 or cancel_pct > 2.0: if status != 'red': status = 'yellow'
 
                     def format_rate(val):
                         if not val or val == '%': return "0.00%"
@@ -1440,8 +1377,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         payload = json.loads(post_data)
 
-        # 鉴权检查 (排除授权生成链接，因为它可能被初次使用的用户调用)
-        if not self.check_auth() and path != "/api/generate_auth_url":
+        # 鉴权检查 (排除授权生成链接和 Webhook，因为 Webhook 是由美客多服务器调用的)
+        if not self.check_auth() and path not in ["/api/generate_auth_url", "/api/ml/notifications"]:
             logger.warning(f"Unauthorized POST access to {path}")
             self.send_response(401)
             self.send_header('Content-Type', 'application/json')
@@ -1455,46 +1392,36 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         # self.send_header('Content-Type', 'application/json')
         # self.end_headers()
 
-        if path == "/api/bitable/add":
+        if path == "/api/ml/notifications":
             try:
-                item = payload.get("item", {})
-                results = payload.get("results", {})
-                logger.info(f"Adding to Bitable: {item.get('title')}")
+                # 美客多 Webhook 通知处理
+                ml_id = payload.get('_id')
+                resource = payload.get('resource')
+                user_id = payload.get('user_id')
+                topic = payload.get('topic')
+                application_id = payload.get('application_id')
                 
-                app_token, table_id = get_or_create_listing_table()
-                token = get_lark_token()
+                logger.info(f"[Webhook] 收到通知: Topic={topic}, Resource={resource}, User={user_id}")
                 
-                if not app_token or not table_id or not token:
-                    raise Exception("Lark connection failed")
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO ml_notifications (ml_id, resource, user_id, topic, application_id) VALUES (?, ?, ?, ?, ?)",
+                    (ml_id, resource, user_id, topic, application_id)
+                )
+                conn.commit()
+                conn.close()
                 
-                url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records"
-                record = {
-                    "fields": {
-                        "商品标题": item.get('title'),
-                        "来源平台": item.get('source_platform'),
-                        "原价": float(item.get('price_cny', 0) or 0),
-                        "原币种": "CNY",
-                        "目标站点": item.get('target_site'),
-                        "核价利润率": f"{results.get('margin', 0)}%",
-                        "预估实收(CNY)": float(results.get('net_profit_cny', 0) or 0),
-                        "成本(CNY)": float(item.get('price_cny', 0) or 0),
-                        "重量(g)": float(item.get('weight_g', 0) or 0),
-                        "图片地址": item.get('image_url')
-                    }
-                }
-                res = requests.post(url, headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}, json=record, timeout=15).json()
-                if res.get("code") == 0:
-                    logger.info("Successfully added to Bitable")
-                    self.send_json({"status": "success"})
-                else:
-                    logger.error(f"Lark API Error: {res}")
-                    raise Exception(res.get("msg", "Unknown Lark error"))
+                # 必须在 500ms 内返回 200 OK
+                self.send_json({"status": "received"})
+                return
+
             except Exception as e:
-                logger.error(f"Bitable Add Error: {e}")
+                logger.error(f"[Webhook] 保存通知失败: {e}")
                 self.send_json({"status": "error", "message": str(e)}, status=500)
+                return
 
         elif path == "/api/stores":
-            self.send_json({"status": "success", "message": "Stores POST not implemented"}, status=405)
             try:
                 # Add a new store by Seller ID
                 sid = payload.get('seller_id')
@@ -1509,9 +1436,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 cursor.execute("INSERT INTO stores (seller_id, nickname, site_id, store_name) VALUES (?, ?, ?, ?)", 
                                (sid, nickname, site_id, nickname))
                 conn.commit(); conn.close()
-                self.wfile.write(json.dumps({"status": "success", "nickname": nickname}).encode())
+                self.send_json({"status": "success", "nickname": nickname})
             except Exception as e:
-                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode())
+                self.send_json({"status": "error", "message": str(e)}, status=500)
 
         elif path == "/api/optimize_title":
             try:
@@ -1544,15 +1471,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     suggestions = [line.strip() for line in content.split('\n') if line.strip()]
                     # 只要前5个
                     suggestions = suggestions[:5]
-                    
-                    self.wfile.write(json.dumps({"suggestions": suggestions}).encode())
+                    self.send_json({"suggestions": suggestions})
                 else:
                     logger.error(f"MiniMax Error: {resp.text}")
                     raise Exception("AI 生成失败")
                     
             except Exception as e:
                 logger.error(f"Optimize Error: {e}")
-                self.wfile.write(json.dumps({"suggestions": [f"{title} - Pro Edition", f"Nuevo {title}", f"Top {title}"]}).encode())
+                self.send_json({"suggestions": [f"{title} - Pro Edition", f"Nuevo {title}", f"Top {title}"]})
 
         elif path == "/api/customer_service/suggest":
             try:
@@ -1610,9 +1536,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 }
                 resp = requests.post(MINIMAX_CONFIG['url'], headers=headers, json=body)
                 content = resp.json()['choices'][0]['message']['content']
-                self.wfile.write(json.dumps({"suggestion": content.strip()}).encode())
+                self.send_json({"suggestion": content.strip()})
             except Exception as e:
-                self.wfile.write(json.dumps({"suggestion": "Hola, muchas gracias por tu mensaje. Te atendemos a la brevedad posible."}).encode())
+                self.send_json({"suggestion": "Hola, muchas gracias por tu mensaje. Te atendemos a la brevedad posible."})
 
         elif path == "/api/translate":
             """通用翻译：from_lang -> to_lang (默认 auto->zh 或 es->zh)"""
@@ -1846,6 +1772,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/price_check/add":
             try:
+                # Log the incoming payload for debugging
+                logger.info(f"Price Check Payload: {json.dumps(payload)}")
+                
                 # Map extension fields to DB fields
                 platform = payload.get('source_platform') or payload.get('platform', 'Unknown')
                 url = payload.get('source_url') or payload.get('url', '')
@@ -1881,19 +1810,36 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/price_check/calculate":
             try:
-                cost_cny = float(payload.get('cost_cny', 0))
-                weight_g = float(payload.get('weight_g', 0))
+                # Safe float conversion
+                def get_float(val, default=0.0):
+                    try: return float(val) if val is not None else default
+                    except: return default
+
+                cost_cny = get_float(payload.get('cost_cny'))
+                weight_g = get_float(payload.get('weight_g'))
                 site = payload.get('site', 'MLM')
-                target_price_local = float(payload.get('target_price_local', 0))
+                target_price_local = get_float(payload.get('target_price_local'))
                 
-                fx_rates = {"MLM": 0.42, "MLB": 1.4, "MLA": 0.008}
+                # Site normalization
+                if site == "MX": site = "MLM"
+                if site == "BR": site = "MLB"
+                if site == "CO": site = "MCO"
+                if site == "AR": site = "MLA"
+                
+                fx_rates = {"MLM": 0.42, "MLB": 1.4, "MLA": 0.008, "MCO": 0.0018}
                 fx = fx_rates.get(site, 0.4)
                 
-                comm = target_price_local * 0.18
+                # Comm & Shipping Logic
+                comm_rate = 0.175 if site == "MLM" else 0.12 # MLM default CBT comm
+                comm = target_price_local * comm_rate
+                
+                # Dynamic shipping estimation
                 shipping = 150 if site == "MLM" else 45 if site == "MLB" else 15000
                 if weight_g > 500: shipping *= (weight_g / 500.0)
                 
-                tax = target_price_local * 0.20 if site == "MLM" else target_price_local * 0.12
+                # Taxes (VAT/ISR)
+                tax_rate = 0.16 if site == "MLM" else 0.0
+                tax = target_price_local * tax_rate
                 
                 revenue_cny = target_price_local * fx
                 expenses_cny = (cost_cny) + (shipping + comm + tax) * fx
@@ -1908,12 +1854,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     "details": {
                         "commission_local": round(comm, 2),
                         "shipping_local": round(shipping, 2),
-                        "tax_local": round(tax, 2)
+                        "tax_local": round(tax, 2),
+                        "site": site
                     }
                 }
-                self.wfile.write(json.dumps(res).encode())
+                self.send_json(res)
             except Exception as e:
-                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                logger.error(f"Calculate Error: {e}")
+                self.send_json({"error": str(e)}, status=500)
 
         elif path == "/api/admin/generate_code":
             try:
@@ -1927,21 +1875,25 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                                  (code, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                     codes.append(code)
                 conn.commit(); conn.close()
-                self.wfile.write(json.dumps({"status": "success", "codes": codes}).encode())
+                self.send_json({"status": "success", "codes": codes})
             except Exception as e:
-                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode())
+                self.send_json({"status": "error", "message": str(e)}, status=500)
 
         elif path == "/api/admin/invitation_codes":
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
                 cursor.execute("SELECT * FROM invitation_codes ORDER BY created_at DESC")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
-                self.wfile.write(json.dumps(rows).encode())
+                self.send_json(rows)
             except Exception as e:
-                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                self.send_json({"error": str(e)}, status=500)
+                
+        elif path == "/api/cms/articles":
+            # Placeholder for news articles
+            self.send_json([])
         
         else:
-            self.wfile.write(json.dumps({"status": "ok"}).encode())
+            self.send_json({"status": "ok"})
 
 PORT = 8506
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

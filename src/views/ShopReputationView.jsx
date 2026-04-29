@@ -20,6 +20,16 @@ const STATUS_META = {
     red: { dot: 'bg-rose-400', text: 'text-rose-500', bg: 'bg-rose-50', border: 'border-rose-200', pulse: 'relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40' },
 };
 
+const OFFICIAL_META = {
+    '5_green': { ring: 'border-emerald-500', bg: 'bg-emerald-500', label: '深绿' },
+    '4_light_green': { ring: 'border-lime-400', bg: 'bg-lime-400', label: '浅绿' },
+    '3_yellow': { ring: 'border-amber-400', bg: 'bg-amber-400', label: '黄色' },
+    '2_orange': { ring: 'border-orange-400', bg: 'bg-orange-400', label: '橙色' },
+    '1_red': { ring: 'border-rose-500', bg: 'bg-rose-500', label: '红色' },
+};
+
+const getOfficialMeta = (level) => OFFICIAL_META[level] || OFFICIAL_META['5_green'];
+
 // 辅助函数：根据指标数值和站点状态计算颜色
 const getMetricColor = (val, siteStatus, newCount = 0) => {
     const num = parseFloat(val || '0') || 0;
@@ -36,11 +46,16 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
     const siteInfo = SITE_COLS.find(c => c.code === site) || { flag: '🌐', name: site };
     const statusLabel = data.status === 'green' ? '健康' : data.status === 'yellow' ? '预警' : '危险';
     const meta = STATUS_META[data.status] || STATUS_META.green;
+    const offMeta = getOfficialMeta(data.reputation_level);
 
     return (
         <div
             className="fixed z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-in zoom-in-95 duration-200"
-            style={{ left: position.x, top: position.y, minWidth: '220px' }}
+            style={{ 
+                left: position.x > window.innerWidth - 250 ? position.x - 260 : position.x, 
+                top: position.y > window.innerHeight - 200 ? position.y - 150 : position.y, 
+                minWidth: '240px' 
+            }}
             onMouseLeave={onClose}
         >
             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
@@ -49,21 +64,60 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
                     <p className="text-[12px] font-black text-slate-800">{storeName}</p>
                     <p className="text-[10px] text-slate-400">{siteInfo.name}</p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${meta.bg} ${meta.text}`}>{statusLabel}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-                <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.reclamos) > 0 || data.new_claims > 0 ? 'bg-rose-50' : 'bg-slate-50'}`}>
-                    <p className="text-[8px] text-slate-400 font-bold">投诉率</p>
-                    <p className={`text-sm font-black ${getMetricColor(data.reclamos, data.status, data.new_claims)}`}>{data.reclamos}</p>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase">官方信誉</span>
+                    <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${offMeta.bg}`}></div>
+                        <span className="text-[10px] font-black text-slate-700">{offMeta.label}</span>
+                    </div>
                 </div>
-                <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.despacho) > 0 || data.new_delayed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
-                    <p className="text-[8px] text-slate-400 font-bold">延误率</p>
-                    <p className={`text-sm font-black ${getMetricColor(data.despacho, data.status, data.new_delayed)}`}>{data.despacho}</p>
+                <div className="flex flex-col gap-1 border-l border-slate-100 pl-2">
+                    <span className="text-[8px] font-black text-slate-400 uppercase">系统判定</span>
+                    <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${meta.dot} ${meta.pulse}`}></div>
+                        <span className={`text-[10px] font-black ${meta.text}`}>{statusLabel}</span>
+                    </div>
                 </div>
-                <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.cancel) > 0 || data.new_cancel > 0 ? 'bg-purple-50' : 'bg-slate-50'}`}>
-                    <p className="text-[8px] text-slate-400 font-bold">取消率</p>
-                    <p className={`text-sm font-black ${getMetricColor(data.cancel, data.status, data.new_cancel)}`}>{data.cancel || '0.00%'}</p>
+            </div>
+
+            <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                    <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.reclamos) > 0 || data.new_claims > 0 ? 'bg-rose-50' : 'bg-slate-50'}`}>
+                        <p className="text-[8px] text-slate-400 font-bold">投诉率</p>
+                        <p className={`text-sm font-black ${getMetricColor(data.reclamos, data.status, data.new_claims)}`}>{data.reclamos}</p>
+                    </div>
+                    <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.despacho) > 0 || data.new_delayed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+                        <p className="text-[8px] text-slate-400 font-bold">延误率</p>
+                        <p className={`text-sm font-black ${getMetricColor(data.despacho, data.status, data.new_delayed)}`}>{data.despacho}</p>
+                    </div>
+                    <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.cancel) > 0 || data.new_cancel > 0 ? 'bg-purple-50' : 'bg-slate-50'}`}>
+                        <p className="text-[8px] text-slate-400 font-bold">取消率</p>
+                        <p className={`text-sm font-black ${getMetricColor(data.cancel, data.status, data.new_cancel)}`}>{data.cancel || '0.00%'}</p>
+                    </div>
                 </div>
+
+                {(data.new_claims > 0 || data.new_violations > 0) && (
+                    <div className="pt-2 border-t border-dashed border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2">今日紧急待办</p>
+                        <div className="space-y-1.5">
+                            {data.new_claims > 0 && (
+                                <div className="flex justify-between items-center px-2 py-1 rounded-lg bg-rose-50 border border-rose-100">
+                                    <span className="text-[10px] font-bold text-rose-600">🚨 新增投诉纠纷</span>
+                                    <span className="text-[10px] font-black text-rose-600">+{data.new_claims}</span>
+                                </div>
+                            )}
+                            {data.new_violations > 0 && (
+                                <div className="flex justify-between items-center px-2 py-1 rounded-lg bg-amber-50 border border-amber-100">
+                                    <span className="text-[10px] font-bold text-amber-600">⚠️ 新增违规处罚</span>
+                                    <span className="text-[10px] font-black text-amber-600">+{data.new_violations}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -223,6 +277,7 @@ const ShopReputationView = () => {
                                             const siteData = sites.find(s => s.site === col.code);
                                             if (!siteData) return <div key={col.code} className="flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-slate-100"></div></div>;
                                             const meta = STATUS_META[siteData.status] || STATUS_META.green;
+                                            const offMeta = getOfficialMeta(siteData.reputation_level);
                                             return (
                                                 <div 
                                                     key={col.code} 
@@ -230,7 +285,11 @@ const ShopReputationView = () => {
                                                     onMouseEnter={(e) => handleCellEnter(e, col.code, name, siteData)}
                                                     onMouseLeave={handleCellLeave}
                                                 >
-                                                    <div className={`w-3 h-3 rounded-full ${meta.dot} ${meta.pulse} shadow-sm border border-white`}></div>
+                                                    {/* 双重状态指示器：外圈代表官方，内点代表系统判定 */}
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${offMeta.ring} bg-white/50`}>
+                                                        <div className={`w-2 h-2 rounded-full ${meta.dot} ${meta.pulse} shadow-sm`}></div>
+                                                    </div>
+                                                    
                                                     {(siteData.new_claims > 0 || siteData.new_violations > 0) && (
                                                         <div className="absolute -top-1.5 -right-1 bg-rose-500 text-white text-[7px] font-black px-1 rounded-full border border-white">
                                                             +{(siteData.new_claims || 0) + (siteData.new_violations || 0)}

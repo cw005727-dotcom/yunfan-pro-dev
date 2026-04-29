@@ -57,7 +57,13 @@ def pull_reputation():
             transactions = rep_detail.get('transactions', {})
             total_transactions = transactions.get('total', 0)
 
-            print(f"Processing Site: {site_id}, Logistic: {logistic_type}, Level: {reputation_level}")
+            # Convert reputation_level to UI status color
+            status = 'green'
+            if reputation_level:
+                if 'red' in reputation_level: status = 'red'
+                elif 'yellow' in reputation_level or 'orange' in reputation_level: status = 'yellow'
+
+            print(f"Processing Site: {site_id}, Logistic: {logistic_type}, Level: {reputation_level}, Status: {status}")
 
             # Update stores table mapping site_id
             cursor.execute("""
@@ -66,9 +72,10 @@ def pull_reputation():
                     complaints_rate = ?, 
                     delayed_rate = ?, 
                     cancellations_rate = ?, 
-                    total_transactions = ?
+                    total_transactions = ?,
+                    status = ?
                 WHERE site_id = ?
-            """, (reputation_level, complaints_rate, delayed_rate, cancellations_rate, total_transactions, site_id))
+            """, (reputation_level, complaints_rate, delayed_rate, cancellations_rate, total_transactions, status, site_id))
             
             print(f"  Updated Database for {site_id} ({logistic_type})")
 

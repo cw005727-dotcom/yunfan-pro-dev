@@ -28,7 +28,7 @@ ChartJS.register(
 
 const TABS = [
     { key: 'new',      label: '上新关注',  suffix: '🆕', desc: '上架 15 天内的新品监控：SKU 级深度漏斗追踪。' },
-    { key: 'hot',      label: '潜力爆款',  suffix: '🔥', desc: '潜力定义：曝光、点击或加车进入全店前 20 的高热度产品。对标美客多市场基准提供优化建议。' },
+    { key: 'hot',      label: '潜力爆款',  suffix: '🔥', desc: '潜力定义：曝光进入全店前 20 的高热度产品。对标美客多市场基准提供优化建议。' },
     { key: 'cart',     label: '已售商品',  suffix: '⚡' },
     { key: 'risk',     label: '风险产品',  suffix: '⚠️' },
     { key: 'inactive', label: '无效商品',  suffix: '💤' },
@@ -70,16 +70,9 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
         const concerns = [];
         
         const expScore = (item.exposure || 0) / (top20Avg?.exposure || 1);
-        const clickScore = (item.clicks || 0) / (top20Avg?.clicks || 1);
-        const cartScore = (item.carts || 0) / (top20Avg?.carts || 1);
 
         if (expScore > 1.2) highlights.push("曝光强劲");
-        if (clickScore > 1.2) highlights.push("高点击吸引力");
-        if (cartScore > 1.2) highlights.push("加车转化卓越");
-        
         if (expScore < 0.6) concerns.push("曝光严重不足");
-        if (clickScore < 0.6) concerns.push("主图吸引力弱");
-        if (cartScore < 0.6) concerns.push("转化链路受阻");
 
         return {
             summary: highlights.length > 0 ? `亮点: ${highlights.join('、')}` : "亮点: -",
@@ -93,7 +86,7 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
         <div className="flex flex-col gap-2">
             <div 
                 onClick={onSelect}
-                className={`group px-6 py-3 rounded-2xl border transition-all cursor-pointer grid grid-cols-[50px_130px_70px_70px_70px_1fr_90px] gap-4 items-center ${isSelected ? 'bg-indigo-50/50 border-indigo-200 shadow-sm' : 'bg-white border-slate-50 hover:border-slate-100'}`}
+                className={`group px-6 py-3 rounded-2xl border transition-all cursor-pointer grid grid-cols-[50px_130px_70px_1fr_90px] gap-4 items-center ${isSelected ? 'bg-indigo-50/50 border-indigo-200 shadow-sm' : 'bg-white border-slate-50 hover:border-slate-100'}`}
             >
                 {/* 主图 */}
                 <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
@@ -109,14 +102,6 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
                 {/* 指标展示 */}
                 <div className="text-center">
                     <p className="text-[12px] font-black text-slate-800 tracking-tighter">{item.exposure >= 1000 ? (item.exposure/1000).toFixed(1)+'K' : item.exposure}</p>
-                </div>
-
-                <div className="text-center">
-                    <p className="text-[12px] font-black text-slate-800 tracking-tighter">{item.clicks}</p>
-                </div>
-
-                <div className="text-center">
-                    <p className="text-[12px] font-black text-indigo-600 tracking-tighter">{item.carts}</p>
                 </div>
 
                 {/* 智能诊断总结 */}
@@ -252,7 +237,7 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
     return (
         <div 
             onClick={onSelect}
-            className={`group px-6 py-3 rounded-2xl border transition-all cursor-pointer grid grid-cols-[50px_130px_70px_70px_70px_1fr] gap-4 items-center ${isSelected ? 'bg-indigo-50/50 border-indigo-200 shadow-sm' : 'bg-white border-slate-50 hover:border-slate-100 hover:shadow-sm'}`}
+            className={`group px-6 py-3 rounded-2xl border transition-all cursor-pointer grid grid-cols-[50px_130px_70px_1fr] gap-4 items-center ${isSelected ? 'bg-indigo-50/50 border-indigo-200 shadow-sm' : 'bg-white border-slate-50 hover:border-slate-100 hover:shadow-sm'}`}
         >
             {/* 主图 */}
             <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
@@ -268,14 +253,6 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
             {/* 数值区 - 极简显示 */}
             <div className={`text-center transition-all ${activeMetric === 'exposure' ? 'opacity-100' : 'opacity-40'}`}>
                 <p className={`text-[12px] font-black tracking-tighter ${activeMetric === 'exposure' ? 'text-indigo-600' : 'text-slate-800'}`}>{item.exposure >= 1000 ? (item.exposure/1000).toFixed(1)+'K' : item.exposure}</p>
-            </div>
-
-            <div className={`text-center transition-all ${activeMetric === 'carts' ? 'opacity-100' : 'opacity-40'}`}>
-                <p className={`text-[12px] font-black tracking-tighter ${activeMetric === 'carts' ? 'text-indigo-600' : 'text-slate-800'}`}>{item.carts}</p>
-            </div>
-
-            <div className={`text-center transition-all ${activeMetric === 'clicks' ? 'opacity-100' : 'opacity-40'}`}>
-                <p className={`text-[12px] font-black tracking-tighter ${activeMetric === 'clicks' ? 'text-indigo-600' : 'text-slate-800'}`}>{item.clicks}</p>
             </div>
 
             {/* 折线图与悬停数据 */}
@@ -519,19 +496,14 @@ const ProductPerformanceView = () => {
 
     const avg = useMemo(() => ({
         exp:    items.length ? items.reduce((s,i) => s+(i.exposure||0), 0) / items.length : 0,
-        clicks: items.length ? items.reduce((s,i) => s+(i.clicks||0), 0) / items.length : 0,
         returns:items.length ? items.reduce((s,i) => s+(i.returns||0), 0) / items.length : 0,
     }), [items]);
 
     const categorized = useMemo(() => ({
         new:      sortItems(items.filter(d => (d.days_listed || 0) <= 15)),
         hot:      (() => {
-                    // 计算 Top 20 阈值
                     const sortedExp = [...items].sort((a,b) => (b.exposure||0)-(a.exposure||0)).slice(0, 20).map(i => i.item_id);
-                    const sortedClicks = [...items].sort((a,b) => (b.clicks||0)-(a.clicks||0)).slice(0, 20).map(i => i.item_id);
-                    const sortedCarts = [...items].sort((a,b) => (b.carts||0)-(a.carts||0)).slice(0, 20).map(i => i.item_id);
-                    
-                    const topSet = new Set([...sortedExp, ...sortedClicks, ...sortedCarts]);
+                    const topSet = new Set(sortedExp);
                     return items.filter(d => topSet.has(d.item_id))
                                 .sort((a,b) => (b.exposure||0) - (a.exposure||0));
                   })(),
@@ -543,17 +515,15 @@ const ProductPerformanceView = () => {
                           } catch { ss = d.sub_status ? [d.sub_status] : []; }
                           return (d.claims||0)>0 || (d.returns||0)>avg.returns || ss.includes('bpp_report') || ss.includes('forbidden') || d.status === 'under_review' || ss.includes('suspended_account');
                       }).sort((a,b) => ((b.claims||0)+(b.returns||0)) - ((a.claims||0)+(a.returns||0))),
-        inactive: items.filter(d => (d.days_listed||0)>30 && (d.exposure||0)<avg.exp && (d.carts||0)===0)
+        inactive: items.filter(d => (d.days_listed||0)>30 && (d.exposure||0)<avg.exp)
                           .sort((a,b) => (b.days_listed||0) - (a.days_listed||0)),
     }), [items, activeMetric, sortDir, avg.returns, avg.exp]);
 
     const top20Avg = useMemo(() => {
         const hotItems = categorized.hot;
-        if (!hotItems.length) return { exposure: 0, clicks: 0, carts: 0 };
+        if (!hotItems.length) return { exposure: 0 };
         return {
             exposure: hotItems.reduce((s, i) => s + (i.exposure || 0), 0) / hotItems.length,
-            clicks: hotItems.reduce((s, i) => s + (i.clicks || 0), 0) / hotItems.length,
-            carts: hotItems.reduce((s, i) => s + (i.carts || 0), 0) / hotItems.length,
         };
     }, [categorized.hot]);
 
@@ -649,7 +619,7 @@ const ProductPerformanceView = () => {
 
                             {/* Table Head (上新模式: 只有一层表头，可点击排序) */}
                             {activeTab === 'new' ? (
-                                <div className="px-6 py-3 grid grid-cols-[50px_140px_100px_100px_100px_1fr] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 shrink-0">
+                                <div className="px-6 py-3 grid grid-cols-[50px_140px_100px_1fr] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 shrink-0">
                                     <div className="w-10">主图</div>
                                     <div>SKU/日期</div>
                                     <div 
@@ -658,27 +628,13 @@ const ProductPerformanceView = () => {
                                     >
                                         曝光 {activeMetric === 'exposure' && (sortDir === 'desc' ? '↓' : '↑')}
                                     </div>
-                                    <div 
-                                        onClick={() => toggleSort('carts')}
-                                        className={`text-center cursor-pointer transition-colors hover:text-indigo-500 flex items-center justify-center gap-1 ${activeMetric === 'carts' ? 'text-indigo-600' : ''}`}
-                                    >
-                                        加车 {activeMetric === 'carts' && (sortDir === 'desc' ? '↓' : '↑')}
-                                    </div>
-                                    <div 
-                                        onClick={() => toggleSort('clicks')}
-                                        className={`text-center cursor-pointer transition-colors hover:text-indigo-500 flex items-center justify-center gap-1 ${activeMetric === 'clicks' ? 'text-indigo-600' : ''}`}
-                                    >
-                                        点击 {activeMetric === 'clicks' && (sortDir === 'desc' ? '↓' : '↑')}
-                                    </div>
                                     <div className="pl-4">波动趋势 (15日)</div>
                                 </div>
                             ) : (
-                                <div className="px-6 py-3 grid grid-cols-[50px_130px_70px_70px_70px_1fr_90px] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 shrink-0">
+                                <div className="px-6 py-3 grid grid-cols-[50px_130px_70px_1fr_90px] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 shrink-0">
                                     <div className="w-10">主图</div>
                                     <div>SKU/日期</div>
                                     <div className="text-center">曝光</div>
-                                    <div className="text-center">点击</div>
-                                    <div className="text-center">加车</div>
                                     <div className="pl-4">智能诊断</div>
                                     <div className="text-center">操作</div>
                                 </div>
@@ -726,7 +682,7 @@ const ProductPerformanceView = () => {
                                                 <div 
                                                     key={item.item_id || idx}
                                                     onClick={() => setSelectedItem(item)}
-                                                    className={`group px-6 py-3 rounded-2xl border transition-all cursor-pointer grid grid-cols-[50px_130px_70px_70px_70px_1fr_90px] gap-4 items-center ${selectedItem?.item_id === item.item_id ? 'bg-indigo-50/50 border-indigo-200 ring-1 ring-indigo-100 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm'}`}
+                                                    className={`group px-6 py-3 rounded-2xl border transition-all cursor-pointer grid grid-cols-[50px_130px_70px_1fr_90px] gap-4 items-center ${selectedItem?.item_id === item.item_id ? 'bg-indigo-50/50 border-indigo-200 ring-1 ring-indigo-100 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm'}`}
                                                 >
                                                     {/* 主图 */}
                                                     <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden">
@@ -746,12 +702,6 @@ const ProductPerformanceView = () => {
                                                     {/* 指标展示 */}
                                                     <div className="text-center">
                                                         <p className="text-[12px] font-black text-slate-800 tracking-tighter">{item.exposure >= 1000 ? (item.exposure/1000).toFixed(1)+'K' : item.exposure}</p>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <p className="text-[12px] font-black text-slate-800 tracking-tighter">{item.clicks}</p>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <p className="text-[12px] font-black text-indigo-600 tracking-tighter">{item.carts}</p>
                                                     </div>
 
                                                     {/* 智能诊断 */}
