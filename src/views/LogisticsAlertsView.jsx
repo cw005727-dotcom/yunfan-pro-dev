@@ -4,7 +4,7 @@ import Icon from '../components/Icon.jsx';
 
 // ─── 状态映射 (同步店铺声誉 - 高饱和度) ──────────────────────────────────────
 const STATUS_META = {
-  1: { label: '待处理', dot: 'bg-slate-500', text: 'text-slate-900', bg: 'bg-slate-100', border: 'border-slate-300', icon: 'clock', accent: 'bg-slate-500', radarTitle: '待处理任务库' },
+  1: { label: '待发货', dot: 'bg-slate-500', text: 'text-slate-900', bg: 'bg-slate-100', border: 'border-slate-300', icon: 'clock', accent: 'bg-slate-500', radarTitle: '待发货列表' },
   2: { label: '在途中', dot: 'bg-blue-600', text: 'text-blue-900', bg: 'bg-blue-100/50', border: 'border-blue-300', icon: 'truck', accent: 'bg-blue-600', radarTitle: '在途中监测' },
   3: { label: '已妥投', dot: 'bg-emerald-600', text: 'text-emerald-900', bg: 'bg-emerald-100/50', border: 'border-emerald-300', icon: 'check-circle', accent: 'bg-emerald-600', radarTitle: '已妥投档案' },
   4: { label: '有异常', dot: 'bg-rose-600', text: 'text-rose-900', bg: 'bg-rose-100/50', border: 'border-rose-300', icon: 'alert-triangle', accent: 'bg-rose-600', radarTitle: '物流风险雷达', pulse: 'relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40' },
@@ -72,68 +72,94 @@ const CategoryRibbon = ({ stats, active, onChange }) => {
 };
 
 const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
-  const meta = STATUS_META[categoryId];
+  const meta = STATUS_META[categoryId] || STATUS_META[1];
+  
+  // 计算 AI 洞察摘要
+  const overdueCount = orders.filter(o => o.is_overdue).length;
+  const urgentCount = orders.filter(o => {
+    if (!o.ship_deadline) return false;
+    const hoursLeft = (new Date(o.ship_deadline) - new Date()) / 3600000;
+    return hoursLeft > 0 && hoursLeft < 24;
+  }).length;
+
   return (
     <div className="h-full flex flex-col p-4 bg-slate-50/50">
-      <div className="flex items-center justify-between mb-4 px-2">
-        <div className="flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${meta.pulse || ''}`} />
-          <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">{meta.radarTitle}</span>
-        </div>
-        <span className="text-[9px] font-mono text-slate-500">指挥官 V8 系统</span>
-      </div>
-      
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
-        {orders.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
-            <Icon name="inbox" className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest mt-2">该分类下暂无单据</p>
+      {/* 指挥部大外壳 */}
+      <div className="flex-1 flex flex-col bg-white rounded-[32px] border-2 border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden relative">
+        
+        {/* 通讯顶栏 */}
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm">
+               <Icon name="shield" className="w-5 h-5" />
+            </div>
+            <div>
+               <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-widest leading-none mb-1">{meta.radarTitle}</h4>
+               <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">AI SENTINEL UNIT-08</p>
+            </div>
           </div>
-        ) : (
-          orders.map((order) => (
-            <div
-              key={order.id}
-              onClick={() => onSelect(order)}
-              className={`p-3 rounded-xl border transition-all cursor-pointer relative group
-                ${selectedId === order.id ? `bg-white shadow-xl ring-2 ${meta.border.replace('border-', 'ring-')}/30` : `bg-white border-slate-100 hover:border-slate-300 shadow-sm`}`}
-            >
-              {selectedId === order.id && <div className={`absolute left-0 top-1/4 h-1/2 w-1 ${meta.dot} rounded-full`} />}
-              <div className="flex gap-3">
-                <img src={order.thumbnail} className="w-12 h-12 object-cover rounded-lg border border-slate-100 shrink-0" alt="" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-2">
-                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">订单编号 #{order.id}</span>
-                     <div className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}></div>
+          <div className="flex items-center gap-1.5 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[8px] font-black text-emerald-700 uppercase">实时监测中</span>
+          </div>
+        </div>
+
+        {/* 作战任务池 */}
+        <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 bg-slate-50/30">
+          {orders.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-2xl border border-slate-100 shadow-sm">
+              <Icon name="inbox" className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest mt-2">指挥部暂无新任务</p>
+            </div>
+          ) : (
+            orders.map((order) => (
+              <div
+                key={order.id}
+                onClick={() => onSelect(order)}
+                className={`p-2 rounded-2xl border-2 transition-all cursor-pointer relative group
+                  ${selectedId === order.id ? `bg-white border-blue-500 shadow-lg shadow-blue-100` : `bg-white border-transparent hover:border-slate-100 shadow-sm`}`}
+              >
+                {/* 任务状态侧条 */}
+                <div className={`absolute left-0 top-1/4 h-1/2 w-1 rounded-r-full ${order.is_overdue ? 'bg-rose-500' : (selectedId === order.id ? 'bg-blue-500' : meta.dot)}`} />
+                
+                <div className="flex gap-2.5 items-center">
+                  <div className="relative shrink-0">
+                    <img src={order.thumbnail} className="w-10 h-10 object-cover rounded-lg border border-slate-100 shadow-sm" alt="" />
+                    {order.is_overdue && (
+                      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full flex items-center justify-center border-2 border-white">
+                        <Icon name="alert-triangle" className="w-2 h-2" />
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                     <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-slate-500 uppercase">站点</span>
-                        <span className="text-[10px] font-black text-slate-900">{SITE_FLAGS[order.site_id]?.split(' ')[1] || order.site_id}</span>
-                     </div>
-                     <div className="flex flex-col text-right">
-                        <span className="text-[8px] font-black text-slate-500 uppercase">{categoryId === '1' ? '当前状态' : '当前环节'}</span>
-                        <span className={`text-[10px] font-black ${order.is_overdue ? 'text-rose-600' : (SHIPPING_STATUS_COLORS[order.shipping_status]?.text || meta.text)}`}>
-                          {order.status_zh}
-                        </span>
-                     </div>
-                  </div>
-                  {/* 在途中的单据也要显示详细的位置信息块 */}
-                  {(categoryId === '1' || categoryId === '2' || order.shipping_status === 'out_for_delivery' || order.shipping_status === 'pick_up') && (
-                    <div className={`mt-2 flex items-center justify-between px-1 p-1.5 rounded-lg border ${order.is_overdue ? 'bg-rose-50 border-rose-100' : 'bg-slate-100/50 border-slate-100'}`}>
-                      <span className="text-[8px] font-black text-slate-500 uppercase">
-                        {categoryId === '1' ? '最晚发货' : (order.shipping_status === 'pick_up' ? '待自提' : (order.shipping_status === 'out_for_delivery' ? '派送中' : '最新位置'))}
-                      </span>
-                      <span className={`text-[10px] font-mono font-black ${order.is_overdue ? 'text-rose-600' : 'text-slate-800'} truncate ml-4`}>
-                        {categoryId === '1' ? (order.ship_deadline || '未设置') : (order.last_location || '实时查询中')}
-                      </span>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex justify-between items-center mb-0.5">
+                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">#{order.id}</span>
+                       <span className="text-[10px] font-black text-slate-900">
+                         {SITE_FLAGS[order.site_id] || '未知'}
+                       </span>
                     </div>
-                  )}
+                    
+                    <h5 className={`text-[10px] font-black truncate mb-1 ${selectedId === order.id ? 'text-blue-600' : 'text-slate-900'}`}>
+                      {order.product_name || '未命名任务'}
+                    </h5>
+                    
+                    {(categoryId === '1' || categoryId === '2' || order.shipping_status === 'out_for_delivery' || order.shipping_status === 'pick_up') && (
+                      <div className={`flex items-center justify-between px-1.5 py-0.5 rounded-md border ${order.is_overdue ? 'bg-rose-100 border-rose-200' : 'bg-slate-100 border-slate-200'}`}>
+                        <span className="text-[7px] font-black text-slate-500 uppercase">
+                          {categoryId === '1' ? '最晚发货' : '状态'}
+                        </span>
+                        <span className={`text-[8px] font-mono font-black ${order.is_overdue ? 'text-rose-600' : 'text-slate-900'} truncate ml-2`}>
+                          {categoryId === '1' ? (order.ship_deadline || '未设置') : (order.status_zh || '处理中')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -150,7 +176,9 @@ const FocusTrace = ({ order }) => {
       return;
     }
     setLoading(true);
-    fetch(`/api/logistics/detail?id=${order.id}`)
+    fetch(`/api/logistics/detail?id=${order.id}`, {
+      headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' }
+    })
       .then(r => r.json())
       .then(data => {
         setDetails(data);
@@ -444,7 +472,7 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
                        </div>
                        {(activeCategory === '1' || activeCategory === '2' || o.shipping_status === 'out_for_delivery' || o.shipping_status === 'pick_up') && (
                          <span className={`text-[9px] ${o.is_overdue ? 'text-rose-600' : 'text-slate-500'} font-mono border-t border-slate-200/50 mt-0.5 pt-0.5 w-full text-center`}>
-                           {activeCategory === '1' ? `截止: ${o.ship_deadline || '未设置'}` : (o.shipping_status === 'pick_up' ? '请联系买家自提' : (o.shipping_status === 'out_for_delivery' ? '正在派送中' : `位置: ${o.last_location || '国际中转'}`))}
+                           {activeCategory === '1' ? `截止: ${o.ship_deadline || '未设置'}` : (o.shipping_status === 'pick_up' ? '请联系买家自提' : (o.shipping_status === 'out_for_delivery' ? '正在派送中' : `状态: ${o.status_zh || '处理中'}`))}
                          </span>
                        )}
                     </div>
@@ -472,7 +500,9 @@ const LogisticsAlertsView = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/logistics/stats');
+      const res = await fetch('/api/logistics/stats', {
+        headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' }
+      });
       const data = await res.json();
       setStats(data);
     } catch (err) {
@@ -484,9 +514,16 @@ const LogisticsAlertsView = () => {
     setIsLoading(true);
     try {
       const shopPart = activeShop ? `&group=${encodeURIComponent(activeShop)}` : '';
-      const res = await fetch(`/api/orders?category=${catId}${shopPart}`);
+      const res = await fetch(`/api/orders?category=${catId}${shopPart}`, {
+        headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' }
+      });
       const data = await res.json();
-      setOrders(data.orders || []);
+      const newOrders = data.orders || [];
+      setOrders(newOrders);
+      // 永远默认选中第一条订单，实现动态检测自动挂载
+      if (newOrders.length > 0) {
+        setFocusOrder(newOrders[0]);
+      }
       setIsLoading(false);
     } catch (err) {
       if (showToast) showToast('加载订单失败', 'error');
