@@ -444,8 +444,9 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
            <span className="text-[11px] text-slate-500 font-black uppercase tracking-widest">Active Units: {orders.length}</span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto no-scrollbar relative">
-        <table className="w-full text-left border-collapse">
+      <div className="flex-1 overflow-auto no-scrollbar relative">
+        <div className="min-w-[800px]">
+          <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-slate-900 z-10">
             <tr>
               <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Intel / 订单标识</th>
@@ -500,7 +501,8 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
         </table>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 // ─── 主视图 ──────────────────────────────────────────────────────────────

@@ -166,7 +166,7 @@ const MarketRadarView = () => {
             </div>
 
             {/* Main Content: 1x6 Matrix */}
-            <div className="flex-1 flex gap-4 overflow-hidden min-h-0 relative">
+            <div className="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden min-h-0 relative">
                 {isScanning && <div className="radar-scan" />}
                 
                 <div className="flex-1 overflow-hidden px-1 flex flex-col min-h-0">
@@ -206,7 +206,8 @@ const MarketRadarView = () => {
                     </div>
 
                     {loading || isScanning ? (
-                        <div className="grid grid-cols-6 grid-rows-3 gap-2 flex-1">
+                        <div className="overflow-x-auto no-scrollbar flex-1">
+                            <div className="grid grid-cols-[repeat(6,minmax(180px,1fr))] grid-rows-3 gap-2 h-full min-w-[1100px] content-start">
                             {[...Array(18)].map((_, i) => (
                                 <div key={i} className="bg-white rounded-2xl p-2 h-full border border-slate-50 shadow-sm flex flex-col gap-2">
                                     <div className="flex-1 bg-slate-50 rounded-xl animate-pulse" />
@@ -215,7 +216,8 @@ const MarketRadarView = () => {
                                 </div>
                             ))}
                         </div>
-                    ) : safeMarketProducts.length === 0 && platformReason === 'platform_unsupported' ? (
+                    </div>
+                ) : safeMarketProducts.length === 0 && platformReason === 'platform_unsupported' ? (
                         <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 shadow-sm">
                             <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-4">
                                 <span className="text-3xl">🚫</span>
@@ -224,7 +226,8 @@ const MarketRadarView = () => {
                             <p className="text-[11px] text-slate-500 text-center max-w-xs leading-relaxed">{platformMessage}</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-6 grid-rows-3 gap-2 flex-1 overflow-hidden h-full content-start">
+                        <div className="overflow-x-auto no-scrollbar flex-1">
+                            <div className="grid grid-cols-[repeat(6,minmax(180px,1fr))] grid-rows-3 gap-2 h-full min-w-[1100px] content-start">
                             {safeMarketProducts.slice(0, 18).map((p, i) => (
                                 <div 
                                     key={i} 
@@ -271,11 +274,12 @@ const MarketRadarView = () => {
                                 </div>
                             ))}
                         </div>
-                    )}
+                    </div>
+                )}
                 </div>
 
                 {/* AI Analysis Side Panel (Premium Commander View) */}
-                <div className="w-[320px] bg-slate-900 rounded-[32px] shadow-2xl transition-all flex flex-col overflow-hidden relative border border-slate-800">
+                <div className="w-full lg:w-[320px] bg-slate-900 rounded-[32px] shadow-2xl transition-all flex flex-col overflow-hidden relative border border-slate-800 shrink-0 h-[500px] lg:h-auto">
                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent pointer-events-none" />
                     
                     <div className="p-5 relative z-10 flex flex-col h-full">

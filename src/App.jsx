@@ -329,10 +329,9 @@ const App = () => {
                                 {sidebarItem === 'keyword' && <KeywordIntelView />}
                                 {sidebarItem === 'price-check' && <SmartPriceCheckView />}
                             </div>
+                            {toast && <Toast {...toast} onClose={() => showToast(null)} />}
                         </Suspense>
                     </ErrorBoundary>
-                    
-                    {toast && <Toast {...toast} onClose={() => showToast(null)} />}
                 </div>
             </div>
         </div>
