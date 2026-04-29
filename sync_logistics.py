@@ -29,10 +29,11 @@ BATCH_SIZE = 50
 
 # 需要添加到 orders_v2 的字段（ALTER TABLE 用）
 NEW_COLUMNS = [
-    ("logistic_company", "TEXT"),
-    ("tracking_status",  "TEXT"),
-    ("receiver_city",    "TEXT"),
-    ("receiver_state",  "TEXT"),
+    ("logistic_company",      "TEXT"),
+    ("tracking_status",       "TEXT"),
+    ("receiver_city",        "TEXT"),
+    ("receiver_state",        "TEXT"),
+    ("estimated_delivery_date", "TEXT"),  # 预计送达时间
 ]
 
 def get_access_token():
@@ -41,15 +42,23 @@ def get_access_token():
         raise RuntimeError("无法加载 ML access_token，请先完成 OAuth 登录")
     return tokens.get("access_token")
 
-def ensure_columns(conn):
+def ensure_columns(conn, delivery_time_mode=False):
     """确保 orders_v2 有新增字段，不存在则 ALTER TABLE 添加"""
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(orders_v2)")
     existing = {row[1] for row in cursor.fetchall()}
-    for col_name, col_type in NEW_COLUMNS:
+    # delivery-time 模式只添加 estimated_delivery_date
+    if delivery_time_mode:
+        col_name = "estimated_delivery_date"
+        col_type = "TEXT"
         if col_name not in existing:
             print(f"  ➕ 添加字段: {col_name} {col_type}")
             cursor.execute(f"ALTER TABLE orders_v2 ADD COLUMN {col_name} {col_type}")
+    else:
+        for col_name, col_type in NEW_COLUMNS:
+            if col_name not in existing:
+                print(f"  ➕ 添加字段: {col_name} {col_type}")
+                cursor.execute(f"ALTER TABLE orders_v2 ADD COLUMN {col_name} {col_type}")
     conn.commit()
 
 def fetch_shipment(order_id, token, retry=3):
@@ -110,6 +119,16 @@ def parse_shipment(data):
         "receiver_state":   (addr.get("state") or {}).get("name", "") if isinstance(addr.get("state"), dict) else "",
     }
 
+
+def parse_delivery_time(ship_data):
+    """从 shipments API 响应提取 estimated_delivery_time"""
+    if not ship_data:
+        return ""
+    lead_time = ship_data.get("lead_time", {})
+    est_delivery = lead_time.get("estimated_delivery_time", {})
+    # 格式: {"date": "2026-05-01T12:00:00.000-03:00", ...}
+    return est_delivery.get("date", "") or ""
+
 def sync_batch(cursor, orders, token, dry_run=False):
     """处理一批订单，写入数据库"""
     updated = 0
@@ -151,16 +170,61 @@ def sync_batch(cursor, orders, token, dry_run=False):
 
     return updated, skipped, errors
 
+def sync_delivery_time_batch(cursor, orders, token, dry_run=False, conn=None):
+    """处理一批订单，写入 estimated_delivery_date"""
+    updated = 0
+    skipped = 0
+    errors = 0
+    no_shipping = 0
+
+    for order in orders:
+        order_id = order.get("id", "?")
+
+        shipment = fetch_shipment(order_id, token)
+        if not shipment:
+            no_shipping += 1
+            continue
+
+        est_date = parse_delivery_time(shipment)
+        if dry_run:
+            print(f"  [dry-run] {order_id} → estimated_delivery_date={est_date!r}")
+        else:
+            if est_date:
+                try:
+                    cursor.execute(
+                        "UPDATE orders_v2 SET estimated_delivery_date = ? WHERE id = ?",
+                        (est_date, order_id)
+                    )
+                    updated += 1
+                    print(f"  ✅ {order_id} → {est_date}")
+                except Exception as e:
+                    errors += 1
+                    print(f"  ❌ {order_id} 更新失败: {e}")
+            else:
+                skipped += 1
+                print(f"  ⏭️  {order_id} 无 estimated_delivery_time（跳过）")
+
+        # 限速 500ms
+        time.sleep(0.5)
+
+    return updated, skipped, errors, no_shipping
+
+
 def main():
     parser = argparse.ArgumentParser(description="同步物流真实数据到 orders_v2")
     parser.add_argument("--dry-run", action="store_true", help="仅打印，不写入数据库")
     parser.add_argument("--limit", type=int, default=0, help="最多处理 N 条（0=全部）")
+    parser.add_argument("--delivery-time", action="store_true",
+                        help="同步 estimated_delivery_date（预计送达时间）")
     args = parser.parse_args()
 
     print(f"\n{'='*60}")
     print(f"🚚 物流数据同步脚本")
     print(f"   时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"   模式: {'DRY-RUN (不写入DB)' if args.dry_run else 'LIVE (写入DB)'}")
+    mode_desc = "DRY-RUN (不写入DB)" if args.dry_run else "LIVE (写入DB)"
+    if args.delivery_time:
+        mode_desc += " | 预计送达时间"
+    print(f"   模式: {mode_desc}")
     print(f"{'='*60}\n")
 
     # 获取 token
@@ -179,9 +243,59 @@ def main():
     # 确保字段存在
     if not args.dry_run:
         print("📋 检查/添加数据库字段...")
-        ensure_columns(conn)
+        ensure_columns(conn, delivery_time_mode=args.delivery_time)
         print()
 
+    # ── delivery-time 模式 ─────────────────────────────────────────
+    if args.delivery_time:
+        # 找出所有 site_id 属于 ML 拉丁美洲站点的订单（有任意订单都尝试）
+        cursor.execute("""
+            SELECT id, tracking_id, site_id, estimated_delivery_date
+            FROM orders_v2
+            WHERE site_id IN ('MLB','MLA','MLM','MCO','MLU')
+            ORDER BY order_date DESC
+        """)
+        all_orders = [dict(r) for r in cursor.fetchall()]
+        if args.limit > 0:
+            all_orders = all_orders[:args.limit]
+        total = len(all_orders)
+        print(f"📦 找到 {total} 条 ML 站点订单\n")
+        if total == 0:
+            print("无需同步，退出。")
+            conn.close()
+            return
+
+        total_updated = 0
+        total_skipped = 0
+        total_errors = 0
+        total_no_shipping = 0
+        total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
+
+        for i in range(0, total, BATCH_SIZE):
+            batch = all_orders[i:i + BATCH_SIZE]
+            batch_num = i // BATCH_SIZE + 1
+            print(f"\n📤 批次 {batch_num}/{total_batches} ({len(batch)} 条)...")
+            u, s, e, ns = sync_delivery_time_batch(
+                cursor, batch, token, dry_run=args.dry_run, conn=conn
+            )
+            total_updated += u
+            total_skipped += s
+            total_errors += e
+            total_no_shipping += ns
+            if not args.dry_run:
+                conn.commit()
+
+        print(f"\n{'='*60}")
+        print(f"📊 同步完成:")
+        print(f"   ✅ 更新: {total_updated}")
+        print(f"   ⏭️  跳过(无字段): {total_skipped}")
+        print(f"   ⬇️  无 shipping_id: {total_no_shipping}")
+        print(f"   ❌ 失败: {total_errors}")
+        print(f"{'='*60}\n")
+        conn.close()
+        return
+
+    # ── 默认：物流基础数据模式 ─────────────────────────────────────────
     # 读取有 tracking_id 的订单
     cursor.execute("""
         SELECT id, tracking_id, logistic_company, tracking_status
