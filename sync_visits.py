@@ -71,11 +71,43 @@ def _flush(buf):
         print("写入错误: " + str(e), flush=True)
 
 def main():
+    # 只拉我们店铺的真实商品（用seller列表过滤，防污染）
+    SELLER_ITEMS = {}
+    SELLER_IDS = {
+        'MLM': 3164142227,
+        'MLB': 3164144051,
+        'MLA': 3164144057,
+        'MCO': 3164142229,
+        'MLU': 3186965280,
+    }
+    for site_id, seller_id in SELLER_IDS.items():
+        url = f'https://api.mercadolibre.com/marketplace/users/{seller_id}/items/search'
+        offset = 0
+        while offset < 2000:
+            r = session.get(url, headers={'Authorization': 'Bearer ' + get_token()},
+                           params={'site_id': site_id, 'limit': 100, 'offset': offset}, timeout=30)
+            if r.status_code == 200:
+                ids = r.json().get('results', [])
+                SELLER_ITEMS[site_id] = SELLER_ITEMS.get(site_id, set()) | set(ids)
+                offset += 100
+                if not ids: break
+            time.sleep(0.3)
+
+    # 只拉在官方seller列表里的商品（防污染）
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-    c.execute("SELECT item_id FROM product_metrics WHERE site_id IN ('MLB','MLA','MCO','MLU','MLM_R')")
-    items = [r[0] for r in c.fetchall()]
+    c.execute("SELECT item_id, site_id FROM product_metrics WHERE site_id IN ('MLB','MLA','MCO','MLU','MLM')")
+    all_db_items = [(r[0], r[1]) for r in c.fetchall()]
     conn.close()
+    # 如果某个站点拿到了seller列表，用它过滤；没拿到就不过滤（避免误杀）
+    items = []
+    for item_id, site_id in all_db_items:
+        seller_set = SELLER_ITEMS.get(site_id, set())
+        if not seller_set:  # API没返回数据，不过滤（保持兼容）
+            items.append((item_id, site_id))
+        elif item_id in seller_set:  # 在seller列表里，加进来
+            items.append((item_id, site_id))
+    print(f'过滤后商品: {len(items)}个（去除非本店商品）', flush=True)
 
     total = len(items)
     result_q = queue.Queue(maxsize=500)
@@ -87,7 +119,7 @@ def main():
     done = [0]
 
     with ThreadPoolExecutor(max_workers=8) as ex:
-        futures = {ex.submit(fetch, i): i for i in items}
+        futures = {ex.submit(fetch, i[0]): i[0] for i in items}
         for future in as_completed(futures):
             iid, views = future.result()
             result_q.put((iid, views))
