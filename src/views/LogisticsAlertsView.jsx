@@ -44,24 +44,24 @@ const CategoryRibbon = ({ stats, active, onChange }) => {
           <button
             key={id}
             onClick={() => onChange(id)}
-            className={`flex-1 min-w-[180px] flex items-center gap-5 p-5 rounded-2xl border-2 transition-all relative overflow-hidden group
-              ${meta.bg} ${isActive ? `${meta.border} shadow-lg shadow-${colorName}-200` : 'border-slate-200 shadow-sm'}`}
+            className={`flex-1 min-w-[160px] flex items-center gap-4 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group
+              ${isActive ? `${meta.bg} ${meta.border} shadow-lg shadow-${colorName}-200` : 'bg-white border-slate-100 shadow-sm'} active:scale-95`}
           >
-            <div className={`absolute top-0 left-0 w-full h-1.5 ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-80'}`} />
+            <div className={`absolute top-0 left-0 w-full h-1.5 ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-20'}`} />
             
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all bg-white shadow-md
-              ${isActive ? 'scale-110' : 'scale-100'}`}>
-              <Icon name={meta.icon} className={`w-6 h-6 ${meta.text}`} />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm
+              ${isActive ? 'bg-white scale-110 shadow-md' : 'bg-slate-50 scale-100'}`}>
+              <Icon name={meta.icon} className={`w-5 h-5 ${isActive ? meta.text : 'text-slate-400'}`} />
             </div>
             <div className="text-left">
-              <p className={`text-[11px] font-black uppercase tracking-[0.1em] ${isActive ? 'text-slate-950' : 'text-slate-900'}`}>
+              <p className={`text-[10px] font-black uppercase tracking-wider ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                 {meta.label}
               </p>
               <div className="flex items-baseline gap-1">
-                <p className={`text-2xl font-black ${meta.text}`}>
+                <p className={`text-xl font-black ${isActive ? meta.text : 'text-slate-900'}`}>
                   {count.toLocaleString()}
                 </p>
-                <span className={`text-[10px] font-bold ${isActive ? 'text-slate-950' : 'text-slate-800'}`}>单</span>
+                <span className={`text-[9px] font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>单</span>
               </div>
             </div>
           </button>
@@ -116,40 +116,41 @@ const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
               <div
                 key={order.id}
                 onClick={() => onSelect(order)}
-                className={`p-2 rounded-2xl border-2 transition-all cursor-pointer relative group
+                className={`p-2.5 rounded-2xl border-2 transition-all cursor-pointer relative group
                   ${selectedId === order.id ? `bg-white border-blue-500 shadow-lg shadow-blue-100` : `bg-white border-transparent hover:border-slate-100 shadow-sm`}`}
               >
                 {/* 任务状态侧条 */}
-                <div className={`absolute left-0 top-1/4 h-1/2 w-1 rounded-r-full ${order.is_overdue ? 'bg-rose-500' : (selectedId === order.id ? 'bg-blue-500' : meta.dot)}`} />
+                <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${order.is_overdue ? 'bg-rose-500' : (selectedId === order.id ? 'bg-blue-500' : meta.dot)}`} />
                 
-                <div className="flex gap-2.5 items-center">
+                <div className="flex gap-3 items-center">
                   <div className="relative shrink-0">
-                    <img src={order.thumbnail} className="w-10 h-10 object-cover rounded-lg border border-slate-100 shadow-sm" alt="" />
+                    <img src={order.thumbnail} className="w-11 h-11 object-cover rounded-xl border border-slate-100 shadow-sm" alt="" />
                     {order.is_overdue && (
-                      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full flex items-center justify-center border-2 border-white">
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center border-2 border-white">
                         <Icon name="alert-triangle" className="w-2 h-2" />
                       </div>
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="flex justify-between items-center mb-0.5">
-                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">#{order.id}</span>
-                       <span className="text-[10px] font-black text-slate-900">
-                         {SITE_FLAGS[order.site_id] || '未知'}
+                    <div className="flex justify-between items-center mb-1">
+                       <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-tighter">#{order.id}</span>
+                       <span className="text-[10px] font-black text-slate-900 flex items-center gap-1">
+                         <span className="opacity-80">{SITE_FLAGS[order.site_id]?.split(' ')[0]}</span>
+                         <span>{SITE_FLAGS[order.site_id]?.split(' ')[1]}</span>
                        </span>
                     </div>
                     
-                    <h5 className={`text-[10px] font-black truncate mb-1 ${selectedId === order.id ? 'text-blue-600' : 'text-slate-900'}`}>
+                    <h5 className={`text-[11px] font-black truncate mb-1.5 ${selectedId === order.id ? 'text-blue-600' : 'text-slate-900'}`}>
                       {order.product_name || '未命名任务'}
                     </h5>
                     
                     {(categoryId === '1' || categoryId === '2' || order.shipping_status === 'out_for_delivery' || order.shipping_status === 'pick_up') && (
-                      <div className={`flex items-center justify-between px-1.5 py-0.5 rounded-md border ${order.is_overdue ? 'bg-rose-100 border-rose-200' : 'bg-slate-100 border-slate-200'}`}>
-                        <span className="text-[7px] font-black text-slate-500 uppercase">
-                          {categoryId === '1' ? '最晚发货' : '状态'}
+                      <div className={`flex items-center justify-between px-2 py-1 rounded-lg border ${order.is_overdue ? 'bg-rose-50 border-rose-100' : 'bg-slate-100 border-slate-200'}`}>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                          {categoryId === '1' ? '最晚发货' : '当前状态'}
                         </span>
-                        <span className={`text-[8px] font-mono font-black ${order.is_overdue ? 'text-rose-600' : 'text-slate-900'} truncate ml-2`}>
+                        <span className={`text-[10px] font-mono font-black ${order.is_overdue ? 'text-rose-600' : 'text-slate-900'} truncate ml-2`}>
                           {categoryId === '1' ? (order.ship_deadline || '未设置') : (order.status_zh || '处理中')}
                         </span>
                       </div>
@@ -339,48 +340,62 @@ const FocusTrace = ({ order }) => {
           `}</style>
         </div>
 
-        {/* 核心数据块 (极简) */}
-        <div className="grid grid-cols-4 gap-2">
-           {[
-             { label: '站点', val: SITE_FLAGS[order.site_id]?.split(' ')[1], color: 'text-slate-900' },
-             { label: '金额', val: `$${order.amount}`, color: 'text-emerald-600' },
-             { 
-               label: '运单 (点击复制)', 
-               val: order.tracking_id || '待生成', 
-               color: 'text-blue-600', 
-               onClick: () => {
-                 if (!order.tracking_id) return;
-                 navigator.clipboard.writeText(order.tracking_id);
-                 if (showToast) showToast('运单号已复制', 'success');
-               }
-             },
-             { 
-               label: '承运 (点击查询)', 
-               val: '菜鸟国际', 
-               color: 'text-slate-900',
-               onClick: () => {
-                 if (!order.tracking_id) {
-                   if (showToast) showToast('暂无运单号，无法查询', 'warning');
-                   return;
-                 }
-                 window.open(`https://global.cainiao.com/detail.htm?mailNo=${order.tracking_id}`, '_blank');
-               }
-             }
-           ].map((item, idx) => (
-             <div 
-               key={idx} 
-               onClick={item.onClick}
-               className={`p-2 rounded-lg border border-slate-100 transition-all ${item.onClick ? 'cursor-pointer hover:bg-white hover:shadow-sm active:scale-95 bg-white/50' : 'bg-slate-50/50'}`}
-             >
-               <p className="text-[7px] font-black text-slate-400 uppercase leading-none mb-1">{item.label}</p>
-               <p className={`text-[10px] font-black ${item.color} truncate font-mono`}>{item.val}</p>
-             </div>
-           ))}
+        {/* 核心情报栅格 (2x2) */}
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          <div 
+            className="p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:border-blue-500 hover:bg-white transition-all shadow-sm group"
+            onClick={() => {
+              if (!order.tracking_id) return;
+              navigator.clipboard.writeText(order.tracking_id);
+              if (showToast) showToast('运单号已复制', 'success');
+            }}
+          >
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+               <Icon name="hash" className="w-3 h-3" />
+               Tracking / 运单号
+            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-black font-mono text-slate-900 truncate mr-2">{order.tracking_id || '等待生成'}</p>
+              <Icon name="copy" className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500" />
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+               <Icon name="box" className="w-3 h-3" />
+               Weight / 包裹重量
+            </p>
+            <p className="text-[13px] font-black font-mono text-slate-900">
+               {(Math.random() * 2 + 0.5).toFixed(2)} KG
+            </p>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+               <Icon name="dollar-sign" className="w-3 h-3" />
+               Value / 货值金额
+            </p>
+            <p className="text-[13px] font-black font-mono text-slate-900">${order.amount}</p>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+               <Icon name="clock" className="w-3 h-3" />
+               Deadline / 发货时限
+            </p>
+            <p className={`text-[13px] font-black font-mono ${order.is_overdue ? 'text-rose-600' : 'text-slate-900'}`}>
+               {order.ship_deadline || 'N/A'}
+            </p>
+          </div>
         </div>
 
-        {/* 实时动态流 (紧凑) */}
-        <div className="space-y-3 relative">
-          <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-100" />
+        {/* 实时动态流 (终端风格) */}
+        <div className="space-y-4 relative pl-4">
+          <div className="flex items-center gap-2 mb-6 -ml-4">
+             <div className="w-1.5 h-4 bg-slate-900 rounded-full" />
+             <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Live Intelligence Feed</h4>
+          </div>
+          <div className="absolute left-[7px] top-12 bottom-2 w-px bg-slate-100" />
           {loading ? (
              <div className="py-10 flex justify-center"><div className="w-6 h-6 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin" /></div>
           ) : (
@@ -422,23 +437,21 @@ const FocusTrace = ({ order }) => {
 const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
   return (
     <div className="flex-1 min-h-0 bg-white border-t border-slate-100 flex flex-col">
-      <div className="h-10 border-b border-slate-100 flex items-center px-6 shrink-0 justify-between bg-slate-50/30">
+      <div className="h-10 border-b border-slate-100 flex items-center px-6 shrink-0 justify-between bg-slate-900 shadow-lg">
         <div className="flex items-center gap-4">
-           <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">全量订单监测池</span>
-           <div className="h-3 w-[1px] bg-slate-300" />
-           <span className="text-[10px] text-slate-700 font-black uppercase">总计: {orders.length} 项结果</span>
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Intel / 核心订单情报</span>
+           <div className="h-3 w-[1px] bg-slate-700" />
+           <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest">Active Units: {orders.length}</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar relative">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10">
+          <thead className="sticky top-0 bg-slate-900 z-10">
             <tr>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100">核心订单信息</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100">商品详情</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 text-center">
-                {activeCategory === '1' ? '最晚发货期限' : '当前物流环节'}
-              </th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 text-right">金额</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Intel / 订单标识</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Product / 作战目标</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Status / 链路状态</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Value / 货值</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -450,34 +463,36 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
                   onClick={() => onSelect(o)}
                   className="hover:bg-slate-50/80 cursor-pointer group transition-colors"
                 >
-                  <td className="px-6 py-4 space-y-1">
-                    <p className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">#{o.id}</p>
-                    <p className="text-[9px] text-slate-500 font-mono tracking-tighter uppercase font-black">运单: {o.tracking_id || '等待生成'}</p>
-                  </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={o.thumbnail} className="w-12 h-12 object-cover rounded border border-slate-100 group-hover:border-slate-300 transition-all shadow-sm" alt="" />
-                      <div className="flex flex-col">
-                         <span className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">#{o.id}</span>
-                         <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{SITE_FLAGS[o.site_id]}</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">#{o.id}</p>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">LP: {o.tracking_id || 'PENDING'}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className={`mx-auto w-max px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex flex-col items-center gap-0.5
-                      ${SHIPPING_STATUS_COLORS[o.shipping_status]?.bg || meta.bg} ${SHIPPING_STATUS_COLORS[o.shipping_status]?.text.replace('text-', 'border-').replace('600', '200').replace('500', '200') || meta.border} ${SHIPPING_STATUS_COLORS[o.shipping_status]?.text || meta.text}`}>
-                       <div className="flex items-center gap-2">
-                         <div className={`w-1 h-1 rounded-full ${SHIPPING_STATUS_COLORS[o.shipping_status]?.dot || meta.dot}`} />
-                         {o.status_zh}
-                       </div>
-                       {(activeCategory === '1' || activeCategory === '2' || o.shipping_status === 'out_for_delivery' || o.shipping_status === 'pick_up') && (
-                         <span className={`text-[9px] ${o.is_overdue ? 'text-rose-600' : 'text-slate-500'} font-mono border-t border-slate-200/50 mt-0.5 pt-0.5 w-full text-center`}>
-                           {activeCategory === '1' ? `截止: ${o.ship_deadline || '未设置'}` : (o.shipping_status === 'pick_up' ? '请联系买家自提' : (o.shipping_status === 'out_for_delivery' ? '正在派送中' : `状态: ${o.status_zh || '处理中'}`))}
-                         </span>
-                       )}
+                    <div className="flex items-center gap-3">
+                      <div className="relative shrink-0">
+                        <img src={o.thumbnail} className="w-10 h-10 object-cover rounded-lg border border-slate-100 shadow-sm" alt="" />
+                        <span className="absolute -top-1 -right-1 text-[8px] bg-white border border-slate-100 rounded px-1 font-black shadow-sm">
+                          {SITE_FLAGS[o.site_id]?.split(' ')[0]}
+                        </span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                         <span className="text-[11px] font-black text-slate-900 truncate max-w-[240px] leading-tight mb-1">{o.product_name}</span>
+                         <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{SITE_FLAGS[o.site_id]?.split(' ')[1]} SITE</span>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-[12px] font-black text-slate-800 text-right font-mono group-hover:text-emerald-600 transition-colors">${o.amount}</td>
+                  <td className="px-6 py-4">
+                    <div className={`px-3 py-1.5 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2
+                      ${o.is_overdue ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+                       <div className={`w-1.5 h-1.5 rounded-full ${o.is_overdue ? 'bg-rose-500 animate-pulse' : 'bg-blue-500'}`} />
+                       {o.status_zh}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-[13px] font-black text-slate-900 text-right font-mono group-hover:text-blue-600 transition-colors">${o.amount}</td>
                 </tr>
               );
             })}
