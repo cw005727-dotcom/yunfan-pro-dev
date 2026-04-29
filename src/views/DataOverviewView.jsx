@@ -64,8 +64,8 @@ const MetricCard = ({ label, value, trend, icon: IconComponent, color, prefix = 
     <div className="relative flex justify-between items-start">
       <div>
         <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mb-1.5 whitespace-nowrap">{label}</p>
-        <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black tnum text-slate-900">{prefix}{value}</span>
+        <div className="flex items-baseline gap-1 overflow-hidden">
+          <span className="text-2xl font-black tnum text-slate-900 truncate">{prefix}{value}</span>
         </div>
         <div className="mt-3">
           <TrendBadge value={trend} />
@@ -205,8 +205,8 @@ export default function DataOverviewView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">数据大盘</h2>
-          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2">Industrial Logistics Cockpit v4.3</p>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none whitespace-nowrap">数据大盘</h2>
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2 whitespace-nowrap">Industrial Logistics Cockpit v4.3</p>
         </div>
         
         <div className="flex items-center gap-3">

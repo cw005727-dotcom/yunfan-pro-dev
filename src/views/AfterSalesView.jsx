@@ -29,7 +29,7 @@ const doTranslate = async (text, from = 'auto', to = 'zh-CN') => {
     if (translateCache[key]) return translateCache[key];
     try {
       // Direct to port 8506 to avoid Vite HTTP proxy HTTP/1.0 issue
-      const r = await fetch('http://localhost:8506/api/translate', {
+      const r = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, from, to })

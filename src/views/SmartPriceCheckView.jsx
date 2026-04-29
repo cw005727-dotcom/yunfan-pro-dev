@@ -45,7 +45,7 @@ const SmartPriceCheckView = () => {
     };
 
     return (
-        <div className="h-full flex flex-col p-10 gap-10 animate-in fade-in slide-in-from-bottom-8 duration-700 overflow-hidden">
+        <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>

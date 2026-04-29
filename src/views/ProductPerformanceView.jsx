@@ -557,7 +557,7 @@ const ProductPerformanceView = () => {
     }, [filtered]);
 
     return (
-        <div className="h-full flex flex-col gap-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 p-8">
+        <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             <div className="flex items-start gap-6 h-full min-h-0">
                 

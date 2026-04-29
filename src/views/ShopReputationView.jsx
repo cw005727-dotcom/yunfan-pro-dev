@@ -177,7 +177,7 @@ const ShopReputationView = () => {
     const handleCellLeave = () => setHoveredCell(null);
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full overflow-hidden p-8">
+        <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-start gap-6 h-full">
                 {/* 监控核心区 (Full Width) */}
                 <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
@@ -225,9 +225,9 @@ const ShopReputationView = () => {
 
                 <div className="p-4 flex flex-col flex-1 min-h-0">
                     <div className="grid grid-cols-[160px_1fr] gap-4 mb-2 text-[11px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 pb-1 shrink-0">
-                        <div>店铺分组</div>
+                        <div className="whitespace-nowrap">店铺分组</div>
                         <div className="grid grid-cols-6 gap-2 text-center">
-                            {SITE_COLS.map(c => <div key={c.code}>{c.flag} {c.name}</div>)}
+                            {SITE_COLS.map(c => <div key={c.code} className="whitespace-nowrap">{c.flag} {c.name}</div>)}
                         </div>
                     </div>
 
