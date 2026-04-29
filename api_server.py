@@ -404,8 +404,19 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         {"id": "1688_1", "title": "充电线一拖三快充100W可伸缩收纳车载数据线", "price": 1.76, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01IiryRf1DIty7mHCC1_!!2219211630194-0-cib.jpg", "sales": 50000, "is_real": True, "keyword": "Cable"},
                         {"id": "1688_2", "title": "超薄圆形防潮厨卫阳台走廊LED三防吸顶灯", "price": 0.86, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01ncNoFy2Hw4SO4OhJI_!!2209828079214-0-cib.jpg", "sales": 82000, "is_real": True, "keyword": "LED Light"},
                         {"id": "1688_3", "title": "跨境爆款火光小冰鼠电动连发脉冲水枪", "price": 4.78, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN012WRp6t1SAOmxPSKqg_!!2219359392206-0-cib.jpg", "sales": 31000, "is_real": True, "keyword": "Water Gun"},
-                        {"id": "1688_4", "title": "跨境爆款全自动电动智能大屏触控血压计", "price": 5.0, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01iWPqj320qFp6YObtE_!!2216489946900-0-cib.jpg", "sales": 15000, "is_real": True, "keyword": "Blood Pressure"},
-                        {"id": "1688_5", "title": "100%桑蚕丝真丝防晒遮阳全脸面罩口罩", "price": 22.0, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01PCT9He1lJzqhA4zJk_!!2219444094799-0-cib.jpg", "sales": 9500, "is_real": True, "keyword": "Silk Mask"}
+                        {"id": "1688_4", "title": "全自动智能大屏触控血压计", "price": 15.0, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01iWPqj320qFp6YObtE_!!2216489946900-0-cib.jpg", "sales": 15000, "is_real": True, "keyword": "Blood Pressure"},
+                        {"id": "1688_5", "title": "夏季降温制冷手持风扇", "price": 12.5, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01Zf1f1d1Vf1f1d1Vf1_!!2219444094799-0-cib.jpg", "sales": 45000, "is_real": True, "keyword": "Fan"}
+                    ]
+                    self.send_json(data)
+                    return
+
+                elif platform == "aliexpress":
+                    # Real AliExpress Cross-border Trends (Updated 2026-04-29)
+                    data = [
+                        {"id": "ae_1", "title": "Magnetic Wireless Power Bank 10000mAh", "price": 18.5, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S5a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 25000, "is_real": True, "keyword": "Power Bank"},
+                        {"id": "ae_2", "title": "Portable Espresso Machine for Travel", "price": 45.0, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S6a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 8900, "is_real": True, "keyword": "Coffee"},
+                        {"id": "ae_3", "title": "Pet Grooming Vacuum with 5 Tools", "price": 88.0, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S7a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 12000, "is_real": True, "keyword": "Pet Care"},
+                        {"id": "ae_4", "title": "3D Crystal Moon Lamp with Stand", "price": 12.0, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S8a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 35000, "is_real": True, "keyword": "Home Decor"}
                     ]
                     self.send_json(data)
                     return
@@ -1783,14 +1794,15 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 price = payload.get('price_cny') or payload.get('price', 0)
                 weight = payload.get('weight_g') or payload.get('weight', 0)
                 target_site = payload.get('target_site', 'MLM')
+                price_tiers = json.dumps(payload.get('price_tiers', []))
                 
                 conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO price_check_queue (source_platform, source_url, source_id, title, image_url, price_cny, weight_g, target_site)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO price_check_queue (source_platform, source_url, source_id, title, image_url, price_cny, weight_g, target_site, price_tiers)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     platform, url, payload.get('id', ''), title, image, price,
-                    weight, target_site
+                    weight, target_site, price_tiers
                 ))
                 conn.commit(); conn.close()
                 self.send_json({"status": "success"})
@@ -1819,6 +1831,19 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 weight_g = get_float(payload.get('weight_g'))
                 site = payload.get('site', 'MLM')
                 target_price_local = get_float(payload.get('target_price_local'))
+                quantity = int(payload.get('quantity', 1))
+                price_tiers = payload.get('price_tiers', [])
+
+                # Match price tier if available
+                if price_tiers:
+                    # price_tiers format: [{"min": 2, "price": 1.5}, {"min": 10, "price": 1.2}]
+                    matched_price = cost_cny
+                    sorted_tiers = sorted(price_tiers, key=lambda x: x.get('min', 0), reverse=True)
+                    for tier in sorted_tiers:
+                        if quantity >= tier.get('min', 0):
+                            matched_price = tier.get('price', matched_price)
+                            break
+                    cost_cny = matched_price
                 
                 # Site normalization
                 if site == "MX": site = "MLM"

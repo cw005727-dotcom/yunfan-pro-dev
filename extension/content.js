@@ -176,13 +176,25 @@ function extract1688() {
         else if (unit.includes('盎司') || unit === 'oz') weight *= 28.35;
     }
     
+    // Extract Tiered Pricing
+    const tiers = [];
+    const tierElements = document.querySelectorAll('.price-range-item, .od-static-price-item');
+    tierElements.forEach(el => {
+        const countStr = el.querySelector('.range-count, .count')?.innerText || '1';
+        const priceStr = el.querySelector('.price-text, .price')?.innerText || '0';
+        const count = parseInt(countStr.replace(/[^0-9]/g, '')) || 1;
+        const priceVal = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+        if (count > 0 && priceVal > 0) tiers.push({ min: count, price: priceVal });
+    });
+
     const result = {
         title,
         price_cny: price,
         weight_g: Math.round(weight) || 300,
         image_url: img,
         source_url: window.location.href,
-        source_platform: '1688'
+        source_platform: '1688',
+        price_tiers: tiers
     };
     console.log('✅ 1688 提取结果:', result);
     return result;
