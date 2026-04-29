@@ -556,7 +556,7 @@ const LogisticsAlertsView = () => {
   }, [activeShop, activeCategory]);
 
   return (
-    <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <CategoryRibbon 
         stats={stats} 
         active={activeCategory} 
@@ -566,8 +566,8 @@ const LogisticsAlertsView = () => {
         }} 
       />
 
-      <div className="flex-1 flex min-h-0 border-t border-slate-100">
-        <div className="w-[320px] shrink-0 border-r border-slate-100 relative">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 border-t border-slate-100">
+        <div className="w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-100 relative h-[400px] lg:h-auto">
           {isLoading && (
              <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-30 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
@@ -582,24 +582,24 @@ const LogisticsAlertsView = () => {
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-[400px]">
             <FocusTrace order={focusOrder} />
           </div>
           
-          <div className="h-[300px] shrink-0 flex flex-col relative">
+          <div className="h-[400px] lg:h-[300px] shrink-0 flex flex-col relative border-t border-slate-100">
             <LogisticsTable orders={orders} onSelect={setFocusOrder} activeCategory={activeCategory} />
           </div>
         </div>
       </div>
 
-      <div className="h-8 border-t border-slate-100 bg-white px-6 flex items-center justify-between shrink-0">
+      <div className="flex flex-col sm:flex-row sm:h-8 border-t border-slate-100 bg-white px-6 py-2 sm:py-0 items-center justify-between shrink-0 gap-2">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]" />
             <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">物流监测核心已挂载</span>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-[11px] text-slate-500 font-black uppercase tracking-widest">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] text-slate-500 font-black uppercase tracking-widest">
            <span>站点时区: 墨西哥 (GMT-6)</span>
            <span>心跳频率: 5.0 赫兹</span>
         </div>

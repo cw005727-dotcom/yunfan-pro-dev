@@ -77,12 +77,12 @@ const OptimizeTitleView = () => {
     };
 
     return (
-        <div className="h-full overflow-y-auto p-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">标题优化</h3>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">标题优化</h3>
                     <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Smart Listing Optimizer</p>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900 text-amber-500 shadow-lg shadow-amber-500/10 shrink-0">

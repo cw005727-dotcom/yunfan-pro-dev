@@ -177,10 +177,10 @@ const ShopReputationView = () => {
     const handleCellLeave = () => setHoveredCell(null);
 
     return (
-        <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-start gap-6 h-full">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col lg:flex-row items-start gap-6 h-full">
                 {/* 监控核心区 (Full Width) */}
-                <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
+                <div className="flex-1 flex flex-col gap-4 h-full min-w-0 w-full">
                     {/* 1. 顶部监控状态条 */}
                     <div className="flex items-center justify-between px-5 py-2 rounded-3xl bg-white border border-slate-200 shadow-sm shrink-0">
                         <div className="flex items-center gap-3">
@@ -223,30 +223,31 @@ const ShopReputationView = () => {
                     </div>
                 </div>
 
-                <div className="p-4 flex flex-col flex-1 min-h-0">
-                    <div className="grid grid-cols-[160px_1fr] gap-4 mb-2 text-[11px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 pb-1 shrink-0">
-                        <div className="whitespace-nowrap">店铺分组</div>
-                        <div className="grid grid-cols-6 gap-2 text-center">
-                            {SITE_COLS.map(c => <div key={c.code} className="whitespace-nowrap">{c.flag} {c.name}</div>)}
+                <div className="p-4 flex flex-col flex-1 min-h-0 overflow-x-auto no-scrollbar">
+                    <div className="min-w-[600px] flex-1 flex flex-col">
+                        <div className="grid grid-cols-[160px_1fr] gap-4 mb-2 text-[11px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 pb-1 shrink-0">
+                            <div className="whitespace-nowrap">店铺分组</div>
+                            <div className="grid grid-cols-6 gap-2 text-center">
+                                {SITE_COLS.map(c => <div key={c.code} className="whitespace-nowrap">{c.flag} {c.name}</div>)}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-1 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
-                        {filteredGroups.map(name => {
-                            const isSelected = activeShop === name || (!activeShop && name === groupNames[0]);
-                            const sites = storeGroups[name];
-                            return (
-                                <div 
-                                    key={name}
-                                    id={`shop-row-${name}`}
-                                    onClick={() => setActiveShop(name)}
-                                    className={`grid grid-cols-[160px_1fr] gap-4 p-3 rounded-2xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-50 border border-indigo-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent'}`}
-                                >
-                                    <div className="flex flex-col justify-center">
-                                        <span className={`text-[12px] font-black truncate ${isSelected ? 'text-indigo-600' : 'text-slate-700'}`}>{name}</span>
-                                        {isSelected && <span className="text-[11px] font-black text-indigo-400 uppercase mt-0.5 tracking-tighter">Selected ▸</span>}
-                                    </div>
-                                    <div className="grid grid-cols-6 gap-2">
+                        <div className="space-y-1 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+                            {filteredGroups.map(name => {
+                                const isSelected = activeShop === name || (!activeShop && name === groupNames[0]);
+                                const sites = storeGroups[name];
+                                return (
+                                    <div 
+                                        key={name}
+                                        id={`shop-row-${name}`}
+                                        onClick={() => setActiveShop(name)}
+                                        className={`grid grid-cols-[160px_1fr] gap-4 p-3 rounded-2xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-50 border border-indigo-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent'}`}
+                                    >
+                                        <div className="flex flex-col justify-center">
+                                            <span className={`text-[12px] font-black truncate ${isSelected ? 'text-indigo-600' : 'text-slate-700'}`}>{name}</span>
+                                            {isSelected && <span className="text-[11px] font-black text-indigo-400 uppercase mt-0.5 tracking-tighter">Selected ▸</span>}
+                                        </div>
+                                        <div className="grid grid-cols-6 gap-2">
                                         {SITE_COLS.map(col => {
                                             const siteData = sites.find(s => s.site === col.code);
                                             if (!siteData) return <div key={col.code} className="flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-slate-100"></div></div>;
@@ -376,4 +377,3 @@ const ShopReputationView = () => {
 };
 
 export default ShopReputationView;
-w;

@@ -557,16 +557,16 @@ const ProductPerformanceView = () => {
     }, [filtered]);
 
     return (
-        <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            <div className="flex items-start gap-6 h-full min-h-0">
+            <div className="flex flex-col lg:flex-row items-start gap-6 h-full min-h-0">
                 
-                {/* 左侧：列表区域 (70%) */}
-                <div className="flex-[0_0_72%] flex flex-col gap-5 h-full min-w-0">
+                {/* 左侧：列表区域 (72%) */}
+                <div className="flex-1 lg:flex-[0_0_72%] flex flex-col gap-5 h-full min-w-0 w-full">
                     
                     {/* 1. 店铺选择 + 站点切换 */}
-                    <div className="flex items-center justify-between px-6 py-4 rounded-[32px] bg-white border border-slate-200 shadow-sm shrink-0">
-                        <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 rounded-[32px] bg-white border border-slate-200 shadow-sm shrink-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                             {/* 店铺下拉选择 */}
                             <div className="flex items-center gap-2">
                                 <h2 className="text-base font-black text-slate-800">大姐店</h2>
@@ -580,14 +580,14 @@ const ProductPerformanceView = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="h-4 w-px bg-slate-200"></div>
+                            <div className="hidden sm:block h-4 w-px bg-slate-200"></div>
                             {/* 站点切换按钮 */}
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                                 {SITE_TABS.map(site => (
                                     <button
                                         key={site.key}
                                         onClick={() => setActiveSite(site.key)}
-                                        className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${activeSite === site.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                        className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${activeSite === site.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                                     >
                                         {site.label}
                                     </button>
@@ -595,7 +595,7 @@ const ProductPerformanceView = () => {
                             </div>
                         </div>
                         {/* 在售数量（该站点全部商品） */}
-                        <div className="text-right">
+                        <div className="text-left sm:text-right shrink-0">
                             <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">在售</p>
                             <p className="text-sm font-black text-indigo-600">{allItems.length.toLocaleString()}</p>
                         </div>

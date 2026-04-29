@@ -45,12 +45,12 @@ const SmartPriceCheckView = () => {
     };
 
     return (
-        <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-4">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">智能核价中心</h3>
-                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-2">AI-Powered Profit Intelligence</p>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-none whitespace-nowrap">智能核价中心</h3>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-2 whitespace-nowrap">AI-Powered Profit Intelligence</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
@@ -60,7 +60,7 @@ const SmartPriceCheckView = () => {
                 </div>
             </div>
 
-            <div className="flex-1 flex gap-6 overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
                 {/* Left: Queue */}
                 <div className="flex-1 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
@@ -129,7 +129,7 @@ const SmartPriceCheckView = () => {
                 </div>
 
                 {/* Right: Analysis Dashboard */}
-                <div className="w-[450px] flex flex-col gap-6">
+                <div className="w-full lg:w-[450px] flex flex-col gap-6 h-full min-h-[500px] lg:min-h-0 shrink-0">
                     <div className={`flex-1 bg-slate-900 rounded-[32px] p-8 text-white relative overflow-hidden flex flex-col transition-all duration-700 ${!selectedItem ? 'opacity-50 grayscale' : 'opacity-100'}`}>
                         {/* Background Decoration */}
                         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]" />

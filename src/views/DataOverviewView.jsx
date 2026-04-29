@@ -201,32 +201,32 @@ export default function DataOverviewView() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none whitespace-nowrap">数据大盘</h2>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-none whitespace-nowrap">数据大盘</h2>
           <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Industrial Logistics Cockpit v4.29.33</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="flex bg-slate-100 rounded-xl p-1">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 overflow-x-auto no-scrollbar pb-2 sm:pb-0">
+          <div className="flex bg-slate-100 rounded-xl p-1 shrink-0">
             {filterOptions.map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-black uppercase transition-all whitespace-nowrap ${filter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-black uppercase transition-all whitespace-nowrap ${filter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 {SITE_MAP[f] || f}
               </button>
             ))}
           </div>
-          <div className="flex bg-slate-100 rounded-xl p-1">
+          <div className="flex bg-slate-100 rounded-xl p-1 shrink-0">
             {DATE_OPTIONS.map(d => (
               <button
                 key={d.value}
                 onClick={() => setDateRange(d.value)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-black uppercase transition-all whitespace-nowrap ${dateRange === d.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-black uppercase transition-all whitespace-nowrap ${dateRange === d.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 {d.label}
               </button>

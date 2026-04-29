@@ -209,12 +209,14 @@
 | 2026-04-27 | Hermes | **UI 规范检查**:标题+正文对齐规范确立,h3 统一 text-3xl,p 统一 text-xs + text-slate-400 + mt-1,发现4处不一致需修复 |
 
 ### UI 规范 (Commander V8 工业标准)
-- **字号底线**: 所有文本最低字号 **11px** (text-[11px])，核心指标常用 **14px-16px**。
-- **对比度提升**: 废弃 Slate-300/400 低对比度方案，正文一律提升至 **Slate-500/600** 以确保在白色玻璃态背景下的易读性。
+- **响应式优先 (Mobile-First)**: 
+    - 移动端默认隐藏侧边栏，通过 `MobileHeader` (Hamburger Menu) 唤起。
+    - 容器填充一律采用 `p-4 md:p-10`，间距采用 `space-y-6 md:space-y-10`。
+- **字号底线**: 所有文本最低字号 **11px** (text-[11px])，移动端可适度调整至 **10px** 以防溢出。
 - **单行锁定 (Single-line Locking)**: 
     - 关键标签必须使用 `whitespace-nowrap`，禁止折行。
-    - 数据字段必须使用 `truncate` (配合 `min-w-0`)，严禁使用多行 `line-clamp`。
-- **布局容器**: 所有主视图容器统一使用 `h-full overflow-y-auto p-10 space-y-10` 结构。
+    - 移动端若出现溢出，必须外层包裹 `overflow-x-auto no-scrollbar`。
+- **布局容器**: 所有主视图容器统一使用 `h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10` 结构。
 - **标题样式**: 统一写在 `<div>` 内，h3 在上，p 在下。
     - 主标题: `text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap`
     - 副标题 (EN): `text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap`

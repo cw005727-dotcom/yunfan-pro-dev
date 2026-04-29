@@ -20,6 +20,7 @@ const OptimizeTitleView = lazy(() => import('./views/OptimizeTitleView'));
 const ImageLabView = lazy(() => import('./views/ImageLabView'));
 const KeywordIntelView = lazy(() => import('./views/KeywordIntelView'));
 const SmartPriceCheckView = lazy(() => import('./views/SmartPriceCheckView'));
+const Toast = lazy(() => import('./components/Toast'));
 
 const LoginPage = ({ onLogin }) => (
     <div className="h-screen w-full bg-[#020617] flex items-center justify-center p-6">
@@ -44,7 +45,7 @@ const LoginPage = ({ onLogin }) => (
     </div>
 );
 
-const MonitoringSidebar = () => {
+const MonitoringSidebar = ({ mobile, onClose }) => {
     const [logs, setLogs] = useState([]);
 
     const fetchLogs = async () => {
@@ -76,15 +77,20 @@ const MonitoringSidebar = () => {
     };
 
     return (
-        <div className="w-[220px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full overflow-hidden shrink-0 relative">
+        <div className={`${mobile ? 'w-full' : 'w-[220px]'} bg-[#0F172A] border-r border-white/5 flex flex-col h-full overflow-hidden shrink-0 relative`}>
             {/* Ambient Glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-blue-500/10 blur-[60px] pointer-events-none"></div>
             
-            <div className="h-[64px] border-b border-white/5 flex items-center px-6 shrink-0 z-20">
+            <div className="h-[64px] border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-20">
                 <div className="flex flex-col">
                     <span className="text-[13px] font-black text-white tracking-widest uppercase">实时监控</span>
                     <span className="text-[11px] text-slate-500 font-bold uppercase tracking-tight whitespace-nowrap">Intelligence Stream</span>
                 </div>
+                {mobile && (
+                    <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+                        <Icon name="x" className="w-5 h-5" />
+                    </button>
+                )}
             </div>
             
             <div className="flex-1 overflow-y-auto px-3 py-6 space-y-4 no-scrollbar z-10">
@@ -136,6 +142,8 @@ const App = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(true);
     const [topTab, setTopTab] = useState('home');
     const [sidebarItem, setSidebarItem] = useState('news');
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [mobileLogsOpen, setMobileLogsOpen] = useState(false);
 
     const menuConfig = {
         home: [
@@ -185,14 +193,37 @@ const App = () => {
     if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
 
     return (
-        <div className="h-screen w-full bg-white flex overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
-            {/* Column 1: Functional Navigation */}
-            <div className="w-[170px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full shrink-0 overflow-hidden relative">
-                <div className="absolute left-0 top-0 w-[4px] h-full bg-emerald-500 shadow-[2px_0_12px_rgba(16,185,129,0.3)]"></div>
-                <div className="h-[64px] flex items-center justify-center border-b border-white/5 bg-white/[0.02] shrink-0">
-                    <span className="text-[11px] whitespace-nowrap font-black text-white tracking-[0.2em] uppercase">云帆 PRO</span>
+        <div className="h-screen w-full bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
+            {/* Mobile Header */}
+            <div className="lg:hidden h-[64px] bg-[#0F172A] border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-50">
+                <button onClick={() => setMobileNavOpen(true)} className="text-white/60 hover:text-white p-2 transition-colors">
+                    <Icon name="menu" className="w-6 h-6" />
+                </button>
+                <div className="flex flex-col items-center">
+                    <span className="text-[12px] font-black text-white tracking-[0.2em] uppercase">云帆 PRO</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Mobile Ops</span>
                 </div>
-                <div className="flex-1 overflow-hidden p-2 space-y-7 pt-6">
+                <button onClick={() => setMobileLogsOpen(true)} className="text-white/60 hover:text-white p-2 relative transition-colors">
+                    <Icon name="activity" className="w-6 h-6" />
+                    <div className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full animate-pulse border-2 border-[#0F172A]"></div>
+                </button>
+            </div>
+
+            {/* Column 1: Functional Navigation */}
+            <div className={`
+                fixed inset-y-0 left-0 z-[60] lg:static lg:z-0
+                w-[280px] lg:w-[170px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full shrink-0 
+                transition-transform duration-300 ease-in-out lg:translate-x-0
+                ${mobileNavOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                <div className="absolute left-0 top-0 w-[4px] h-full bg-emerald-500 shadow-[2px_0_12px_rgba(16,185,129,0.3)]"></div>
+                <div className="h-[64px] flex items-center justify-between px-6 border-b border-white/5 bg-white/[0.02] shrink-0">
+                    <span className="text-[11px] whitespace-nowrap font-black text-white tracking-[0.2em] uppercase">功能导航</span>
+                    <button onClick={() => setMobileNavOpen(false)} className="lg:hidden text-white/40 hover:text-white">
+                        <Icon name="x" className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-7 pt-6 no-scrollbar">
                     {[
                         { id: 'home', label: '首页', icon: 'home', color: 'text-slate-600', active: 'bg-slate-500', shadow: 'shadow-slate-500/20' },
                         { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-blue-400', active: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
@@ -200,7 +231,7 @@ const App = () => {
                         { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-purple-400', active: 'bg-purple-500', shadow: 'shadow-purple-500/20' }
                     ].map(group => (
                         <div key={group.id} className="space-y-3">
-                            {/* Group Header (Clickable & Reverse Highlight) */}
+                            {/* Group Header */}
                             <div 
                                 onClick={() => {
                                     setTopTab(group.id);
@@ -208,9 +239,10 @@ const App = () => {
                                     if (firstItem) {
                                         setSidebarItem(firstItem.id);
                                         window.location.hash = `#/${firstItem.id}`;
+                                        setMobileNavOpen(false);
                                     }
                                 }}
-                                className={`px-3 py-2 flex items-center gap-2 transition-all cursor-pointer ${topTab === group.id ? `${group.active} text-white shadow-lg` : 'border-l-2 border-transparent opacity-60 hover:opacity-100'}`}
+                                className={`px-3 py-2 flex items-center gap-2 transition-all cursor-pointer ${topTab === group.id ? `${group.active} text-white shadow-lg rounded-xl` : 'border-l-2 border-transparent opacity-60 hover:opacity-100'}`}
                             >
                                 <Icon name={group.icon} className={`w-5 h-5 ${topTab === group.id ? 'text-white' : group.color}`} />
                                 <span className={`text-[16px] font-black tracking-tight ${topTab === group.id ? 'text-white' : group.color}`}>{group.label}</span>
@@ -227,6 +259,7 @@ const App = () => {
                                                 setTopTab(group.id);
                                                 setSidebarItem(item.id);
                                                 window.location.hash = `#/${item.id}`;
+                                                setMobileNavOpen(false);
                                             }}
                                             className={`w-full text-left pl-8 pr-1 py-1.5 rounded-sm text-[12px] font-bold transition-all ${isActive ? `bg-white/10 text-white border-l-2 ${group.color.replace('text-', 'border-')}` : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                                         >
@@ -240,20 +273,42 @@ const App = () => {
                 </div>
             </div>
 
+            {/* Backdrop for Mobile Nav */}
+            {mobileNavOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
+                    onClick={() => setMobileNavOpen(false)}
+                />
+            )}
+
             {/* Column 2: Monitoring */}
-            <MonitoringSidebar />
+            <div className={`
+                fixed inset-y-0 right-0 z-[60] lg:static lg:z-0
+                w-[300px] lg:w-[220px] transition-transform duration-300 ease-in-out bg-[#0F172A]
+                ${mobileLogsOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}
+            `}>
+                <MonitoringSidebar mobile onClose={() => setMobileLogsOpen(false)} />
+            </div>
+
+            {/* Backdrop for Mobile Logs */}
+            {mobileLogsOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
+                    onClick={() => setMobileLogsOpen(false)}
+                />
+            )}
 
             {/* Column 3: Main View */}
             <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
-                <div className="h-[64px] border-b border-slate-200 flex items-center px-10 bg-white shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${sidebarItem === 'logistics' ? 'bg-cyan-500' : 'bg-blue-500'} animate-pulse`}></div>
-                        <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase">
+                <div className="h-[64px] border-b border-slate-200 flex items-center px-6 lg:px-10 bg-white shrink-0">
+                    <div className="flex items-center gap-3 truncate">
+                        <div className={`w-2 h-2 rounded-full ${sidebarItem === 'logistics' ? 'bg-cyan-500' : 'bg-blue-500'} animate-pulse shrink-0`}></div>
+                        <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase truncate">
                             指挥空间：{Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '监控中心'}
                         </h2>
                     </div>
                 </div>
-                <div className="flex-1 m-4 bg-white border border-slate-200 overflow-hidden shadow-sm relative">
+                <div className="flex-1 m-2 lg:m-4 bg-white border border-slate-200 overflow-hidden shadow-sm relative">
                     <ErrorBoundary key={sidebarItem}>
                         <Suspense fallback={<div className="h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div></div>}>
                             <div className="h-full overflow-hidden">
