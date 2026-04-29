@@ -2,43 +2,45 @@ import { useAppContext } from '../context/AppContext';
 import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 
-// ─── 4 Official Categories ──────────────────────────────────────────────────
-const CATEGORIES = [
-  { id: '1', label: '待处理', icon: 'clock', color: 'border-slate-400', text: 'text-slate-500', bg: 'bg-slate-100' },
-  { id: '2', label: '在途中', icon: 'truck', color: 'border-blue-500', text: 'text-blue-600', bg: 'bg-blue-50' },
-  { id: '3', label: '已妥投', icon: 'check-circle', color: 'border-emerald-500', text: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { id: '4', label: '有异常', icon: 'alert-triangle', color: 'border-red-500', text: 'text-red-600', bg: 'bg-red-50' },
-];
+// ─── Status Mapping (Synced with Shop Reputation) ───────────────────────────
+const STATUS_META = {
+  1: { label: '待处理', dot: 'bg-slate-400', text: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', icon: 'clock' },
+  2: { label: '在途中', dot: 'bg-blue-400', text: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', icon: 'truck' },
+  3: { label: '已妥投', dot: 'bg-emerald-400', text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'check-circle' },
+  4: { label: '有异常', dot: 'bg-rose-400', text: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', icon: 'alert-triangle', pulse: 'relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40' },
+};
 
 const SITE_FLAGS = {
-  MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾', CBT: '🌐'
+  MLM: '🇲🇽 墨西哥', MLB: '🇧🇷 巴西', MLA: '🇦🇷 阿根廷', MCO: '🇨🇴 哥伦比亚', MLC: '🇨🇱 智利', MLU: '🇺🇾 乌拉圭', CBT: '🌐 跨境站'
 };
 
 // ─── Components ─────────────────────────────────────────────────────────────
 
 const CategoryRibbon = ({ stats, active, onChange }) => {
   return (
-    <div className="grid grid-cols-4 gap-0 border-b border-slate-200 bg-slate-50">
-      {CATEGORIES.map((cat) => {
-        const isActive = active === cat.id;
-        const count = stats[cat.id === '1' ? 'preparing' : cat.id === '2' ? 'in_transit' : cat.id === '3' ? 'delivered' : 'issues'] || 0;
+    <div className="flex gap-3 p-4 shrink-0 overflow-x-auto no-scrollbar bg-white border-b border-slate-100">
+      {Object.entries(STATUS_META).map(([id, meta]) => {
+        const isActive = active === id;
+        const countKey = id === '1' ? 'preparing' : id === '2' ? 'in_transit' : id === '3' ? 'delivered' : 'issues';
+        const count = stats[countKey] || 0;
         return (
           <button
-            key={cat.id}
-            onClick={() => onChange(cat.id)}
-            className={`flex flex-col items-center justify-center py-5 border-r border-slate-200 transition-all relative overflow-hidden group
-              ${isActive ? 'bg-white' : 'hover:bg-slate-100/50'}`}
+            key={id}
+            onClick={() => onChange(id)}
+            className={`flex-1 min-w-[160px] flex items-center gap-4 p-4 rounded-xl border transition-all relative group
+              ${isActive ? `${meta.bg} ${meta.border} shadow-sm` : 'bg-white border-slate-100 hover:border-slate-300'}`}
           >
-            {isActive && <div className={`absolute left-0 top-0 w-full h-1 ${cat.bg.replace('50', '500')}`} />}
-            <div className="flex items-center gap-3">
-              <Icon name={cat.icon} className={`w-5 h-5 ${isActive ? cat.text : 'text-slate-400'}`} />
-              <span className={`text-[13px] font-black uppercase tracking-widest ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                {cat.label}
-              </span>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActive ? 'bg-white shadow-inner' : 'bg-slate-50'}`}>
+              <Icon name={meta.icon} className={`w-5 h-5 ${isActive ? meta.text : 'text-slate-300'}`} />
             </div>
-            <span className={`text-2xl font-mono mt-1 ${isActive ? cat.text : 'text-slate-400'}`}>
-              {count.toLocaleString()}
-            </span>
+            <div className="text-left">
+              <p className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>
+                {meta.label}
+              </p>
+              <p className={`text-xl font-black ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>
+                {count.toLocaleString()}
+              </p>
+            </div>
           </button>
         );
       })}
@@ -48,45 +50,53 @@ const CategoryRibbon = ({ stats, active, onChange }) => {
 
 const RiskRadar = ({ orders, selectedId, onSelect }) => {
   return (
-    <div className="h-full flex flex-col border-r border-slate-200 bg-slate-50/50">
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
+    <div className="h-full flex flex-col p-4 bg-slate-50/50">
+      <div className="flex items-center justify-between mb-4 px-2">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]" />
-          <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">风险监测雷达</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-rose-500 relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40" />
+          <span className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">物流风险监测</span>
         </div>
-        <span className="text-[10px] font-mono text-slate-400 italic">RISK_RADAR_V8</span>
+        <span className="text-[9px] font-mono text-slate-400">RADAR_V8_PRO</span>
       </div>
-      <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
+      
+      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
         {orders.length === 0 ? (
-          <div className="p-10 text-center space-y-3">
-            <Icon name="shield-check" className="w-8 h-8 text-slate-200 mx-auto" />
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">当前无异常监测记录</p>
+          <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
+            <Icon name="shield-check" className="w-8 h-8 text-emerald-500/20 mx-auto" />
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2">暂无实时预警</p>
           </div>
         ) : (
-          orders.map((order) => (
-            <div
-              key={order.id}
-              onClick={() => onSelect(order)}
-              className={`p-4 border border-slate-200 cursor-pointer transition-all relative group
-                ${selectedId === order.id ? 'bg-white shadow-lg border-blue-500/30' : 'bg-white hover:border-slate-300'}`}
-            >
-              {selectedId === order.id && <div className="absolute left-0 top-0 h-full w-1 bg-blue-500" />}
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-600">#{order.id}</span>
-                <span className={`text-[9px] px-2 py-0.5 font-black uppercase tracking-tighter
-                  ${order.is_overdue ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
-                  {order.is_overdue ? '发货超期' : order.status_zh}
-                </span>
+          orders.map((order) => {
+            const meta = STATUS_META[4]; // Risk cards always look like Exception/Status 4
+            return (
+              <div
+                key={order.id}
+                onClick={() => onSelect(order)}
+                className={`p-3 rounded-xl border transition-all cursor-pointer relative group
+                  ${selectedId === order.id ? 'bg-white shadow-xl ring-2 ring-rose-500/20' : `${meta.bg} ${meta.border} hover:bg-white`}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">ORDER #{order.id}</span>
+                   <div className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${meta.pulse}`}></div>
+                </div>
+                
+                <p className="text-[12px] font-black text-slate-800 line-clamp-2 leading-tight mb-3">
+                  {order.product_name}
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                   <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-slate-400 uppercase">站点信息</span>
+                      <span className="text-[10px] font-black text-slate-700">{SITE_FLAGS[order.site_id]?.split(' ')[1] || order.site_id}</span>
+                   </div>
+                   <div className="flex flex-col text-right">
+                      <span className="text-[8px] font-black text-rose-500 uppercase">异常类型</span>
+                      <span className="text-[10px] font-black text-rose-600">{order.is_overdue ? '发货已超期' : order.status_zh}</span>
+                   </div>
+                </div>
               </div>
-              <p className="text-[12px] text-slate-800 font-bold line-clamp-1 mb-2 group-hover:text-slate-900 transition-colors">
-                {order.product_name}
-              </p>
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] text-slate-500 font-bold">{SITE_FLAGS[order.site_id]} {order.site_id}</span>
-                <span className="text-[10px] text-slate-400 font-mono tracking-tighter">LP:{order.tracking_id || 'PENDING'}</span>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
@@ -114,102 +124,76 @@ const FocusTrace = ({ order }) => {
 
   if (!order) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-20 text-center space-y-6 opacity-30">
-        <Icon name="target" className="w-16 h-16 text-slate-300" />
-        <div className="space-y-2">
-          <p className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">待命状态</p>
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">请从左侧列表选择监测对象</p>
-        </div>
+      <div className="h-full flex flex-col items-center justify-center bg-white p-10 text-center opacity-30">
+        <Icon name="target" className="w-12 h-12 text-slate-300" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">等待单据指令</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-white relative overflow-hidden">
-      {/* Background Grid Accent */}
-      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #cbd5e1 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-
-      {/* Trace Header */}
-      <div className="p-6 border-b border-slate-200 shrink-0 flex items-center justify-between bg-white z-10">
+    <div className="h-full flex flex-col bg-white">
+      {/* Detail Header */}
+      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center">
-            <Icon name="activity" className="w-6 h-6 text-blue-500" />
+          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+             <Icon name="activity" className="w-6 h-6" />
           </div>
-          <div className="space-y-1">
-            <h4 className="text-sm font-black text-slate-900 tracking-widest">单据全流程监测</h4>
-            <div className="flex items-center gap-4">
-              <span className="text-[10px] text-slate-400 font-mono">ID: {order.id}</span>
-              <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">TRACKING: {order.tracking_id || 'WAITING'}</span>
-            </div>
+          <div className="space-y-0.5">
+             <h4 className="text-[14px] font-black text-slate-900 uppercase tracking-widest">全链路动态实时监测</h4>
+             <div className="flex items-center gap-3">
+               <span className="text-[10px] text-slate-400 font-mono tracking-tighter">LP-SERIAL: {order.tracking_id || 'PENDING'}</span>
+               <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 rounded-sm uppercase">{order.status_zh}</span>
+             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">当前状态</p>
-            <p className="text-xs font-black text-blue-600 uppercase tracking-widest">{order.status_zh}</p>
-          </div>
-          <button className="h-10 px-6 bg-slate-900 border border-slate-900 hover:bg-slate-800 text-[11px] font-black text-white uppercase tracking-widest transition-all">
-            同步轨迹
-          </button>
-        </div>
+        <button className="h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black uppercase tracking-widest rounded-lg transition-all shadow-lg shadow-slate-200">
+          强制同步
+        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 space-y-10 z-10 no-scrollbar">
-        {/* Product Quick View */}
-        <div className="flex gap-6 p-6 border border-slate-200 bg-slate-50 relative group">
-          <div className="absolute top-0 right-0 w-16 h-16 border-t border-r border-slate-200" />
-          <img src={order.thumbnail} className="w-20 h-20 object-cover border border-slate-200" alt="" />
-          <div className="flex-1 space-y-4">
-            <p className="text-[14px] font-black text-slate-900 leading-relaxed uppercase tracking-tighter">
-              {order.product_name}
-            </p>
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">店铺 / 站点</p>
-                <p className="text-[11px] text-slate-700 font-black">{order.site_id}</p>
-              </div>
-              <div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">买家 ID</p>
-                <p className="text-[11px] text-slate-700 font-mono tracking-tighter">{order.buyer_id}</p>
-              </div>
-              <div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">成交额</p>
-                <p className="text-[11px] text-emerald-600 font-black font-mono">${order.amount}</p>
-              </div>
-            </div>
-          </div>
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+        {/* Metric Cards (Shop Reputation Style) */}
+        <div className="grid grid-cols-4 gap-3">
+           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">站点/国家</p>
+              <p className="text-[12px] font-black text-slate-800">{SITE_FLAGS[order.site_id]}</p>
+           </div>
+           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">成交金额</p>
+              <p className="text-[12px] font-black text-emerald-600 font-mono">${order.amount}</p>
+           </div>
+           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">买家 ID</p>
+              <p className="text-[12px] font-black text-slate-800 font-mono">{order.buyer_id}</p>
+           </div>
+           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">物流服务商</p>
+              <p className="text-[12px] font-black text-blue-600">CAINIAO GLOBAL</p>
+           </div>
         </div>
 
-        {/* Timeline Flow */}
-        <div className="relative pl-12 space-y-12 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-200">
+        {/* Trace Flow */}
+        <div className="relative pl-10 space-y-10 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
           {loading ? (
-            <div className="py-12 flex justify-center">
-              <div className="w-8 h-8 border-2 border-slate-100 border-t-blue-500 animate-spin" />
-            </div>
+             <div className="py-20 flex justify-center"><div className="w-8 h-8 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin" /></div>
           ) : (
             details?.events?.map((ev, i) => (
               <div key={i} className="relative group">
-                {/* Node with Pulse Effect */}
-                <div className={`absolute -left-12 top-0.5 w-10 h-10 border flex items-center justify-center transition-all duration-500 z-10
-                  ${i === 0 ? 'bg-blue-600 border-blue-600 shadow-lg shadow-blue-100' : 'bg-white border-slate-200 group-hover:border-slate-400'}`}>
-                  {i === 0 && (
-                    <div className="absolute inset-0 bg-blue-500 animate-ping opacity-20" />
-                  )}
-                  <div className={`w-1.5 h-1.5 ${i === 0 ? 'bg-white shadow-[0_0_8px_white]' : 'bg-slate-300'}`} />
+                <div className={`absolute -left-10 top-0.5 w-8 h-8 rounded-full border flex items-center justify-center z-10 transition-all
+                  ${i === 0 ? 'bg-slate-900 border-slate-900 shadow-xl' : 'bg-white border-slate-200'}`}>
+                  {i === 0 && <div className="absolute inset-0 bg-slate-900 rounded-full animate-ping opacity-20" />}
+                  <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-white' : 'bg-slate-300'}`} />
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[12px] font-black tracking-tight uppercase ${i === 0 ? 'text-blue-600' : 'text-slate-800'}`}>
-                      {ev.desc}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono italic">{ev.time}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Icon name="map-pin" className="w-3 h-3 text-slate-400" />
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{ev.location || 'TRANSSHIPPED'}</span>
-                  </div>
+                <div className="space-y-1 bg-slate-50/50 p-4 rounded-xl border border-transparent hover:border-slate-100 hover:bg-white transition-all group-hover:shadow-sm">
+                   <div className="flex items-center justify-between">
+                      <p className={`text-[12px] font-black uppercase tracking-tight ${i === 0 ? 'text-slate-900' : 'text-slate-500'}`}>{ev.desc}</p>
+                      <span className="text-[10px] text-slate-400 font-mono italic">{ev.time}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                      <Icon name="map-pin" className="w-3 h-3 text-slate-300" />
+                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{ev.location}</span>
+                   </div>
                 </div>
               </div>
             ))
@@ -222,56 +206,57 @@ const FocusTrace = ({ order }) => {
 
 const LogisticsTable = ({ orders, onSelect }) => {
   return (
-    <div className="flex-1 min-h-0 bg-white border-t border-slate-200 flex flex-col">
-      <div className="h-10 border-b border-slate-200 flex items-center px-6 shrink-0 justify-between bg-slate-50/50">
+    <div className="flex-1 min-h-0 bg-white border-t border-slate-100 flex flex-col">
+      <div className="h-10 border-b border-slate-100 flex items-center px-6 shrink-0 justify-between bg-slate-50/30">
         <div className="flex items-center gap-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">全量数据同步中心</span>
-          <div className="h-3 w-[1px] bg-slate-200" />
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Showing {orders.length} Results</span>
-        </div>
-        <div className="flex gap-4">
-           <button className="text-[10px] text-slate-400 hover:text-slate-900 font-black uppercase tracking-widest transition-colors flex items-center gap-2">
-             <Icon name="download" className="w-3 h-3" /> 导出
-           </button>
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">全量订单监测池</span>
+           <div className="h-3 w-[1px] bg-slate-200" />
+           <span className="text-[10px] text-slate-500 font-black uppercase">COUNT: {orders.length}</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 bg-white z-20 border-b border-slate-200">
+          <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10">
             <tr>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">订单 ID</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">商品信息</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">运单号</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">实时状态</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">结算金额</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">核心编号</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">商品详情</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">当前环节</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">金额</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {orders.map((o) => (
-              <tr 
-                key={o.id} 
-                onClick={() => onSelect(o)}
-                className="hover:bg-slate-50/80 cursor-pointer group transition-colors"
-              >
-                <td className="px-6 py-4 text-[11px] font-mono text-slate-500 group-hover:text-blue-600 transition-colors">#{o.id}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <img src={o.thumbnail} className="w-8 h-8 object-cover border border-slate-100 group-hover:border-slate-200" alt="" />
-                    <span className="text-[11px] font-black text-slate-600 group-hover:text-slate-900 transition-colors truncate max-w-[200px]">{o.product_name}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-[11px] font-mono text-slate-400 tracking-tighter">LP:{o.tracking_id || 'PENDING'}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-1 h-1 rounded-full ${o.category === 3 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : o.category === 4 ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`} />
-                    <span className={`text-[11px] font-black uppercase tracking-widest ${o.category === 3 ? 'text-emerald-600' : o.category === 4 ? 'text-red-600' : 'text-blue-500'}`}>
-                      {o.status_zh}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-[11px] font-mono font-black text-slate-500 text-right group-hover:text-emerald-600 transition-colors">${o.amount}</td>
-              </tr>
-            ))}
+          <tbody className="divide-y divide-slate-50">
+            {orders.map((o) => {
+              const meta = STATUS_META[o.category] || STATUS_META[1];
+              return (
+                <tr 
+                  key={o.id} 
+                  onClick={() => onSelect(o)}
+                  className="hover:bg-slate-50/80 cursor-pointer group transition-colors"
+                >
+                  <td className="px-6 py-4 space-y-1">
+                    <p className="text-[11px] font-black text-slate-800 group-hover:text-blue-600 transition-colors">#{o.id}</p>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tighter uppercase">{o.tracking_id || 'WAITING'}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <img src={o.thumbnail} className="w-8 h-8 object-cover rounded border border-slate-100" alt="" />
+                      <div className="flex flex-col">
+                         <span className="text-[11px] font-black text-slate-700 group-hover:text-slate-900 truncate max-w-[200px]">{o.product_name}</span>
+                         <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{SITE_FLAGS[o.site_id]}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className={`mx-auto w-max px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-2
+                      ${meta.bg} ${meta.border} ${meta.text}`}>
+                       <div className={`w-1 h-1 rounded-full ${meta.dot}`} />
+                       {o.status_zh}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-[12px] font-black text-slate-800 text-right font-mono group-hover:text-emerald-600 transition-colors">${o.amount}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -326,9 +311,6 @@ const LogisticsAlertsView = () => {
 
   return (
     <div className="h-full flex flex-col bg-white text-slate-900 overflow-hidden font-sans">
-      {/* Top Banner Accent */}
-      <div className="h-1 w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 opacity-20 shrink-0" />
-
       {/* Category Ribbon */}
       <CategoryRibbon 
         stats={stats} 
@@ -340,9 +322,9 @@ const LogisticsAlertsView = () => {
       />
 
       {/* Main Workspace: 1:2 Split */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 border-t border-slate-100">
         {/* Risk Radar (Left 1/3) */}
-        <div className="w-[380px] shrink-0 overflow-hidden">
+        <div className="w-[320px] shrink-0 border-r border-slate-100">
           <RiskRadar 
             orders={riskOrders} 
             selectedId={focusOrder?.id}
@@ -350,30 +332,28 @@ const LogisticsAlertsView = () => {
           />
         </div>
 
-        {/* Trace Console (Right 2/3) */}
+        {/* Right Side: Trace + Table */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 min-h-0 border-b border-slate-200">
+          <div className="flex-1 min-h-0">
             <FocusTrace order={focusOrder} />
           </div>
           
-          {/* Data Table (Bottom Expansion) */}
-          <div className="h-[320px] shrink-0 flex flex-col">
+          <div className="h-[300px] shrink-0 flex flex-col">
             <LogisticsTable orders={orders} onSelect={setFocusOrder} />
           </div>
         </div>
       </div>
 
-      {/* Footer / Status Bar */}
-      <div className="h-8 border-t border-slate-200 bg-slate-50 px-6 flex items-center justify-between shrink-0">
+      {/* Status Bar */}
+      <div className="h-8 border-t border-slate-100 bg-white px-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">系统就绪</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]" />
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">物流监测核心已挂载</span>
           </div>
-          <span className="text-[9px] text-slate-400 font-mono italic">V8_CORE_KERNEL_ACTIVE</span>
         </div>
-        <div className="flex items-center gap-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-           <span>站点时区: MX/GMT-6</span>
+        <div className="flex items-center gap-4 text-[9px] text-slate-300 font-black uppercase tracking-widest">
+           <span>时区: MX/GMT-6</span>
            <span>心跳频率: 5.0Hz</span>
         </div>
       </div>

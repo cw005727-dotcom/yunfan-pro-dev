@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx';
 import ListingEditModal from './ListingEditModal.jsx';
 import { useProductPerformance } from '../hooks/useProductPerformance';
 import { useSmartRotation } from '../hooks/useSmartRotation';
+import { useAppContext } from '../context/AppContext.jsx';
 import { API_BASE } from '../api/client';
 
 // 引入 Chart.js
@@ -282,13 +283,11 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
 };
 
 const SITE_TABS = [
-    { key: 'all', label: '全部站点', flag: '🌐' },
-    { key: 'MLM', label: '墨西哥',   flag: '🇲🇽' },
-    { key: 'MLB', label: '巴西',     flag: '🇧🇷' },
-    { key: 'MLA', label: '阿根廷',   flag: '🇦🇷' },
-    { key: 'MCO', label: '哥伦比亚', flag: '🇨🇴' },
-    { key: 'MLC', label: '智利',     flag: '🇨🇱' },
-    { key: 'MLU', label: '乌拉圭',   flag: '🇺🇾' }
+    { key: 'MLM', label: '🇲🇽 墨西哥',  siteId: 'MLM' },
+    { key: 'MLB', label: '🇧🇷 巴西',     siteId: 'MLB' },
+    { key: 'MLA', label: '🇦🇷 阿根廷',   siteId: 'MLA' },
+    { key: 'MCO', label: '🇨🇴 哥伦比亚', siteId: 'MCO' },
+    { key: 'MLU', label: '🇺🇾 乌拉圭',   siteId: 'MLU' }
 ];
 
 const SITE_BADGES = {
@@ -474,7 +473,8 @@ const ProductDetailPerspective = ({ product }) => {
 
 const ProductPerformanceView = () => {
     const [activeTab, setActiveTab] = useState('new');
-    const [activeSite, setActiveSite] = useState('all');
+    const [activeSite, setActiveSite] = useState('MLM');
+    const { activeShop, setActiveShop, shops } = useAppContext();
     const { products: allItems, summary, loading: isLoading, refresh: refreshPerf } = useProductPerformance(activeSite);
     const [selectedItem, setSelectedItem] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -539,9 +539,7 @@ const ProductPerformanceView = () => {
     }, [categorized.hot]);
 
     const currentTabItems = categorized[activeTab] || [];
-    const filtered = activeSite === 'all'
-        ? currentTabItems
-        : currentTabItems.filter(i => i.site_id === activeSite);
+    const filtered = currentTabItems.filter(i => i.site_id === activeSite);
 
     const toggleSort = (metric) => {
         if (activeMetric === metric) {
@@ -566,33 +564,40 @@ const ProductPerformanceView = () => {
                 {/* 左侧：列表区域 (70%) */}
                 <div className="flex-[0_0_72%] flex flex-col gap-5 h-full min-w-0">
                     
-                    {/* 1. 站点选择与概览 */}
+                    {/* 1. 店铺选择 + 站点切换 */}
                     <div className="flex items-center justify-between px-6 py-4 rounded-[32px] bg-white border border-slate-200 shadow-sm shrink-0">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-base font-black text-slate-800">大姐店 (Master)</h2>
-                            <div className="h-4 w-px bg-slate-200 mx-1"></div>
+                        <div className="flex items-center gap-4">
+                            {/* 店铺下拉选择 */}
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-base font-black text-slate-800">大姐店</h2>
+                                <select
+                                    value={activeShop || ''}
+                                    onChange={e => setActiveShop(e.target.value)}
+                                    className="px-3 py-1.5 rounded-xl text-[11px] font-black bg-indigo-50 border border-indigo-100 text-indigo-600 cursor-pointer hover:bg-indigo-100 transition-colors focus:outline-none"
+                                >
+                                    {(shops || []).map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="h-4 w-px bg-slate-200"></div>
+                            {/* 站点切换按钮 */}
                             <div className="flex items-center gap-1.5">
                                 {SITE_TABS.map(site => (
                                     <button
                                         key={site.key}
                                         onClick={() => setActiveSite(site.key)}
-                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-1.5 ${activeSite === site.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${activeSite === site.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                                     >
-                                        <span>{site.flag}</span>
-                                        <span>{site.label}</span>
+                                        {site.label}
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <div className="flex items-center gap-6">
-                            <div className="text-right">
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">在售总量</p>
-                                <p className="text-sm font-black text-slate-800">{allItems.length || 0}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">今日总曝光</p>
-                                <p className="text-sm font-black text-indigo-500">{fmt(summary?.total_exposure || 124560)}</p>
-                            </div>
+                        {/* 在售数量（与站点联动） */}
+                        <div className="text-right">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">在售</p>
+                            <p className="text-sm font-black text-slate-800">{filtered.length}</p>
                         </div>
                     </div>
 
