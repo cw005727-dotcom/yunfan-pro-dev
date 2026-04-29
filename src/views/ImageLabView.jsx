@@ -116,13 +116,13 @@ const ImageLabView = () => {
     const isAnyGenerating = cards.some(c => c.status === 'generating');
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-[26px] font-black text-slate-800 tracking-tight">视觉图生图</h3>
-                    <p className="text-[11px] text-slate-500 font-medium mt-1">5张商业图 · AI 生成 · MercadoLibre 专用</p>
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">视觉图生图</h3>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Visual Product Intelligence</p>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>

@@ -212,14 +212,14 @@ const DisputesView = () => {
     const siteFlag = SITE_EMOJI[active?.site_id] || '🌐';
 
     return (
-        <div className="h-full flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">售后纠纷</h3>
-                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">
-                        {disputes.length} 个纠纷订单 · 双向翻译 · AI 高情商回复
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">售后纠纷</h3>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">
+                        Post-Purchase Intelligence & Resolution
                     </p>
                 </div>
                 <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
