@@ -2,38 +2,107 @@ import { useAppContext } from '../context/AppContext';
 import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 
-// ─── Status mapping ─────────────────────────────────────────────────────────
-const STATUS_MAP = {
-  // 物流轨迹状态（优先 tracking_status，其次 shipping_substatus）
-  pending:           { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400', icon: 'clock' },
-  ready_to_ship:     { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400', icon: 'package' },
-  picked_up:         { label: '已揽收',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500', icon: 'truck' },
-  shipped:           { label: '已发货',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500', icon: 'truck' },
-  in_transit:        { label: '运输中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500', icon: 'plane' },
-  in_local_transit:  { label: '目的国运输', color: 'bg-amber-500', textColor: 'text-white', marqueeColor: 'bg-amber-500', badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500', icon: 'truck' },
-  at_customs:        { label: '清关中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500', icon: 'shield' },
-  not_delivered:     { label: '未送达',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'alert-triangle' },
-  delivered:         { label: '已签收',    color: 'bg-emerald-500',textColor: 'text-white', marqueeColor: 'bg-emerald-500',badge: 'bg-emerald-100 text-emerald-600',dot:'bg-emerald-500', icon: 'check-circle' },
-  failed:            { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'x-circle' },
-  exception:         { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'x-circle' },
-  returned:          { label: '退回',      color: 'bg-purple-500', textColor: 'text-white', marqueeColor: 'bg-purple-500',badge: 'bg-purple-100 text-purple-600',dot:'bg-purple-500', icon: 'rotate-ccw' },
-  delayed:           { label: '延误',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'alert-circle' },
-  pending_recovery:  { label: '待取回',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'refresh-cw' },
-};
+// ─── 4 Official Categories ──────────────────────────────────────────────────
+const CATEGORIES = [
+  { id: '1', label: '待处理', icon: 'clock', color: 'border-slate-400', text: 'text-slate-500', bg: 'bg-slate-100' },
+  { id: '2', label: '在途中', icon: 'truck', color: 'border-blue-500', text: 'text-blue-600', bg: 'bg-blue-50' },
+  { id: '3', label: '已妥投', icon: 'check-circle', color: 'border-emerald-500', text: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { id: '4', label: '有异常', icon: 'alert-triangle', color: 'border-red-500', text: 'text-red-600', bg: 'bg-red-50' },
+];
 
 const SITE_FLAGS = {
-  MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾',
+  MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾', CBT: '🌐'
 };
 
-const DEFAULT_FLAG = '🌐';
+// ─── Components ─────────────────────────────────────────────────────────────
 
-// ─── Logistics Detail Modal ──────────────────────────────────────────────────
-const LogisticsDetailModal = ({ order, onClose }) => {
+const CategoryRibbon = ({ stats, active, onChange }) => {
+  return (
+    <div className="grid grid-cols-4 gap-0 border-b border-slate-200 bg-slate-50">
+      {CATEGORIES.map((cat) => {
+        const isActive = active === cat.id;
+        const count = stats[cat.id === '1' ? 'preparing' : cat.id === '2' ? 'in_transit' : cat.id === '3' ? 'delivered' : 'issues'] || 0;
+        return (
+          <button
+            key={cat.id}
+            onClick={() => onChange(cat.id)}
+            className={`flex flex-col items-center justify-center py-5 border-r border-slate-200 transition-all relative overflow-hidden group
+              ${isActive ? 'bg-white' : 'hover:bg-slate-100/50'}`}
+          >
+            {isActive && <div className={`absolute left-0 top-0 w-full h-1 ${cat.bg.replace('50', '500')}`} />}
+            <div className="flex items-center gap-3">
+              <Icon name={cat.icon} className={`w-5 h-5 ${isActive ? cat.text : 'text-slate-400'}`} />
+              <span className={`text-[13px] font-black uppercase tracking-widest ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+                {cat.label}
+              </span>
+            </div>
+            <span className={`text-2xl font-mono mt-1 ${isActive ? cat.text : 'text-slate-400'}`}>
+              {count.toLocaleString()}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+const RiskRadar = ({ orders, selectedId, onSelect }) => {
+  return (
+    <div className="h-full flex flex-col border-r border-slate-200 bg-slate-50/50">
+      <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]" />
+          <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">风险监测雷达</span>
+        </div>
+        <span className="text-[10px] font-mono text-slate-400 italic">RISK_RADAR_V8</span>
+      </div>
+      <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
+        {orders.length === 0 ? (
+          <div className="p-10 text-center space-y-3">
+            <Icon name="shield-check" className="w-8 h-8 text-slate-200 mx-auto" />
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">当前无异常监测记录</p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <div
+              key={order.id}
+              onClick={() => onSelect(order)}
+              className={`p-4 border border-slate-200 cursor-pointer transition-all relative group
+                ${selectedId === order.id ? 'bg-white shadow-lg border-blue-500/30' : 'bg-white hover:border-slate-300'}`}
+            >
+              {selectedId === order.id && <div className="absolute left-0 top-0 h-full w-1 bg-blue-500" />}
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-600">#{order.id}</span>
+                <span className={`text-[9px] px-2 py-0.5 font-black uppercase tracking-tighter
+                  ${order.is_overdue ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                  {order.is_overdue ? '发货超期' : order.status_zh}
+                </span>
+              </div>
+              <p className="text-[12px] text-slate-800 font-bold line-clamp-1 mb-2 group-hover:text-slate-900 transition-colors">
+                {order.product_name}
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-slate-500 font-bold">{SITE_FLAGS[order.site_id]} {order.site_id}</span>
+                <span className="text-[10px] text-slate-400 font-mono tracking-tighter">LP:{order.tracking_id || 'PENDING'}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+const FocusTrace = ({ order }) => {
   const [details, setDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!order) return;
+    if (!order) {
+      setDetails(null);
+      return;
+    }
+    setLoading(true);
     fetch(`/api/logistics/detail?id=${order.id}`)
       .then(r => r.json())
       .then(data => {
@@ -43,567 +112,271 @@ const LogisticsDetailModal = ({ order, onClose }) => {
       .catch(() => setLoading(false));
   }, [order]);
 
-  if (!order) return null;
+  if (!order) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-20 text-center space-y-6 opacity-30">
+        <Icon name="target" className="w-16 h-16 text-slate-300" />
+        <div className="space-y-2">
+          <p className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">待命状态</p>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">请从左侧列表选择监测对象</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 flex items-center justify-center text-white">
-              <Icon name="truck" className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-base font-black text-slate-900">物流全链路追踪</h4>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">#{order.tracking_id || 'N/A'}</p>
+    <div className="h-full flex flex-col bg-white relative overflow-hidden">
+      {/* Background Grid Accent */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
+           style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #cbd5e1 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+
+      {/* Trace Header */}
+      <div className="p-6 border-b border-slate-200 shrink-0 flex items-center justify-between bg-white z-10">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center">
+            <Icon name="activity" className="w-6 h-6 text-blue-500" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-black text-slate-900 tracking-widest">单据全流程监测</h4>
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] text-slate-400 font-mono">ID: {order.id}</span>
+              <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">TRACKING: {order.tracking_id || 'WAITING'}</span>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 hover:bg-slate-200 flex items-center justify-center transition-colors">
-            <Icon name="x" className="w-5 h-5 text-slate-500" />
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">当前状态</p>
+            <p className="text-xs font-black text-blue-600 uppercase tracking-widest">{order.status_zh}</p>
+          </div>
+          <button className="h-10 px-6 bg-slate-900 border border-slate-900 hover:bg-slate-800 text-[11px] font-black text-white uppercase tracking-widest transition-all">
+            同步轨迹
           </button>
         </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Order Brief */}
-          <div className="flex gap-4 p-4 bg-slate-50 border border-slate-100">
-            <img src={order.thumbnail} className="w-16 h-16 object-cover" alt="" />
-            <div className="flex-1">
-              <p className="text-xs font-black text-slate-800 line-clamp-1">{order.product_name}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 font-black">{order.logistic_company || '官方物流'}</span>
-                <span className="text-[10px] font-bold text-slate-400">{SITE_FLAGS[order.site_id]} {order.site_id}</span>
+      <div className="flex-1 overflow-y-auto p-8 space-y-10 z-10 no-scrollbar">
+        {/* Product Quick View */}
+        <div className="flex gap-6 p-6 border border-slate-200 bg-slate-50 relative group">
+          <div className="absolute top-0 right-0 w-16 h-16 border-t border-r border-slate-200" />
+          <img src={order.thumbnail} className="w-20 h-20 object-cover border border-slate-200" alt="" />
+          <div className="flex-1 space-y-4">
+            <p className="text-[14px] font-black text-slate-900 leading-relaxed uppercase tracking-tighter">
+              {order.product_name}
+            </p>
+            <div className="grid grid-cols-3 gap-6">
+              <div>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">店铺 / 站点</p>
+                <p className="text-[11px] text-slate-700 font-black">{order.site_id}</p>
+              </div>
+              <div>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">买家 ID</p>
+                <p className="text-[11px] text-slate-700 font-mono tracking-tighter">{order.buyer_id}</p>
+              </div>
+              <div>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">成交额</p>
+                <p className="text-[11px] text-emerald-600 font-black font-mono">${order.amount}</p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Risk Alert if any */}
-          {details?.risk && (
-            <div className="p-4 bg-red-50 border border-red-100 flex items-start gap-3">
-              <Icon name="alert-triangle" className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-black text-red-700">异常风险警示</p>
-                <p className="text-[11px] text-red-600/80 font-medium mt-0.5">{details.risk.message}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Timeline */}
+        {/* Timeline Flow */}
+        <div className="relative pl-12 space-y-12 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-200">
           {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="py-12 flex justify-center">
+              <div className="w-8 h-8 border-2 border-slate-100 border-t-blue-500 animate-spin" />
             </div>
           ) : (
-            <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-              {details?.events?.map((ev, i) => (
-                <div key={i} className="relative">
-                  {/* Point */}
-                  <div className={`absolute -left-8 top-1.5 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center shadow-sm z-10 ${i === 0 ? 'bg-blue-500' : 'bg-slate-200'}`}>
-                    {i === 0 && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+            details?.events?.map((ev, i) => (
+              <div key={i} className="relative group">
+                {/* Node with Pulse Effect */}
+                <div className={`absolute -left-12 top-0.5 w-10 h-10 border flex items-center justify-center transition-all duration-500 z-10
+                  ${i === 0 ? 'bg-blue-600 border-blue-600 shadow-lg shadow-blue-100' : 'bg-white border-slate-200 group-hover:border-slate-400'}`}>
+                  {i === 0 && (
+                    <div className="absolute inset-0 bg-blue-500 animate-ping opacity-20" />
+                  )}
+                  <div className={`w-1.5 h-1.5 ${i === 0 ? 'bg-white shadow-[0_0_8px_white]' : 'bg-slate-300'}`} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[12px] font-black tracking-tight uppercase ${i === 0 ? 'text-blue-600' : 'text-slate-800'}`}>
+                      {ev.desc}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono italic">{ev.time}</span>
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[11px] font-black ${i === 0 ? 'text-blue-600' : 'text-slate-900'}`}>{ev.desc}</span>
-                      <span className="text-[9px] text-slate-400 font-bold">{ev.time}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-1 font-medium">{ev.location}</p>
+                  <div className="flex items-center gap-2">
+                    <Icon name="map-pin" className="w-3 h-3 text-slate-400" />
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{ev.location || 'TRANSSHIPPED'}</span>
                   </div>
                 </div>
-              )) || (
-                <div className="text-center py-4 text-slate-400 text-xs font-medium">暂无详细轨迹信息</div>
-              )}
-            </div>
+              </div>
+            ))
           )}
         </div>
-
-        {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-           <button className="px-5 py-2.5 bg-slate-900 text-white text-[11px] font-black hover:bg-slate-800 transition-colors">导出报告</button>
-        </div>
       </div>
     </div>
   );
 };
 
-const getStatusConfig = (ts, ss) => {
-  // 优先用 shipments API 的 tracking_status，其次 shipping_substatus，最后 shipping_status
-  if (ts && STATUS_MAP[ts]) return STATUS_MAP[ts];
-  if (ss && STATUS_MAP[ss]) return STATUS_MAP[ss];
-  return { label: ts || ss || '-', color: 'bg-slate-400', textColor: 'text-white', marqueeColor: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
-};
-
-const getProgressStage = (ts, ss) => {
-  // 物流进度节点：0=发货前 1=已发货 2=运输中 3=已签收
-  if (ts === 'delivered') return 3;
-  if (['in_transit', 'in_local_transit'].includes(ts)) return 2;
-  if (['shipped', 'picked_up'].includes(ts)) return 1;
-  if (['pending', 'ready_to_ship'].includes(ts)) return 0;
-  return 1; // 有 tracking_id 默认视为已发货
-};
-
-// 4-node labels
-const PROGRESS_LABELS = ['发货', '中转', '目的', '签收'];
-
-// Progress node colors keyed by stage (0-3)
-const PROGRESS_NODE_COLORS = [
-  'border-slate-300',
-  'border-slate-300',
-  'border-slate-300',
-  'border-slate-300',
-];
-
-// ─── Progress Bar Component ──────────────────────────────────────────────────
-const ProgressBar = ({ stage }) => {
+const LogisticsTable = ({ orders, onSelect }) => {
   return (
-    <div className="mt-3">
-      {/* Track + nodes */}
-      <div className="relative flex items-center">
-        {/* Filled track */}
-        <div
-          className="absolute h-0.5 bg-gradient-to-r from-blue-400 to-emerald-400"
-          style={{
-            left: '12px',
-            right: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: `calc(${Math.min(stage / 3, 1) * 100}% - 24px)`,
-          }}
-        />
-        {/* Unfilled track */}
-        <div
-          className="absolute h-0.5 bg-slate-200"
-          style={{
-            left: `calc(${Math.min(stage / 3, 1) * 100}% * (100% - 24px) / 100% + 12px)`,
-            right: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-          }}
-        />
-
-        {PROGRESS_LABELS.map((label, i) => {
-          const isDone = i <= stage;
-          const isActive = i === stage;
-          return (
-            <div key={i} className="flex flex-col items-center z-10" style={{ flex: i === 0 ? '0 0 auto' : i === 3 ? '0 0 auto' : '1 0 0' }}>
-              {/* Node circle */}
-              <div
-                className={`
-                  rounded-full border-2 flex items-center justify-center
-                  transition-all duration-500
-                  ${isDone ? 'bg-blue-500 border-blue-500' : 'bg-white border-slate-300'}
-                  ${isActive ? 'w-4 h-4 shadow-md shadow-blue-200' : 'w-3 h-3'}
-                `}
+    <div className="flex-1 min-h-0 bg-white border-t border-slate-200 flex flex-col">
+      <div className="h-10 border-b border-slate-200 flex items-center px-6 shrink-0 justify-between bg-slate-50/50">
+        <div className="flex items-center gap-4">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">全量数据同步中心</span>
+          <div className="h-3 w-[1px] bg-slate-200" />
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Showing {orders.length} Results</span>
+        </div>
+        <div className="flex gap-4">
+           <button className="text-[10px] text-slate-400 hover:text-slate-900 font-black uppercase tracking-widest transition-colors flex items-center gap-2">
+             <Icon name="download" className="w-3 h-3" /> 导出
+           </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 bg-white z-20 border-b border-slate-200">
+            <tr>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">订单 ID</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">商品信息</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">运单号</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">实时状态</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">结算金额</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {orders.map((o) => (
+              <tr 
+                key={o.id} 
+                onClick={() => onSelect(o)}
+                className="hover:bg-slate-50/80 cursor-pointer group transition-colors"
               >
-                {isDone && !isActive && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                {isActive && <div className="w-2 h-2 rounded-full bg-white animate-pulse" />}
-              </div>
-              {/* Label */}
-              <span className={`text-[9px] font-black mt-1.5 uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-blue-600' : isDone ? 'text-slate-600' : 'text-slate-300'}`}>
-                {label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// ─── Ship Timer Component (Countdown) ──────────────────────────────────────────
-const ShipTimer = ({ expirationDate }) => {
-  const [timeLeft, setTimeLeft] = useState('');
-  const [isUrgent, setIsUrgent] = useState(false);
-  const [isOverdue, setIsOverdue] = useState(false);
-
-  useEffect(() => {
-    if (!expirationDate) return;
-    const updateTimer = () => {
-      const now = new Date();
-      const expire = new Date(expirationDate);
-      const diff = expire - now;
-      
-      if (diff <= 0) {
-        setTimeLeft('已超期');
-        setIsOverdue(true);
-        setIsUrgent(false);
-      } else {
-        const hours = Math.floor(diff / 3600000);
-        const mins = Math.floor((diff % 3600000) / 60000);
-        const secs = Math.floor((diff % 60000) / 1000);
-        setTimeLeft(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-        setIsUrgent(diff < 2 * 3600000); // Less than 2 hours
-        setIsOverdue(false);
-      }
-    };
-    
-    updateTimer();
-    const timer = setInterval(updateTimer, 1000);
-    return () => clearInterval(timer);
-  }, [expirationDate]);
-
-  if (!expirationDate) return null;
-
-  return (
-    <div className={`mt-3 flex items-center gap-2 px-3 py-2 border relative overflow-hidden transition-all duration-300
-      ${isOverdue ? 'bg-red-600 text-white border-red-700 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 
-        isUrgent ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 animate-pulse' : 
-        'bg-slate-50 border-slate-100 text-slate-500'}`}
-    >
-      {isUrgent && !isOverdue && (
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-red-500 animate-laser-move"></div>
-      )}
-      <Icon name={isOverdue ? 'alert-octagon' : 'clock'} className={`w-3.5 h-3.5 ${isOverdue ? 'animate-bounce' : ''}`} />
-      <span className="text-[10px] font-black tracking-widest uppercase">
-        {isOverdue ? '发货超期 - 立即处理' : `剩余发货时间: ${timeLeft}`}
-      </span>
-    </div>
-  );
-};
-
-// ─── Logistics Card ─────────────────────────────────────────────────────────
-const LogisticsCard = ({ order, onClick }) => {
-  // 优先级：tracking_status(shipments API) > shipping_substatus > shipping_status
-  const ts = order.tracking_status || order.shipping_substatus || order.shipping_status;
-  const ss = order.shipping_substatus || order.shipping_status;
-  const status = getStatusConfig(order.tracking_status, ss);
-  const stage = getProgressStage(order.tracking_status, ss);
-  const flag = SITE_FLAGS[order.site_id] || DEFAULT_FLAG;
-
-  // 物流商：优先用 logistic_company（shipments API），回退 logistic_type
-  const logisticCompany = order.logistic_company || order.logistic_type || order.logistics_type || '未知';
-  // 收件地
-  const receiverAddr = order.receiver_city || order.receiver_state
-    ? `${order.receiver_city || ''}${order.receiver_state ? ', ' + order.receiver_state : ''}`
-    : null;
-
-  const imgUrl = order.thumbnail || `https://picsum.photos/seed/${order.id || 'default'}/200/200`;
-
-  // Risk detection logic
-  const isHighRisk = ['failed', 'exception', 'returned', 'delayed', 'not_delivered'].includes(ts) || (ts === 'at_customs');
-
-  return (
-    <div 
-      onClick={() => onClick(order)}
-      className={`solid-card p-5 border transition-all duration-300 cursor-pointer group relative overflow-hidden
-        ${ts === 'at_customs' ? 'border-amber-500/50 bg-amber-50/20' : 'border-slate-200 bg-white'}
-        hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-200/80`}
-    >
-      {/* Ship Expiration Alert for Pending Orders */}
-      {order.expiration_date && (ts === 'pending' || ts === 'ready_to_ship') && (
-        <ShipTimer expirationDate={order.expiration_date} />
-      )}
-
-      {/* Risk Indicator */}
-      {isHighRisk && (
-        <div className="absolute -top-1 -right-1 z-20 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white border-4 border-white shadow-lg animate-bounce">
-          <Icon name="alert-triangle" className="w-4 h-4" />
-        </div>
-      )}
-
-      {/* Image */}
-      <div className="relative overflow-hidden bg-slate-50 mb-4" style={{ height: '140px' }}>
-        <img
-          src={imgUrl}
-          alt={order.product_name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.parentElement.style.background = 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
-          }}
-        />
-        {/* Status badge overlay */}
-        <div className={`absolute top-2.5 right-2.5 ${status.badge} px-2.5 py-1 text-[9px] font-black uppercase tracking-widest shadow-sm`}>
-          {status.label}
-        </div>
-        {/* Site flag */}
-        <div className="absolute bottom-2 left-2.5 bg-white/90 backdrop-blur-sm px-2 py-1 text-xs font-black shadow-sm">
-          {flag}
-        </div>
-      </div>
-
-      {/* Product name */}
-      <p className="text-[12px] font-black text-slate-800 line-clamp-2 leading-tight mb-3">
-        {order.product_name || '未知商品'}
-      </p>
-
-      {/* Info rows */}
-      <div className="space-y-2 mb-1">
-        <div className="flex justify-between items-center">
-          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">运单号</span>
-          <span className="text-[10px] font-black text-slate-600 font-mono tracking-tight">
-            {order.tracking_id ? `#${order.tracking_id}` : '待生成'}
-          </span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">物流商</span>
-          <span className="text-[10px] font-black text-slate-600">{logisticCompany}</span>
-        </div>
-        {receiverAddr && (
-          <div className="flex justify-between items-center">
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">收件地</span>
-            <span className="text-[10px] font-black text-slate-600">{receiverAddr}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <ProgressBar stage={stage} />
-    </div>
-  );
-};
-
-// ─── Marquee Component ──────────────────────────────────────────────────────
-const MarqueeTicker = ({ orders }) => {
-  if (!orders || orders.length === 0) return null;
-  // Duplicate for seamless loop
-  const items = [...orders, ...orders];
-
-  return (
-    <div className="w-full overflow-hidden border border-slate-200 bg-white shadow-sm mb-5">
-      <div
-        className="flex items-center"
-        style={{
-          animation: 'marquee 40s linear infinite',
-          width: 'max-content',
-        }}
-      >
-        {items.map((order, i) => {
-          const status = getStatusConfig(order.tracking_status, order.shipping_substatus || order.shipping_status);
-          const flag = SITE_FLAGS[order.site_id] || DEFAULT_FLAG;
-          const imgUrl = order.thumbnail || `https://picsum.photos/seed/${order.id || 'default'}/60/60`;
-          const updateTime = order.order_date
-            ? new Date(order.order_date.replace(' ', 'T')).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-            : '-';
-
-          return (
-            <div
-              key={`${order.id}-${i}`}
-              className="flex items-center gap-3 px-5 py-3 border-r border-slate-100 flex-shrink-0"
-              style={{ minWidth: 'max-content' }}
-            >
-              {/* Mini image */}
-              <img
-                src={imgUrl}
-                alt=""
-                className="w-9 h-9 rounded-xl object-cover border border-slate-100 flex-shrink-0"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.style.background = '#f1f5f9';
-                }}
-              />
-              {/* Info */}
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-black">{flag}</span>
-                  <span className="text-[10px] font-black text-slate-700 line-clamp-1 max-w-[120px]">
-                    {order.product_name || '未知商品'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block px-1.5 py-0.5 rounded-full text-[8px] font-black text-white uppercase ${status.marqueeColor}`}>
-                    {status.label}
-                  </span>
-                  <span className="text-[8px] text-slate-400 font-medium">{updateTime}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                <td className="px-6 py-4 text-[11px] font-mono text-slate-500 group-hover:text-blue-600 transition-colors">#{o.id}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <img src={o.thumbnail} className="w-8 h-8 object-cover border border-slate-100 group-hover:border-slate-200" alt="" />
+                    <span className="text-[11px] font-black text-slate-600 group-hover:text-slate-900 transition-colors truncate max-w-[200px]">{o.product_name}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-[11px] font-mono text-slate-400 tracking-tighter">LP:{o.tracking_id || 'PENDING'}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1 h-1 rounded-full ${o.category === 3 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : o.category === 4 ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`} />
+                    <span className={`text-[11px] font-black uppercase tracking-widest ${o.category === 3 ? 'text-emerald-600' : o.category === 4 ? 'text-red-600' : 'text-blue-500'}`}>
+                      {o.status_zh}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-[11px] font-mono font-black text-slate-500 text-right group-hover:text-emerald-600 transition-colors">${o.amount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
 
 // ─── Main View ──────────────────────────────────────────────────────────────
-const LogisticsAlertsView = (props) => {
-  const { activeShop, shopList, showToast } = useAppContext();
+
+const LogisticsAlertsView = () => {
+  const { activeShop, showToast } = useAppContext();
   const [orders, setOrders] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [stats, setStats] = useState({});
+  const [activeCategory, setActiveCategory] = useState('1');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [focusOrder, setFocusOrder] = useState(null);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/logistics/stats');
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error("Stats Error:", err);
+    }
+  };
+
+  const fetchOrders = async (catId) => {
+    setIsLoading(true);
+    try {
+      const shopPart = activeShop ? `&group=${encodeURIComponent(activeShop)}` : '';
+      const res = await fetch(`/api/orders?category=${catId}${shopPart}`);
+      const data = await res.json();
+      setOrders(data.orders || []);
+      setIsLoading(false);
+    } catch (err) {
+      if (showToast) showToast('加载订单失败', 'error');
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setIsLoading(true);
-    const url = activeShop ? `/api/orders?group=${encodeURIComponent(activeShop)}` : '/api/orders';
-    fetch(url)
-      .then(r => r.json())
-      .then(data => {
-        const list = Array.isArray(data) ? data : (data.orders || []);
-        setOrders(list);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        if (showToast) showToast(`加载物流数据失败: ${err.message}`, 'error');
-        setIsLoading(false);
-      });
-  }, [activeShop]);
+    fetchStats();
+    fetchOrders(activeCategory);
+    const interval = setInterval(() => {
+        fetchStats();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [activeShop, activeCategory]);
 
-  if (isLoading) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
-      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">正在同步物流状态...</span>
-    </div>
-  );
-
-  // Filter groups: 同时参考 tracking_status（shipments API）和 shipping_status
-  const getEffectiveStatus = (o) => o.tracking_status || o.shipping_status;
-  const getEffectiveSubstatus = (o) => o.shipping_substatus;
-
-  const filterGroups = {
-    all: orders,
-    transit: orders.filter(o => {
-      const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
-      return ['shipped', 'in_transit', 'in_local_transit', 'at_customs'].includes(s) || ['picked_up', 'in_transit', 'in_local_transit', 'at_customs'].includes(ss);
-    }),
-    pending: orders.filter(o => {
-      const s = getEffectiveStatus(o);
-      return ['pending', 'ready_to_ship'].includes(s);
-    }),
-    delivered: orders.filter(o => {
-      const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
-      return s === 'delivered' || ss === 'delivered';
-    }),
-    exception: orders.filter(o => {
-      const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
-      return ['failed', 'exception', 'returned', 'delayed', 'not_delivered', 'pending_recovery'].includes(s) || ['failed', 'exception', 'returned'].includes(ss);
-    }),
-    overdue: orders.filter(o => {
-      if (!o.expiration_date) return false;
-      const s = getEffectiveStatus(o);
-      if (!['pending', 'ready_to_ship'].includes(s)) return false;
-      return new Date(o.expiration_date) - new Date() < 2 * 3600000; // Less than 2 hours or negative
-    }),
-  };
-
-  const FILTERS = [
-    { key: 'all',        label: '全部',   color: 'slate',  icon: '📦' },
-    { key: 'overdue',    label: '超期预警', color: 'red',    icon: '🚨' },
-    { key: 'transit',    label: '在途',   color: 'blue',   icon: '🚚' },
-    { key: 'pending',    label: '待取件', color: 'amber',  icon: '📋' },
-    { key: 'delivered',  label: '已签收', color: 'emerald',icon: '✅' },
-    { key: 'exception',  label: '异常',   color: 'red',    icon: '⚠️' },
-  ];
-
-  const currentOrders = filterGroups[activeFilter] || [];
-
-  // Get latest 5 for marquee (prioritize non-pending, non-delivered)
-  const marqueeOrders = [...orders]
-    .sort((a, b) => {
-      // Prioritize: in-transit > pending > delivered > others
-      const getMarqueeStatus = (o) => o.tracking_status || o.shipping_status;
-      const priority = (o) => {
-        const s = getMarqueeStatus(o);
-        if (['shipped', 'in_transit', 'in_local_transit', 'at_customs', 'picked_up'].includes(s)) return 0;
-        if (['pending', 'ready_to_ship'].includes(s)) return 1;
-        if (['delivered'].includes(s)) return 3;
-        if (['failed', 'exception', 'returned', 'delayed', 'not_delivered', 'pending_recovery'].includes(s)) return 2;
-        return 4;
-      };
-      return priority(a) - priority(b);
-    })
-    .slice(0, 5);
-
-  const getFilterBtnClass = (filter) => {
-    const isActive = activeFilter === filter.key;
-    const colorMap = {
-      slate:   { active: 'bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-200' },
-      blue:    { active: 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-200' },
-      amber:   { active: 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200' },
-      emerald: { active: 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200' },
-      red:     { active: 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-200' },
-    };
-    const cmap = colorMap[filter.color] || colorMap.slate;
-    return isActive
-      ? `${cmap.active}`
-      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50';
-  };
+  const riskOrders = orders.filter(o => o.category === 4 || o.is_overdue).slice(0, 10);
 
   return (
-    <div className="space-y-5 px-6 py-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-white border border-slate-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Operations Command</span>
-          </div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">物流指挥中心 <span className="text-blue-500">PRO</span></h3>
+    <div className="h-full flex flex-col bg-white text-slate-900 overflow-hidden font-sans">
+      {/* Top Banner Accent */}
+      <div className="h-1 w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 opacity-20 shrink-0" />
+
+      {/* Category Ribbon */}
+      <CategoryRibbon 
+        stats={stats} 
+        active={activeCategory} 
+        onChange={(id) => {
+          setActiveCategory(id);
+          setFocusOrder(null);
+        }} 
+      />
+
+      {/* Main Workspace: 1:2 Split */}
+      <div className="flex-1 flex min-h-0">
+        {/* Risk Radar (Left 1/3) */}
+        <div className="w-[380px] shrink-0 overflow-hidden">
+          <RiskRadar 
+            orders={riskOrders} 
+            selectedId={focusOrder?.id}
+            onSelect={setFocusOrder}
+          />
         </div>
-        <div className="flex gap-4">
-          <div className="text-right">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">在途总数</p>
-            <p className="text-xl font-black text-slate-900">{filterGroups.transit.length}</p>
+
+        {/* Trace Console (Right 2/3) */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 min-h-0 border-b border-slate-200">
+            <FocusTrace order={focusOrder} />
           </div>
-          <div className="w-[1px] h-10 bg-slate-100 mx-2"></div>
-          <div className="text-right">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">异常告警</p>
-            <p className="text-xl font-black text-red-500">{filterGroups.exception.length}</p>
+          
+          {/* Data Table (Bottom Expansion) */}
+          <div className="h-[320px] shrink-0 flex flex-col">
+            <LogisticsTable orders={orders} onSelect={setFocusOrder} />
           </div>
         </div>
       </div>
 
-      {/* Marquee Ticker */}
-      <MarqueeTicker orders={marqueeOrders} />
-
-      {/* Filter Buttons */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {FILTERS.map(filter => {
-          const cnt = (filterGroups[filter.key] || []).length;
-          return (
-            <button
-              key={filter.key}
-              onClick={() => setActiveFilter(filter.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 border text-[11px] font-black transition-all duration-200 ${getFilterBtnClass(filter)}`}
-            >
-              {filter.icon}{filter.label}
-              <span className={`inline-flex items-center justify-center w-5 h-5 text-[10px] ${
-                activeFilter === filter.key
-                  ? 'bg-white/20 text-white'
-                  : cnt > 0
-                    ? filter.color === 'red' ? 'bg-red-100 text-red-600'
-                    : filter.color === 'amber' ? 'bg-amber-100 text-amber-600'
-                    : filter.color === 'emerald' ? 'bg-emerald-100 text-emerald-600'
-                    : filter.color === 'blue' ? 'bg-blue-100 text-blue-600'
-                    : 'bg-slate-100 text-slate-400'
-                    : 'bg-slate-100 text-slate-400'
-              }`}>
-                {cnt}
-              </span>
-            </button>
-          );
-        })}
+      {/* Footer / Status Bar */}
+      <div className="h-8 border-t border-slate-200 bg-slate-50 px-6 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">系统就绪</span>
+          </div>
+          <span className="text-[9px] text-slate-400 font-mono italic">V8_CORE_KERNEL_ACTIVE</span>
+        </div>
+        <div className="flex items-center gap-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+           <span>站点时区: MX/GMT-6</span>
+           <span>心跳频率: 5.0Hz</span>
+        </div>
       </div>
-
-      {/* Card Grid */}
-      {currentOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 border border-dashed border-slate-200">
-          <Icon name="package" className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm font-black text-slate-500 uppercase tracking-widest">暂无相关订单</p>
-          <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-widest">当前分类下没有需要处理的包裹</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {currentOrders.map(order => (
-            <LogisticsCard key={order.id} order={order} onClick={setSelectedOrder} />
-          ))}
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {selectedOrder && (
-        <LogisticsDetailModal 
-          order={selectedOrder} 
-          onClose={() => setSelectedOrder(null)} 
-        />
-      )}
-
-      {/* Marquee keyframe injection */}
-      <style>{`
-        @keyframes marquee {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
     </div>
   );
 };

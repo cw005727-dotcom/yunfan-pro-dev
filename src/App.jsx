@@ -93,7 +93,7 @@ const MonitoringSidebar = () => {
                     return (
                         <div 
                             key={log.id} 
-                            className={`animate-log-eject group relative flex flex-col rounded-2xl backdrop-blur-xl border transition-all duration-300 cursor-pointer overflow-hidden
+                            className={`animate-log-eject group relative flex flex-col rounded-none backdrop-blur-xl border transition-all duration-300 cursor-pointer overflow-hidden
                                 ${cfg.bg} ${cfg.border} hover:bg-white/5 hover:border-white/20 shadow-sm`}
                         >
                             <div className="p-4 space-y-2">
