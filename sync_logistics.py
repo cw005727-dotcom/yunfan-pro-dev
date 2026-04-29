@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from token_manager import load_tokens
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "mercadolibre.db")
+ML_ORDERS_URL = "https://api.mercadolibre.com/marketplace/orders"
 ML_SHIPMENT_URL = "https://api.mercadolibre.com/marketplace/shipments"
 RATE_LIMIT_MS = 200  # 每请求间隔 200ms
 BATCH_SIZE = 50
@@ -51,25 +52,50 @@ def ensure_columns(conn):
             cursor.execute(f"ALTER TABLE orders_v2 ADD COLUMN {col_name} {col_type}")
     conn.commit()
 
-def fetch_shipment(tracking_id, token):
-    """调 shipments API，返回解析后的物流数据字典"""
-    url = f"{ML_SHIPMENT_URL}/{tracking_id}"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "x-format-new": "true",
-        "User-Agent": "yunfan-pro-dev/1.0",
-    }
-    resp = requests.get(url, headers=headers, timeout=15)
-    if resp.status_code == 404:
-        return None  # 订单无 shipment 记录
-    if resp.status_code == 429:
-        print(f"    ⚠️  429 Rate Limit，等5秒...")
-        time.sleep(5)
-        return fetch_shipment(tracking_id, token)  # 重试
-    if resp.status_code != 200:
-        print(f"    ⚠️  HTTP {resp.status_code}: {resp.text[:100]}")
-        return None
-    return resp.json()
+def fetch_shipment(order_id, token, retry=3):
+    """调 orders API 拿到 shipping.id，再用它查 shipments API，返回物流数据字典"""
+    for attempt in range(retry):
+        try:
+            # Step 1: 拿 shipment_id from order
+            order_url = f"{ML_ORDERS_URL}/{order_id}"
+            order_resp = requests.get(order_url, headers={"Authorization": f"Bearer {token}"}, timeout=20)
+            if order_resp.status_code == 429:
+                print(f"    ⚠️  Order 429，等10秒...")
+                time.sleep(10)
+                continue
+            if order_resp.status_code != 200:
+                print(f"    ⚠️  Order API {order_resp.status_code}: {order_resp.text[:80]}")
+                return None
+
+            order_data = order_resp.json()
+            shipment_id = order_data.get("shipping", {}).get("id")
+            if not shipment_id:
+                return None
+
+            # Step 2: 拿 shipment 详情
+            shipment_url = f"{ML_SHIPMENT_URL}/{shipment_id}"
+            shipment_resp = requests.get(shipment_url, headers={
+                "Authorization": f"Bearer {token}",
+                "x-format-new": "true",
+                "User-Agent": "yunfan-pro-dev/1.0",
+            }, timeout=20)
+            if shipment_resp.status_code == 429:
+                print(f"    ⚠️  Shipment 429，等10秒...")
+                time.sleep(10)
+                continue
+            if shipment_resp.status_code != 200:
+                print(f"    ⚠️  Shipment API {shipment_resp.status_code}: {shipment_resp.text[:80]}")
+                return None
+
+            return shipment_resp.json()
+        except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
+            if attempt < retry - 1:
+                print(f"    ⚠️  连接异常，等5秒重试 ({attempt+1}/{retry}): {str(e)[:60]}")
+                time.sleep(5)
+                continue
+            print(f"    ❌ 连接失败最终: {str(e)[:80]}")
+            return None
+    return None
 
 def parse_shipment(data):
     """从 shipments API 响应提取物流数据"""
@@ -102,7 +128,7 @@ def sync_batch(cursor, orders, token, dry_run=False):
             skipped += 1
             continue
 
-        shipment = fetch_shipment(tracking_id, token)
+        shipment = fetch_shipment(order_id, token)
         parsed = parse_shipment(shipment)
 
         if dry_run:
