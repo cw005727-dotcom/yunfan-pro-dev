@@ -559,14 +559,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status = 'delivered'")
                 cat3 = cursor.fetchone()[0]
                 
-                # Category 4: Overdue/Issues (有异常)
-                # Overdue
-                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('pending', 'ready_to_ship') AND last_ship_date < ?", (now_str,))
-                overdue = cursor.fetchone()[0]
-                # Other issues
-                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('cancelled', 'returned', 'detained_at_origin', 'fraudulent')")
-                issues = cursor.fetchone()[0]
-                cat4 = overdue + issues
+                # Category 4: Issues (有异常) — not_delivered + cancelled
+                cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('not_delivered', 'cancelled', 'detained_at_origin', 'cancelled_measurement_exceeded', 'pending_recovery', 'return_failed')")
+                cat4 = cursor.fetchone()[0]
                 
                 conn.close()
                 self.send_json({
@@ -594,9 +589,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 
                 # Base status mappings
                 STATUS_MAP = {
-                    'pending': '待处理', 'ready_to_ship': '待发货', 'shipped': '已发货',
+                    'pending': '待入库', 'ready_to_ship': '待发货', 'shipped': '已发货',
                     'in_transit': '在途中', 'delivered': '已妥投', 'cancelled': '已取消',
-                    'returned': '已退货', 'at_customs': '海关清关', 'printed': '已打单'
+                    'returned': '已退货', 'at_customs': '海关清关', 'printed': '已打单',
+                    'ready_to_print': '待打单'
                 }
 
                 where_clauses = []
