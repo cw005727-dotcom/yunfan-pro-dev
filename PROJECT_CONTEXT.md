@@ -208,21 +208,19 @@
 | 2026-04-27 | Hermes | **数据库审计**:orders_v2=0(需数据 AI 重跑同步),product_metrics=1527,stores=5 |
 | 2026-04-27 | Hermes | **UI 规范检查**:标题+正文对齐规范确立,h3 统一 text-3xl,p 统一 text-xs + text-slate-400 + mt-1,发现4处不一致需修复 |
 
-### UI 规范(统一要求)
-- **字号与行高**: 最低字号 **11px**，正文常用 **12px-13px**。
-- **单行显示**: 所有 Label 必须带 `whitespace-nowrap`，禁止错行。
-- **标题样式**: 统一写在 `<div>` 内, h3 在上 p 在下。
-- 所有页面主标题统一用 `text-3xl font-black text-slate-900 tracking-tight`
-- 英文副标题统一用 `text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap`
-- 中文描述文字统一用 `text-slate-500 text-[11px] font-bold mt-1`
-- 卡片统一用 `glass-effect rounded-[32px] border border-white/20 shadow-lg` (V8 标准)
-- 按钮统一用 `rounded-2xl`, 不要混用 `rounded-xl` 或 `rounded-lg`
-- 数字统一用 `tnum` class( tabular-nums)
-- **当前已知不一致需修复(功能 AI 负责)**:
-  - `StatsOverviewView` 的 p 用 `text-slate-500`(应为 `text-slate-400`)
-  - `ProductMaintainView` h3 用 `text-[28px]`(应为 `text-3xl`)
-  - `ProductMaintainView` p 用 `text-[11px]` 和 `mt-0.5`(应为 `text-xs` 和 `mt-1`)
-  - `ActivityCenterView` h3 用 `text-4xl`(应为 `text-3xl`)
+### UI 规范 (Commander V8 工业标准)
+- **字号底线**: 所有文本最低字号 **11px** (text-[11px])，核心指标常用 **14px-16px**。
+- **对比度提升**: 废弃 Slate-300/400 低对比度方案，正文一律提升至 **Slate-500/600** 以确保在白色玻璃态背景下的易读性。
+- **单行锁定 (Single-line Locking)**: 
+    - 关键标签必须使用 `whitespace-nowrap`，禁止折行。
+    - 数据字段必须使用 `truncate` (配合 `min-w-0`)，严禁使用多行 `line-clamp`。
+- **布局容器**: 所有主视图容器统一使用 `h-full overflow-y-auto p-10 space-y-10` 结构。
+- **标题样式**: 统一写在 `<div>` 内，h3 在上，p 在下。
+    - 主标题: `text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap`
+    - 副标题 (EN): `text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap`
+- **卡片样式**: 统一使用 `glass-effect rounded-[32px] border border-white/20 shadow-lg`
+- **交互逻辑**: 按钮统一用 `rounded-2xl`，数字展示统一用 `tnum` (tabular-nums)。
+- **视觉冲突规避**: 侧边栏/监控流 (MonitoringSidebar) 必须保持 `shrink-0`，确保不挤压主数据视图。
 
 ---
 

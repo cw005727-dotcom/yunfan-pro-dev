@@ -240,7 +240,7 @@ const FocusTrace = ({ order }) => {
              <Icon name="activity" className="w-5 h-5" />
           </div>
           <div>
-             <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-widest leading-none mb-1">动态监测</h4>
+             <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">动态监测</h4>
              <div className="flex items-center gap-2">
                <span className="text-[11px] text-slate-500 font-mono">#{order.id}</span>
                <span className={`text-[11px] font-black px-1.5 py-0.5 rounded ${SHIPPING_STATUS_COLORS[order.shipping_status]?.bg || 'bg-slate-100'} ${SHIPPING_STATUS_COLORS[order.shipping_status]?.text || 'text-slate-600'} uppercase`}>
