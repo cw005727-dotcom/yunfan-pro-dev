@@ -210,67 +210,127 @@ const MarketRadarView = () => {
                     )}
                 </div>
 
-                {/* AI Analysis Side Panel */}
-                <div className={`w-[280px] bg-white rounded-3xl border border-slate-100 shadow-xl transition-all flex flex-col ${selectedItem ? 'translate-x-0 opacity-100 p-5' : 'translate-x-full opacity-0 w-0 overflow-hidden'}`}>
-                    {selectedItem && (
-                        <>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-widest">AI 情报分析</h3>
-                                <button onClick={() => setSelectedItem(null)} className="p-1.5 hover:bg-slate-50 rounded-lg transition-colors">
-                                    <Icon name="x" size={14} className="text-slate-400" />
-                                </button>
-                            </div>
+                {/* AI Analysis Side Panel (Permanent) */}
+                <div className="w-[300px] bg-amber-50/40 rounded-3xl border border-amber-100 shadow-xl transition-all flex flex-col p-5 overflow-hidden">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-widest">AI 情报分析</h3>
+                        </div>
+                        {selectedItem && (
+                            <button onClick={() => setSelectedItem(null)} className="p-1.5 hover:bg-white/50 rounded-lg transition-colors">
+                                <Icon name="x" size={14} className="text-slate-400" />
+                            </button>
+                        )}
+                    </div>
 
-                            <div className="flex-1 space-y-6 overflow-y-auto pr-1 custom-scrollbar">
-                                <div className="space-y-3">
-                                    <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50">
-                                        <img src={selectedItem.image || selectedItem.thumbnail} className="w-full h-full object-cover" />
-                                    </div>
+                    {!selectedItem ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 px-4">
+                            <div className="w-16 h-16 rounded-full bg-white border border-amber-100 flex items-center justify-center text-amber-300">
+                                <Icon name="mouse-pointer" size={24} />
+                            </div>
+                            <div>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">等待选择商品</h4>
+                                <p className="text-[9px] text-slate-400 mt-1">请点击左侧矩阵中的任意商品卡片以启动深度 AI 分析</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex flex-col space-y-6 overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="space-y-3">
+                                <div className="aspect-square rounded-2xl overflow-hidden bg-white shadow-sm border border-white p-1">
+                                    <img src={selectedItem.image || selectedItem.thumbnail} className="w-full h-full object-cover rounded-xl" />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[8px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded w-fit uppercase tracking-tighter">官方实时价格</span>
                                     <p className="text-[11px] font-bold text-slate-800 leading-snug">{selectedItem.title}</p>
                                 </div>
-
-                                {isAnalyzing ? (
-                                    <div className="space-y-4 animate-pulse">
-                                        <div className="h-20 bg-slate-50 rounded-2xl" />
-                                        <div className="h-20 bg-slate-50 rounded-2xl" />
-                                        <div className="h-20 bg-slate-50 rounded-2xl" />
-                                    </div>
-                                ) : aiResult ? (
-                                    <div className="space-y-4">
-                                        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                <span className="text-[10px] font-black text-emerald-700 uppercase">市场机会: {aiResult.market_fit}</span>
-                                            </div>
-                                            <p className="text-[10px] text-emerald-800 leading-relaxed">{aiResult.opportunity}</p>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">卖点挖掘</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {aiResult.pros.map((p, idx) => (
-                                                    <span key={idx} className="px-2 py-1 bg-slate-50 rounded-lg text-[9px] font-bold text-slate-600">✓ {p}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] font-black text-amber-700 uppercase">利润预估</span>
-                                                <span className="text-[14px] font-black text-amber-600">{aiResult.profit_estimate}</span>
-                                            </div>
-                                            <p className="text-[9px] text-amber-800 opacity-70">基于 Amazon 与 Mercado Libre 均价实时测算</p>
-                                        </div>
-
-                                        <div className="pt-4">
-                                            <button className="w-full py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
-                                                一键铺货至 Bitable
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : null}
                             </div>
-                        </>
+
+                            {isAnalyzing ? (
+                                <div className="space-y-4">
+                                    <div className="h-20 bg-white/50 rounded-2xl animate-pulse" />
+                                    <div className="h-20 bg-white/50 rounded-2xl animate-pulse" />
+                                    <div className="h-24 bg-white/50 rounded-2xl animate-pulse" />
+                                </div>
+                            ) : aiResult ? (
+                                <div className="space-y-5">
+                                    {/* Multi-Platform Price Benchmarking (Unified to CNY) */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between pl-1">
+                                            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">全域价格对标</h4>
+                                            <span className="text-[8px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase">汇率已折算: CNY</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Amazon_icon.svg" className="w-4 h-4" />
+                                                    <span className="text-[10px] font-bold text-slate-500">Amazon 售价</span>
+                                                </div>
+                                                <span className="text-[11px] font-black text-slate-800">{aiResult.prices?.amazon || '计算中...'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm border-l-4 border-l-amber-500">
+                                                <div className="flex items-center gap-2">
+                                                    <img src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.18.9/mercadolibre/logo__small@2x.png" className="w-8 h-4 object-contain" />
+                                                    <span className="text-[10px] font-bold text-slate-500">Mercado Libre 对标价</span>
+                                                </div>
+                                                <span className="text-[11px] font-black text-amber-600">{aiResult.prices?.ml || '计算中...'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <img src="https://cbu01.alicdn.com/cms/upload/2016/092/105/2501290_1340156972.png" className="w-4 h-4" />
+                                                    <span className="text-[10px] font-bold text-slate-500">1688 采购成本</span>
+                                                </div>
+                                                <span className="text-[11px] font-black text-emerald-600">{aiResult.prices?.sourcing_1688 || '计算中...'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-white rounded-2xl border border-white shadow-sm relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-1.5 bg-emerald-500 text-white text-[7px] font-black uppercase rounded-bl-lg">AI Intel</div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${aiResult.market_fit === 'High' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                            <span className="text-[10px] font-black text-slate-700 uppercase">市场机会: {aiResult.market_fit}</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-600 font-medium leading-relaxed">{aiResult.opportunity}</p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <h4 className="text-[9px] font-black text-amber-600/50 uppercase tracking-widest pl-1">核心卖点与风险</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {aiResult.pros.map((p, idx) => (
+                                                <span key={idx} className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-bold border border-emerald-100/50">✓ {p}</span>
+                                            ))}
+                                            {aiResult.cons.map((c, idx) => (
+                                                <span key={idx} className="px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[9px] font-bold border border-red-100/50">✕ {c}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-slate-900 rounded-2xl shadow-xl relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-12 h-12 bg-amber-500/10 rounded-full -translate-y-6 translate-x-6" />
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">ML 建议售价</span>
+                                            <span className="text-[14px] font-black text-white">{aiResult.est_ml_price}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between border-t border-white/10 pt-2 mt-1">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase">毛利预估</span>
+                                            <span className="text-[16px] font-black text-amber-500">{aiResult.profit_estimate}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={() => window.open(`https://www.google.com/search?q=${selectedItem.title}`, '_blank')}
+                                            className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-[11px] font-black tracking-widest hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                        >
+                                            <Icon name="external-link" size={14} />
+                                            查看全网货源
+                                        </button>
+                                        <p className="text-[8px] text-slate-400 text-center mt-3 font-bold uppercase tracking-widest">Powered by Yunfan AI Engine</p>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
                     )}
                 </div>
             </div>

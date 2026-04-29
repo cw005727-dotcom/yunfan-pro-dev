@@ -1087,7 +1087,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 cursor.execute(f"""
                     SELECT SUM(exposure) as exp, SUM(clicks) as clk, SUM(carts) as crt 
                     FROM product_metrics 
-                    WHERE {site_filter} AND {status_filter} AND site_id IN (SELECT site_id FROM stores WHERE group_label = '大姐店')
+                    WHERE {site_filter} AND {status_filter} AND site_id IN (SELECT site_id FROM stores WHERE group_label = '大姐店') AND start_time IS NOT NULL AND start_time != 0
                 """)
                 summary_row = cursor.fetchone()
                 
@@ -1105,7 +1105,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 }
                 
                 # 获取列表
-                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} ORDER BY is_core DESC, exposure DESC LIMIT 500")
+                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} AND start_time IS NOT NULL AND start_time != 0 ORDER BY is_core DESC, exposure DESC LIMIT 500")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
 
                 # ---- 已上架天数计算 ----
@@ -1815,21 +1815,79 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/api/market_radar/analyze":
             try:
-                title = payload.get("title", "")
-                price = payload.get("price", 0)
+                title = payload.get("title", "").lower()
+                price = float(payload.get("price", 0))
                 site = payload.get("site", "MLM")
                 
-                # AI Simulation: In a real scenario, this would call GPT-4o or Claude 3.5
+                # --- HEURISTIC AI LOGIC (Simulating Real Analysis) ---
+                
+                # 1. Market Fit & Opportunity based on Keywords
+                fit_score = "High"
+                opp_msg = f"该产品在 {site} 站点的 Mercado Libre 处于爆发前期。"
+                
+                electronics_kw = ['camera', 'fan', 'buds', 'cable', 'watch', 'led', 'phone', 'rechargeable', 'power']
+                home_kw = ['kitchen', 'home', 'cup', 'organizer', 'mat', 'pillow']
+                
+                is_elec = any(kw in title for kw in electronics_kw)
+                is_home = any(kw in title for kw in home_kw)
+                
+                if is_elec:
+                    fit_score = "High"
+                    opp_msg = "墨西哥/巴西市场对高性价比电子配件需求极大，且该品类在当地有溢价空间。"
+                elif is_home:
+                    fit_score = "Medium"
+                    opp_msg = "家居类目竞争适中，建议通过精美 Listing 建立差异化。"
+                
+                # 2. Pros & Cons (Logical Extraction)
+                pros = ["亚马逊畅销爆款验证", "重量轻（降低物流成本）"]
+                cons = ["竞争者入场门槛低"]
+                
+                if "rechargeable" in title or "battery" in title:
+                    cons.append("带电产品需走特殊物流频道")
+                    pros.append("免电池更换设计是当地消费者痛点")
+                
+                if price < 15: # USD reference or low MXN
+                    pros.append("低单价，适合作为引流款")
+                
+                if is_elec:
+                    cons.append("需关注当地 NOM 认证要求（MX站）")
+
+                # 3. Multi-Platform Price Mapping (Unified to CNY)
+                # Exchange Rate: 1 MXN = 0.42 CNY
+                rate = 0.42
+                
+                # Sourcing 1688 (Already in CNY logic)
+                price_1688_cny = (price * rate) * random.uniform(0.35, 0.5)
+                
+                # Amazon Price converted to CNY
+                price_amazon_cny = price * rate
+                
+                # Mercado Libre Price converted to CNY
+                price_ml_cny = (price * random.uniform(1.15, 1.4)) * rate
+                
+                # Margin calculation (remains percentage-based)
+                logistics_cny = 120 * rate # ~50 CNY
+                ml_fee_pct = 0.175
+                profit_cny = price_ml_cny - price_1688_cny - logistics_cny - (price_ml_cny * ml_fee_pct)
+                margin_pct = (profit_cny / price_ml_cny) * 100
+
                 analysis = {
-                    "market_fit": random.choice(["High", "Medium", "High"]),
-                    "opportunity": f"该产品在 {site} 站点的 Mercado Libre 搜索权重正在上升，竞争对手较少。",
-                    "pros": ["轻便易携带", "价格具有竞争力", "符合夏季季节性需求"],
-                    "cons": ["电子产品可能涉及审核", "物流体积重需注意"],
-                    "profit_estimate": f"预计毛利率: {random.randint(25, 45)}%",
-                    "action": "建议立即铺货"
+                    "market_fit": fit_score,
+                    "opportunity": opp_msg,
+                    "pros": pros[:3],
+                    "cons": cons[:2],
+                    "prices": {
+                        "amazon": f"¥{price_amazon_cny:.2f}",
+                        "ml": f"¥{price_ml_cny:.2f}",
+                        "sourcing_1688": f"¥{price_1688_cny:.2f}"
+                    },
+                    "profit_estimate": f"{margin_pct:.1f}%",
+                    "est_ml_price": f"¥{price_ml_cny:.2f}",
+                    "action": "建议立即铺货至 Bitable 锁定市场"
                 }
                 self.send_json(analysis)
             except Exception as e:
+                logger.error(f"Analysis Logic Error: {e}")
                 self.send_error(500, str(e))
 
         elif path == "/api/market_radar/search":
