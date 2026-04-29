@@ -209,12 +209,14 @@
 | 2026-04-27 | Hermes | **UI 规范检查**:标题+正文对齐规范确立,h3 统一 text-3xl,p 统一 text-xs + text-slate-400 + mt-1,发现4处不一致需修复 |
 
 ### UI 规范(统一要求)
-- **标题+正文对齐**:统一写在 `<div>` 内,h3 在上 p 在下,默认左对齐(text-align 默认 left,不需要显式声明)
+- **字号与行高**: 最低字号 **11px**，正文常用 **12px-13px**。
+- **单行显示**: 所有 Label 必须带 `whitespace-nowrap`，禁止错行。
+- **标题样式**: 统一写在 `<div>` 内, h3 在上 p 在下。
 - 所有页面主标题统一用 `text-3xl font-black text-slate-900 tracking-tight`
-- 英文副标题统一用 `text-slate-400 text-xs font-medium uppercase tracking-widest mt-1`
-- 中文描述文字统一用 `text-slate-400 text-xs font-medium mt-1`
-- 卡片统一用 `solid-card rounded-[24px] border border-slate-200 overflow-hidden`
-- 按钮统一用 `rounded-2xl`,不要混用 `rounded-xl` 或 `rounded-lg`
+- 英文副标题统一用 `text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap`
+- 中文描述文字统一用 `text-slate-500 text-[11px] font-bold mt-1`
+- 卡片统一用 `glass-effect rounded-[32px] border border-white/20 shadow-lg` (V8 标准)
+- 按钮统一用 `rounded-2xl`, 不要混用 `rounded-xl` 或 `rounded-lg`
 - 数字统一用 `tnum` class( tabular-nums)
 - **当前已知不一致需修复(功能 AI 负责)**:
   - `StatsOverviewView` 的 p 用 `text-slate-500`(应为 `text-slate-400`)
@@ -240,6 +242,17 @@
     - `useMarketRadar`: 市场雷达、高清原图、AI 诊断
     - `useOrders`: 订单列表、多维过滤
     - `useKeywords`: 关键词情报、流量蓝海
+    - `useProductPerformance`: 商品全量性能表
+*   **调用示例**:
+  ```javascript
+  import { useStatsOverview } from '../hooks/useStatsOverview';
+  const { data, loading } = useStatsOverview(); // 直接拿到真实数据
+  ```
+
+### 3. 冲突规避
+*   **我承诺**:我绝对不动 `src/views/` 和 `src/components/` 下的 UI 代码。
+*   **请配合**:请你也不要修改 `src/hooks/` 和 `src/api/` 下的逻辑代码。如有数据格式需求,直接在任务列表里 @我。
+`useKeywords`: 关键词情报、流量蓝海
     - `useProductPerformance`: 商品全量性能表
 *   **调用示例**:
   ```javascript

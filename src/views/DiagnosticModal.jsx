@@ -14,10 +14,10 @@ const DiagnosticModal = ({ isOpen, onClose, data, isDiagnosing }) => {
                         </div>
                         <div>
                             <h3 className="text-xl font-black text-slate-900">AI 爆品对比诊断</h3>
-                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">MiniMax M2.7 Intelligence Engine</p>
+                            <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-1">MiniMax M2.7 Intelligence Engine</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-all">
+                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-all">
                         <Icon name="x" className="w-5 h-5" />
                     </button>
                 </div>
@@ -25,20 +25,20 @@ const DiagnosticModal = ({ isOpen, onClose, data, isDiagnosing }) => {
                     {isDiagnosing ? (
                         <div className="py-20 flex flex-col items-center gap-4">
                             <div className="w-10 h-10 border-2 border-slate-100 border-t-indigo-500 rounded-full animate-spin" />
-                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">AI 正在深度扫描市场数据...</p>
+                            <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest">AI 正在深度扫描市场数据...</p>
                         </div>
                     ) : data ? (
                         <>
                             <div className="p-6 rounded-3xl bg-indigo-50 border border-indigo-100">
                                 <div className="flex items-center gap-3 mb-3">
                                     <Icon name="activity" className="w-4 h-4 text-indigo-500" />
-                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">核心诊断</span>
+                                    <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">核心诊断</span>
                                 </div>
                                 <p className="text-slate-900 font-bold text-base leading-relaxed">{data.diagnosis}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">竞品优势</p>
+                                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">竞品优势</p>
                                     {data.strengths?.map((s, i) => (
                                         <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                             <div className="w-5 h-5 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
@@ -49,7 +49,7 @@ const DiagnosticModal = ({ isOpen, onClose, data, isDiagnosing }) => {
                                     ))}
                                 </div>
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">优化建议</p>
+                                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">优化建议</p>
                                     {data.suggestions?.map((s, i) => (
                                         <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                             <div className="w-5 h-5 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
@@ -64,14 +64,14 @@ const DiagnosticModal = ({ isOpen, onClose, data, isDiagnosing }) => {
                                 <div className="absolute top-0 right-0 p-6 opacity-10">
                                     <Icon name="languages" className="w-24 h-24" />
                                 </div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">优化后的西语标题 (建议直接替换)</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">优化后的西语标题 (建议直接替换)</p>
                                 <p className="text-xl font-bold leading-relaxed mb-6 relative z-10">{data.new_title}</p>
                                 <button
                                     onClick={() => {
                                         navigator.clipboard.writeText(data.new_title);
                                         alert('标题已复制');
                                     }}
-                                    className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-50 flex items-center justify-center gap-2 transition-all active:scale-95"
+                                    className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-[11px] uppercase tracking-widest hover:bg-slate-50 flex items-center justify-center gap-2 transition-all active:scale-95"
                                 >
                                     <Icon name="copy" className="w-4 h-4" />
                                     复制标题
@@ -85,4 +85,4 @@ const DiagnosticModal = ({ isOpen, onClose, data, isDiagnosing }) => {
     );
 };
 
-export default DiagnosticModal;
+export default DiagnosticModal;dal;

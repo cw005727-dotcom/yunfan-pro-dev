@@ -6,9 +6,9 @@ const ActivityCenterView = () => (
         <div className="flex items-center justify-between border-b border-slate-200 pb-8">
             <div>
                 <h3 className="text-3xl font-black text-slate-900 tracking-tight">活动中心</h3>
-                <p className="text-slate-400 text-xs font-medium mt-1">卖家专属福利与官方大促报名通道</p>
+                <p className="text-slate-500 text-[11px] font-medium mt-1">卖家专属福利与官方大促报名通道</p>
             </div>
-            <div className="px-4 py-2 rounded-full bg-blue-500/10 text-blue-600 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">3 条新通知</div>
+            <div className="px-4 py-2 rounded-full bg-blue-500/10 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-500/20">3 条新通知</div>
         </div>
         <div className="grid grid-cols-1 gap-6">
             {[
@@ -19,19 +19,19 @@ const ActivityCenterView = () => (
                 <div key={i} className="solid-card p-8 rounded-[32px] flex items-center justify-between group hover:border-blue-500/20 transition-all cursor-pointer shadow-sm">
                     <div className="flex items-center gap-8">
                         <div className="w-16 h-16 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-200 group-hover:border-blue-500/30 transition-all">
-                            <Icon name="calendar" className="w-6 h-6 text-slate-400 group-hover:text-blue-600" />
+                            <Icon name="calendar" className="w-6 h-6 text-slate-500 group-hover:text-blue-600" />
                         </div>
                         <div>
                             <h4 className="text-slate-900 font-bold text-xl group-hover:text-blue-600 transition-colors">{act.title}</h4>
                             <div className="flex items-center gap-4 mt-2">
-                                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-1.5"><Icon name="clock" className="w-3 h-3" /> {act.time}</span>
-                                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-1.5"><Icon name="tag" className="w-3 h-3" /> {act.type}</span>
+                                <span className="text-[11px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-1.5"><Icon name="clock" className="w-3 h-3" /> {act.time}</span>
+                                <span className="text-[11px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-1.5"><Icon name="tag" className="w-3 h-3" /> {act.type}</span>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="px-6 py-2 rounded-xl bg-blue-600/10 text-blue-600 text-[10px] font-black uppercase tracking-widest group-hover:bg-blue-600 group-hover:text-white transition-all">{act.status}</span>
-                        <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-blue-600 transition-all border border-slate-200">
+                        <span className="px-6 py-2 rounded-xl bg-blue-600/10 text-blue-600 text-[11px] font-black uppercase tracking-widest group-hover:bg-blue-600 group-hover:text-white transition-all">{act.status}</span>
+                        <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 hover:text-white hover:bg-blue-600 transition-all border border-slate-200">
                             <Icon name="chevron-right" className="w-4 h-4" />
                         </button>
                     </div>

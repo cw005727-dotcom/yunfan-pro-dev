@@ -16,7 +16,7 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
           <span>🚀</span>
           <span>云帆跨境 PRO</span>
         </h1>
-        <p className="text-xs text-slate-400 mt-1">管理后台</p>
+        <p className="text-[11px] whitespace-nowrap text-slate-600 mt-1">管理后台</p>
       </div>
 
       {/* Navigation */}
@@ -29,7 +29,7 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
                   activeTab === tab.id
                     ? 'bg-gradient-to-r from-sky-500/20 to-cyan-500/20 text-sky-400 border border-sky-500/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                    : 'text-slate-600 hover:text-white hover:bg-slate-700/50'
                 }`}
               >
                 <span className="text-lg">{tab.icon}</span>
@@ -48,7 +48,7 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
           </div>
           <div>
             <p className="text-sm font-medium text-white">Administrator</p>
-            <p className="text-xs text-slate-400">超级管理员</p>
+            <p className="text-[11px] whitespace-nowrap text-slate-600">超级管理员</p>
           </div>
         </div>
       </div>

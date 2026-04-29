@@ -96,8 +96,8 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
                 
                 {/* SKU & 上架日期 */}
                 <div className="min-w-0">
-                    <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-300 text-[8px]">📋</span></div>
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
+                    <div className="text-[11px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-500 text-[11px]">📋</span></div>
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
                 </div>
 
                 {/* 指标展示 */}
@@ -107,8 +107,8 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
 
                 {/* 智能诊断总结 */}
                 <div className="flex flex-col gap-0.5 border-l border-slate-50 pl-4 min-w-0">
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-tight whitespace-normal leading-tight">{diag.summary}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter whitespace-normal leading-tight">{diag.focus}</p>
+                    <p className="text-[11px] font-black text-emerald-600 uppercase tracking-tight whitespace-normal leading-tight">{diag.summary}</p>
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter whitespace-normal leading-tight">{diag.focus}</p>
                 </div>
 
                 {/* 操作：同款比价 (Premium Redesign) */}
@@ -117,7 +117,7 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
                         onClick={fetchCompetitors}
                         disabled={loadingComp}
                         className={`
-                            relative px-2 py-2 rounded-xl text-[9px] font-black transition-all overflow-hidden
+                            relative px-2 py-2 rounded-xl text-[11px] font-black transition-all overflow-hidden
                             flex items-center justify-center gap-1.5 w-full group/btn active:scale-95
                             ${showDetail 
                                 ? 'bg-slate-900 text-white shadow-lg' 
@@ -149,29 +149,29 @@ const HotPotentialItem = ({ item, isSelected, onSelect, top20Avg }) => {
                     <div className="flex items-center justify-between mb-4 px-2">
                         <div className="flex gap-4">
                             <div className="bg-white px-3 py-1 rounded-lg border border-slate-100">
-                                <p className="text-[8px] font-black text-slate-400 uppercase">全网最低</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase">全网最低</p>
                                 <p className="text-[14px] font-black text-rose-500">${compData.min_price}</p>
                             </div>
                             <div className="bg-white px-3 py-1 rounded-lg border border-slate-100">
-                                <p className="text-[8px] font-black text-slate-400 uppercase">同款均价</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase">同款均价</p>
                                 <p className="text-[14px] font-black text-slate-800">${compData.avg_price}</p>
                             </div>
                         </div>
-                        <p className="text-[10px] font-bold text-slate-400">🔍 实时检索结果 (Top 3 竞品)</p>
+                        <p className="text-[11px] font-bold text-slate-500">🔍 实时检索结果 (Top 3 竞品)</p>
                     </div>
                     <div className="space-y-2">
                         {Array.isArray(compData?.competitors) && compData.competitors.map((c, i) => (
                             <div key={i} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between group/line hover:border-indigo-200 transition-colors">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400">{i+1}</div>
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-black text-slate-500">{i+1}</div>
                                     <div>
                                         <p className="text-[11px] font-bold text-slate-700">{c.title}</p>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase">{c.seller}</p>
+                                        <p className="text-[11px] font-bold text-slate-500 uppercase">{c.seller}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[13px] font-black text-slate-900">${c.price}</p>
-                                    <p className="text-[9px] font-bold text-emerald-500">月销 {c.sales}+</p>
+                                    <p className="text-[11px] font-bold text-emerald-500">月销 {c.sales}+</p>
                                 </div>
                             </div>
                         ))}
@@ -247,8 +247,8 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
 
             {/* SKU & 上架日期 */}
             <div className="min-w-0">
-                <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-300 text-[8px]">📋</span></div>
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
+                <div className="text-[11px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-500 text-[11px]">📋</span></div>
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
             </div>
 
             {/* 数值区 - 极简显示 */}
@@ -261,8 +261,8 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
                 {/* 悬停数据驻留层 */}
                 {hoverPoint && (
                     <div className="absolute top-1 left-2 z-10 flex items-center gap-2 pointer-events-none animate-in fade-in duration-200">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{hoverPoint.record_date.split('-').slice(1).join('/')}</span>
-                        <span className="text-[9px] font-black text-indigo-600">{hoverPoint[activeMetric]?.toLocaleString()}</span>
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{hoverPoint.record_date.split('-').slice(1).join('/')}</span>
+                        <span className="text-[11px] font-black text-indigo-600">{hoverPoint[activeMetric]?.toLocaleString()}</span>
                     </div>
                 )}
                 
@@ -274,7 +274,7 @@ const NewArrivalItem = ({ item, isSelected, onSelect, activeMetric }) => {
                     </div>
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[8px] font-black text-slate-200 uppercase tracking-widest">NO DATA</span>
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">NO DATA</span>
                     </div>
                 )}
             </div>
@@ -332,15 +332,15 @@ const SmartRotationCard = ({ site, onRotated }) => {
     
     if (loading) return (
         <div className="h-[200px] rounded-3xl bg-slate-100/50 border border-slate-100 animate-pulse flex flex-col items-center justify-center p-6 shrink-0">
-            <Icon name="zap" className="w-8 h-8 text-slate-200 mb-2" />
+            <Icon name="zap" className="w-8 h-8 text-slate-500 mb-2" />
             <div className="w-24 h-2 bg-slate-200 rounded-full"></div>
         </div>
     );
 
     if (!data) return (
         <div className="h-[200px] rounded-3xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center p-6 shrink-0">
-            <Icon name="zap-off" className="w-6 h-6 text-slate-200 mb-2" />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+            <Icon name="zap-off" className="w-6 h-6 text-slate-500 mb-2" />
+            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">
                 {hasError ? '智库连接异常' : '暂无轮替建议'}
             </p>
         </div>
@@ -356,22 +356,22 @@ const SmartRotationCard = ({ site, onRotated }) => {
                         <Icon name="zap" className="w-4 h-4 text-amber-300" />
                         <span className="text-[11px] font-black uppercase tracking-[0.2em]">智能轮替建议</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-[8px] font-bold uppercase tracking-tighter">AI Focus</span>
+                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-bold uppercase tracking-tighter">AI Focus</span>
                 </div>
 
                 <div className="space-y-4 mb-6">
                     <div className="p-3 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 transition-colors">
-                        <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">建议移除 (低效)</div>
+                        <div className="text-[11px] text-white/60 font-black uppercase mb-1.5 tracking-widest">建议移除 (低效)</div>
                         <div className="text-[11px] font-bold truncate leading-tight">{data.current_item_name}</div>
                     </div>
                     <div className="p-3 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/20 transition-colors">
-                        <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">建议引入 (高潜)</div>
+                        <div className="text-[11px] text-white/60 font-black uppercase mb-1.5 tracking-widest">建议引入 (高潜)</div>
                         <div className="text-[11px] font-bold truncate leading-tight">{data.new_item_name}</div>
                     </div>
                 </div>
 
                 <div className="flex items-center justify-between mb-5 px-1">
-                    <span className="text-[9px] font-black text-white/60 uppercase">预估收益</span>
+                    <span className="text-[11px] font-black text-white/60 uppercase">预估收益</span>
                     <span className="text-xl font-black text-amber-300 tracking-tighter">{data.potential_growth || '+18.5%'}</span>
                 </div>
 
@@ -381,7 +381,7 @@ const SmartRotationCard = ({ site, onRotated }) => {
                         const ok = await applyRotation();
                         if (ok) onRotated();
                     }}
-                    className="w-full py-3 rounded-xl bg-white text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:bg-amber-300 hover:text-indigo-900 transition-all shadow-xl active:scale-95 disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-white text-indigo-600 text-[11px] font-black uppercase tracking-widest hover:bg-amber-300 hover:text-indigo-900 transition-all shadow-xl active:scale-95 disabled:opacity-50"
                 >
                     {isApplying ? '正在执行轮替...' : '立即执行轮替'}
                 </button>
@@ -392,11 +392,11 @@ const SmartRotationCard = ({ site, onRotated }) => {
 
 const ProductDetailPerspective = ({ product }) => {
     if (!product) return (
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 rounded-3xl m-2 bg-slate-50/50">
+        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-100 rounded-3xl m-2 bg-slate-50/50">
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mb-4 shadow-sm">
                 <Icon name="mouse-pointer" className="w-6 h-6 opacity-20" />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em]">选择单品查看透视</p>
+            <p className="text-[11px] font-black uppercase tracking-widest">选择单品查看透视</p>
         </div>
     );
 
@@ -412,15 +412,15 @@ const ProductDetailPerspective = ({ product }) => {
                         {product.image_url ? (
                             <img src={product.image_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                            <Icon name="package" className="w-8 h-8 text-white/20" />
+                            <Icon name="package" className="w-8 h-8 text-white/60" />
                         )}
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/20 text-white font-black">{product.site_id}</span>
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/20 text-white font-black">{product.site_id}</span>
                             <h4 className="text-[12px] font-black text-white truncate leading-none">{product.name}</h4>
                         </div>
-                        <p className="text-[9px] text-white/60 font-bold tracking-tight cursor-pointer hover:text-amber-300 transition-colors" onClick={() => { const id = product.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">ID: {product.item_id?.split('-').pop() || product.item_id} <span className="text-white/30">📋</span></p>
+                        <p className="text-[11px] text-white/60 font-bold tracking-tight cursor-pointer hover:text-amber-300 transition-colors" onClick={() => { const id = product.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">ID: {product.item_id?.split('-').pop() || product.item_id} <span className="text-white/60">📋</span></p>
                     </div>
                 </div>
 
@@ -435,7 +435,7 @@ const ProductDetailPerspective = ({ product }) => {
                             </svg>
                             <div className="absolute flex flex-col items-center">
                                 <span className="text-xl font-black text-white tracking-tighter">{product.health_score}</span>
-                                <span className="text-[7px] font-black text-white/50 uppercase tracking-widest">Score</span>
+                                <span className="text-[11px] font-black text-white/70 uppercase tracking-widest">Score</span>
                             </div>
                         </div>
                     </div>
@@ -443,8 +443,8 @@ const ProductDetailPerspective = ({ product }) => {
                     {/* 得分拆解明细 */}
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between px-1">
-                            <div className="text-[9px] font-black text-white/40 uppercase tracking-widest">算法诊断</div>
-                            <div className="text-[8px] font-black text-white/60 uppercase">权重</div>
+                            <div className="text-[11px] font-black text-white/60 uppercase tracking-widest">算法诊断</div>
+                            <div className="text-[11px] font-black text-white/60 uppercase">权重</div>
                         </div>
                         <div className="space-y-3">
                             {[
@@ -454,9 +454,9 @@ const ProductDetailPerspective = ({ product }) => {
                                 { label: '近 7 日活跃度', weight: '10%', score: 60, color: 'bg-white/30' }
                             ].map((item, idx) => (
                                 <div key={idx} className="flex flex-col gap-1.5">
-                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                    <div className="flex justify-between items-center text-[11px] font-bold">
                                         <span className="text-white/80">{item.label}</span>
-                                        <span className="text-white/40 font-black">{item.weight}</span>
+                                        <span className="text-white/60 font-black">{item.weight}</span>
                                     </div>
                                     <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                                         <div className={`h-full ${item.color || item.scoreColor} rounded-full transition-all duration-1000`} style={{ width: `${item.score}%` }}></div>
@@ -587,7 +587,7 @@ const ProductPerformanceView = () => {
                                     <button
                                         key={site.key}
                                         onClick={() => setActiveSite(site.key)}
-                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${activeSite === site.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                        className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${activeSite === site.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                                     >
                                         {site.label}
                                     </button>
@@ -596,7 +596,7 @@ const ProductPerformanceView = () => {
                         </div>
                         {/* 在售数量（该站点全部商品） */}
                         <div className="text-right">
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">在售</p>
+                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">在售</p>
                             <p className="text-sm font-black text-indigo-600">{allItems.length.toLocaleString()}</p>
                         </div>
                     </div>
@@ -611,11 +611,11 @@ const ProductPerformanceView = () => {
                                     <button
                                         key={tab.key}
                                         onClick={() => setActiveTab(tab.key)}
-                                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex items-center gap-2 ${activeTab === tab.key ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
+                                        className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all flex items-center gap-2 ${activeTab === tab.key ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-600'}`}
                                     >
                                         <span>{tab.suffix}</span>
                                         <span>{tab.label}</span>
-                                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] ${activeTab === tab.key ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[11px] ${activeTab === tab.key ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                             {categorized[tab.key].length}
                                         </span>
                                     </button>
@@ -629,13 +629,13 @@ const ProductPerformanceView = () => {
                             {TABS.find(t => t.key === activeTab)?.desc && (
                                 <div className="px-6 py-3 border-b border-slate-50 bg-indigo-50/30 flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-300">
                                     <Icon name="info" className="w-3.5 h-3.5 text-indigo-500" />
-                                    <p className="text-[10px] font-bold text-indigo-600/80 tracking-tight">{TABS.find(t => t.key === activeTab).desc}</p>
+                                    <p className="text-[11px] font-bold text-indigo-600/80 tracking-tight">{TABS.find(t => t.key === activeTab).desc}</p>
                                 </div>
                             )}
 
                             {/* Table Head (上新模式: 只有一层表头，可点击排序) */}
                             {activeTab === 'new' ? (
-                                <div className="px-6 py-3 grid grid-cols-[50px_140px_100px_1fr] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 shrink-0">
+                                <div className="px-6 py-3 grid grid-cols-[50px_140px_100px_1fr] gap-4 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-50 shrink-0">
                                     <div className="w-10">主图</div>
                                     <div>SKU/日期</div>
                                     <div 
@@ -647,7 +647,7 @@ const ProductPerformanceView = () => {
                                     <div className="pl-4">波动趋势 (15日)</div>
                                 </div>
                             ) : (
-                                <div className="px-6 py-3 grid grid-cols-[50px_130px_70px_1fr_90px] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 shrink-0">
+                                <div className="px-6 py-3 grid grid-cols-[50px_130px_70px_1fr_90px] gap-4 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-50 shrink-0">
                                     <div className="w-10">主图</div>
                                     <div>SKU/日期</div>
                                     <div className="text-center">曝光</div>
@@ -659,14 +659,14 @@ const ProductPerformanceView = () => {
                             {/* Table Body */}
                             <div className="flex-1 overflow-y-auto px-0 py-4 custom-scrollbar min-h-0">
                                 {isLoading ? (
-                                    <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-300">
+                                    <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-500">
                                         <Icon name="loader" className="w-8 h-8 animate-spin" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">正在深度解析性能数据...</p>
+                                        <p className="text-[11px] font-black uppercase tracking-widest">正在深度解析性能数据...</p>
                                     </div>
                                 ) : filtered.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-300">
+                                    <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-500">
                                         <Icon name="inbox" className="w-12 h-12 opacity-20" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">该分类下暂无数据</p>
+                                        <p className="text-[11px] font-black uppercase tracking-widest">该分类下暂无数据</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
@@ -693,7 +693,7 @@ const ProductPerformanceView = () => {
                                                     />
                                                 );
                                             }
-                                            const badge = SITE_BADGES[item.site_id] || { flag: '🌐', label: item.site_id, color: 'bg-slate-50 text-slate-400' };
+                                            const badge = SITE_BADGES[item.site_id] || { flag: '🌐', label: item.site_id, color: 'bg-slate-50 text-slate-500' };
                                             return (
                                                 <div 
                                                     key={item.item_id || idx}
@@ -705,14 +705,14 @@ const ProductPerformanceView = () => {
                                                         {item.image_url ? (
                                                             <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                                                         ) : (
-                                                            <Icon name="image" className="w-4 h-4 text-slate-300" />
+                                                            <Icon name="image" className="w-4 h-4 text-slate-500" />
                                                         )}
                                                     </div>
 
                                                     {/* SKU & 日期 */}
                                                     <div className="min-w-0">
-                                                        <div className="text-[10px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-300 text-[8px]">📋</span></div>
-                                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
+                                                        <div className="text-[11px] font-black text-slate-800 truncate leading-none mb-1 uppercase tracking-tight cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => { const id = item.item_id?.split('-').pop() || ''; navigator.clipboard.writeText(id); }} title="点击复制">SKU: {item.item_id?.split('-').pop() || 'N/A'} <span className="text-slate-500 text-[11px]">📋</span></div>
+                                                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{item.start_time || '2026-04-15'}</div>
                                                     </div>
                                                     
                                                     {/* 指标展示 */}
@@ -722,10 +722,10 @@ const ProductPerformanceView = () => {
 
                                                     {/* 智能诊断 */}
                                                     <div className="flex flex-col gap-0.5 border-l border-slate-50 pl-4 min-w-0">
-                                                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-tight whitespace-normal leading-tight">
+                                                        <p className="text-[11px] font-black text-emerald-600 uppercase tracking-tight whitespace-normal leading-tight">
                                                             {item.exposure >= avg.exp ? '亮点: 曝光充足' : '亮点: -'}
                                                         </p>
-                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter whitespace-normal leading-tight">
+                                                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter whitespace-normal leading-tight">
                                                             {item.exposure < avg.exp ? '不足: 流量拉新' : '不足: -'}
                                                         </p>
                                                     </div>
@@ -733,7 +733,7 @@ const ProductPerformanceView = () => {
                                                     <div className="text-right">
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); setIsEditOpen(true); }}
-                                                            className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-400 text-[9px] font-black uppercase transition-all"
+                                                            className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-500 text-[11px] font-black uppercase transition-all"
                                                         >
                                                             修改
                                                         </button>

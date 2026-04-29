@@ -27,23 +27,23 @@ const LoginPage = ({ onLogin }) => {
                 <div className="solid-card rounded-[28px] p-8 space-y-5">
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">账号标识 (Account ID)</label>
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">账号标识 (Account ID)</label>
                             <input 
                                 type="text"
                                 value={accountId}
                                 onChange={e => setAccountId(e.target.value)}
                                 placeholder="请输入账号 ID"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-500"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">访问秘钥 (Access Key)</label>
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">访问秘钥 (Access Key)</label>
                             <input 
                                 type="password"
                                 value={accessKey}
                                 onChange={e => setAccessKey(e.target.value)}
                                 placeholder="请输入 16 位秘钥"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-500"
                             />
                         </div>
                         <div className="pt-2">

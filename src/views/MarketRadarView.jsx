@@ -80,7 +80,7 @@ const MarketRadarView = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 p-4 overflow-hidden relative select-none">
+        <div className="flex flex-col h-full bg-slate-50 p-10 overflow-hidden relative select-none">
             <style dangerouslySetInnerHTML={{ __html: `
                 body, html { overflow: hidden !important; height: 100% !important; }
                 #root { height: 100% !important; overflow: hidden !important; }
@@ -114,11 +114,11 @@ const MarketRadarView = () => {
                             className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all ${
                                 activeSite === site.id 
                                 ? 'bg-white shadow-sm text-slate-900 ring-1 ring-slate-200' 
-                                : 'text-slate-400 hover:text-slate-600'
+                                : 'text-slate-500 hover:text-slate-600'
                             }`}
                         >
                             <span className="text-sm">{site.flag}</span>
-                            <span className="text-[10px] font-black uppercase tracking-tighter">{site.id}</span>
+                            <span className="text-[11px] font-black uppercase tracking-tighter">{site.id}</span>
                         </button>
                     ))}
                 </div>
@@ -143,11 +143,11 @@ const MarketRadarView = () => {
                 {/* 3. AI Deep Scan Input with Smart Suggestions */}
                 <div className="flex-1 relative">
                     <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border-2 border-slate-100 focus-within:border-amber-400 focus-within:bg-white transition-all shadow-inner">
-                        <Icon name="search" size={16} className="text-slate-400" />
+                        <Icon name="search" size={16} className="text-slate-500" />
                         <input 
                             type="text" 
                             placeholder="输入类目、产品词或亚马逊链接进行影子扫描..."
-                            className="bg-transparent border-none outline-none flex-1 text-[13px] font-bold text-slate-700 placeholder:text-slate-300"
+                            className="bg-transparent border-none outline-none flex-1 text-[13px] font-bold text-slate-700 placeholder:text-slate-500"
                             value={searchKeyword}
                             onChange={(e) => setSearchKeyword(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleScan()}
@@ -181,10 +181,10 @@ const MarketRadarView = () => {
                             <div>
                                 <h2 className="text-[14px] font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
                                     探测情报矩阵
-                                    <span className="bg-amber-100 text-amber-600 px-2 py-0.5 rounded-lg text-[10px]">{SITES.find(s=>s.id===activeSite)?.label}</span>
+                                    <span className="bg-amber-100 text-amber-600 px-2 py-0.5 rounded-lg text-[11px]">{SITES.find(s=>s.id===activeSite)?.label}</span>
                                 </h2>
                                 <div className="flex items-center gap-3 mt-0.5">
-                                    <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">Live Shadow Feed</span>
+                                    <span className="text-[11px] text-slate-500 font-black tracking-widest uppercase">Live Shadow Feed</span>
                                     <div className="flex gap-1">
                                         {[1,2,3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-slate-200" />)}
                                     </div>
@@ -197,7 +197,7 @@ const MarketRadarView = () => {
                                 <button 
                                     key={tag}
                                     onClick={() => setSearchKeyword(tag)}
-                                    className="px-3 py-1 bg-white rounded-lg border border-slate-100 text-[10px] font-bold text-slate-500 hover:border-amber-300 hover:text-amber-500 transition-all"
+                                    className="px-3 py-1 bg-white rounded-lg border border-slate-100 text-[11px] font-bold text-slate-500 hover:border-amber-300 hover:text-amber-500 transition-all"
                                 >
                                     #{tag}
                                 </button>
@@ -221,7 +221,7 @@ const MarketRadarView = () => {
                                 <span className="text-3xl">🚫</span>
                             </div>
                             <h3 className="text-[14px] font-black text-slate-700 mb-2">该平台暂不支持数据检索</h3>
-                            <p className="text-[11px] text-slate-400 text-center max-w-xs leading-relaxed">{platformMessage}</p>
+                            <p className="text-[11px] text-slate-500 text-center max-w-xs leading-relaxed">{platformMessage}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-6 grid-rows-3 gap-2 flex-1 overflow-hidden h-full content-start">
@@ -238,17 +238,17 @@ const MarketRadarView = () => {
                                             referrerPolicy="no-referrer"
                                             className="w-full h-full object-contain transition-all duration-700 group-hover:scale-110" 
                                         />
-                                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-lg bg-slate-900/90 backdrop-blur-md text-[8px] font-black text-white shadow-lg">
+                                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-lg bg-slate-900/90 backdrop-blur-md text-[11px] font-black text-white shadow-lg">
                                             {p.currency || 'MXN'}
                                         </div>
                                     </div>
                                     <div className="space-y-1 flex-1 flex flex-col justify-between">
-                                        <p className="text-slate-800 font-black text-[9px] line-clamp-1 leading-tight group-hover:text-amber-600 transition-colors uppercase tracking-tighter">
+                                        <p className="text-slate-800 font-black text-[11px] line-clamp-1 leading-tight group-hover:text-amber-600 transition-colors uppercase tracking-tighter">
                                             {p.title}
                                         </p>
                                         <div className="flex items-end justify-between pt-1 border-t border-slate-50 mt-auto">
                                             <div className="flex flex-col">
-                                                <span className="text-[7px] text-slate-400 font-black uppercase">
+                                                <span className="text-[11px] text-slate-500 font-black uppercase">
                                                     {p.is_js_verified ? 'Est. Monthly Sales' : 'Market Price'}
                                                 </span>
                                                 <span className="text-slate-900 font-black text-[14px] tracking-tighter tabular-nums leading-none">
@@ -257,7 +257,7 @@ const MarketRadarView = () => {
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 {p.is_js_verified && (
-                                                    <span className="text-[7px] text-amber-600 font-black uppercase mb-0.5">Verified</span>
+                                                    <span className="text-[11px] text-amber-600 font-black uppercase mb-0.5">Verified</span>
                                                 )}
                                                 <div className="w-4 h-4 rounded-lg bg-emerald-50 flex items-center justify-center">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
@@ -266,7 +266,7 @@ const MarketRadarView = () => {
                                         </div>
                                     </div>
                                     {p.is_real && (
-                                        <div className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-emerald-500 text-white text-[6px] font-black rounded-lg shadow-lg border-2 border-white uppercase tracking-tighter">LIVE</div>
+                                        <div className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-emerald-500 text-white text-[11px] whitespace-nowrap font-black rounded-lg shadow-lg border-2 border-white uppercase tracking-tighter">LIVE</div>
                                     )}
                                 </div>
                             ))}
@@ -285,13 +285,13 @@ const MarketRadarView = () => {
                                     <Icon name="cpu" size={16} />
                                 </div>
                                 <div>
-                                    <h3 className="text-[12px] font-black text-white uppercase tracking-widest">AI 指挥部</h3>
-                                    <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Tactical Deep Analysis</p>
+                                    <h3 className="text-[12px] font-black text-white uppercase tracking-widest whitespace-nowrap">AI 指挥部</h3>
+                                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Tactical Deep Analysis</p>
                                 </div>
                             </div>
                             {selectedItem && (
                                 <button onClick={() => setSelectedItem(null)} className="w-8 h-8 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center transition-colors">
-                                    <Icon name="x" size={14} className="text-slate-400" />
+                                    <Icon name="x" size={14} className="text-slate-500" />
                                 </button>
                             )}
                         </div>
@@ -302,8 +302,8 @@ const MarketRadarView = () => {
                                     <Icon name="mouse-pointer" size={32} />
                                 </div>
                                 <div className="space-y-1">
-                                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">等待目标指令</h4>
-                                    <p className="text-[9px] text-slate-500 leading-relaxed">点击矩阵中的产品，启动跨平台利润探测与市场适应度分析</p>
+                                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">等待目标指令</h4>
+                                    <p className="text-[11px] text-slate-500 leading-relaxed">点击矩阵中的产品，启动跨平台利润探测与市场适应度分析</p>
                                 </div>
                             </div>
                         ) : (
@@ -314,10 +314,10 @@ const MarketRadarView = () => {
                                     </div>
                                     <div className="flex flex-col justify-center gap-1.5 overflow-hidden">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[8px] font-black bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded uppercase tracking-tighter">Target</span>
-                                            <span className="text-[8px] font-bold text-slate-500 tabular-nums">ID: {selectedItem.id?.slice(-6)}</span>
+                                            <span className="text-[11px] font-black bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded uppercase tracking-tighter">Target</span>
+                                            <span className="text-[11px] font-bold text-slate-500 tabular-nums">ID: {selectedItem.id?.slice(-6)}</span>
                                         </div>
-                                        <p className="text-[11px] font-black text-white leading-tight line-clamp-2 uppercase">{selectedItem.title}</p>
+                                        <p className="text-[11px] font-black text-white leading-tight truncate uppercase">{selectedItem.title}</p>
                                     </div>
                                 </div>
 
@@ -332,10 +332,10 @@ const MarketRadarView = () => {
                                         {/* Premium Health Gauge Mockup */}
                                         <div className="bg-white/5 p-4 rounded-3xl border border-white/5 flex items-center justify-between relative overflow-hidden group">
                                             <div className="relative z-10">
-                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 block">市场爆发潜力</span>
+                                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 block">市场爆发潜力</span>
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="text-2xl font-black text-white tabular-nums">{aiResult.market_fit === 'Critical' ? '98' : '85'}</span>
-                                                    <span className="text-xs font-bold text-amber-500">%</span>
+                                                    <span className="text-[11px] font-bold text-amber-500">%</span>
                                                 </div>
                                             </div>
                                             <div className="relative w-16 h-16 flex items-center justify-center">
@@ -351,7 +351,7 @@ const MarketRadarView = () => {
 
                                         {/* Multi-Platform Benchmarking */}
                                         <div className="space-y-2">
-                                            <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest pl-1">跨平台利润探测</h4>
+                                            <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">跨平台利润探测</h4>
                                             <div className="grid grid-cols-1 gap-2">
                                                 {[
                                                     { label: 'Amazon', price: aiResult.prices?.amazon, icon: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Amazon_icon.svg', color: 'slate-800' },
@@ -363,7 +363,7 @@ const MarketRadarView = () => {
                                                             <div className="w-6 h-6 rounded-lg bg-white p-1 flex items-center justify-center">
                                                                 <img src={item.icon} className="w-full h-full object-contain" />
                                                             </div>
-                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{item.label}</span>
+                                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{item.label}</span>
                                                         </div>
                                                         <span className={`text-[12px] font-black tabular-nums ${idx === 2 ? 'text-emerald-500' : idx === 1 ? 'text-amber-500' : 'text-white'}`}>
                                                             {item.price}
@@ -375,17 +375,17 @@ const MarketRadarView = () => {
 
                                         {/* Opportunity Summary */}
                                         <div className="p-4 bg-amber-500 rounded-2xl relative overflow-hidden shadow-xl">
-                                            <div className="absolute top-0 right-0 p-1.5 bg-slate-900 text-amber-500 text-[7px] font-black uppercase rounded-bl-xl">Insight</div>
-                                            <p className="text-[10px] text-slate-900 font-black leading-relaxed">{aiResult.opportunity}</p>
+                                            <div className="absolute top-0 right-0 p-1.5 bg-slate-900 text-amber-500 text-[11px] font-black uppercase rounded-bl-xl">Insight</div>
+                                            <p className="text-[11px] text-slate-900 font-black leading-relaxed">{aiResult.opportunity}</p>
                                         </div>
 
                                         {/* Pro/Con Tags */}
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="flex flex-nowrap gap-2">
                                             {aiResult.pros.map((p, i) => (
-                                                <div key={i} className="px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[9px] font-black border border-emerald-500/20 uppercase tracking-tighter">✓ {p}</div>
+                                                <div key={i} className="px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[11px] font-black border border-emerald-500/20 uppercase tracking-tighter">✓ {p}</div>
                                             ))}
                                             {aiResult.cons.map((c, i) => (
-                                                <div key={i} className="px-2 py-1 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black border border-red-500/20 uppercase tracking-tighter">✕ {c}</div>
+                                                <div key={i} className="px-2 py-1 bg-red-500/10 text-red-500 rounded-lg text-[11px] font-black border border-red-500/20 uppercase tracking-tighter">✕ {c}</div>
                                             ))}
                                         </div>
 
@@ -393,11 +393,11 @@ const MarketRadarView = () => {
                                         <div className="pt-2">
                                             <div className="flex items-center justify-between mb-3 px-1">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[8px] text-slate-500 font-black uppercase">Net Margin</span>
+                                                    <span className="text-[11px] text-slate-500 font-black uppercase whitespace-nowrap">Net Margin</span>
                                                     <span className="text-xl font-black text-amber-500 tabular-nums">{aiResult.profit_estimate}</span>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="text-[8px] text-slate-500 font-black uppercase block">Retail Rec.</span>
+                                                    <span className="text-[11px] text-slate-500 font-black uppercase block">Retail Rec.</span>
                                                     <span className="text-sm font-black text-white">{aiResult.est_ml_price}</span>
                                                 </div>
                                             </div>
@@ -422,15 +422,15 @@ const MarketRadarView = () => {
                 <div className="px-6 py-2 bg-slate-900 rounded-full flex items-center gap-4 shadow-2xl border border-slate-800">
                     <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500 animate-pulse" />
-                        <span className="text-[9px] text-white font-black tracking-widest uppercase">Node: MX-CORE-01</span>
+                        <span className="text-[11px] text-white font-black tracking-widest uppercase">Node: MX-CORE-01</span>
                     </div>
                     <div className="w-px h-3 bg-slate-800" />
-                    <span className="text-[9px] text-slate-500 font-black tracking-[0.3em] uppercase">
+                    <span className="text-[11px] text-slate-500 font-black tracking-widest uppercase">
                         YUNFAN QUANTUM ENGINE v7.1 • ENCRYPTED FEED
                     </span>
                     <div className="w-px h-3 bg-slate-800" />
                     <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-slate-400 font-mono">{new Date().toLocaleTimeString()}</span>
+                        <span className="text-[11px] text-slate-500 font-mono">{new Date().toLocaleTimeString()}</span>
                     </div>
                 </div>
             </div>
@@ -439,3 +439,4 @@ const MarketRadarView = () => {
 };
 
 export default MarketRadarView;
+

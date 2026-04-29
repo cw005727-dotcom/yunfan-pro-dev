@@ -5,7 +5,7 @@ const BusinessIntroView = () => (
     <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
         <div className="space-y-4">
             <h3 className="text-5xl font-black text-slate-900 tracking-tighter leading-tight">云帆跨境:智领拉美</h3>
-            <p className="text-blue-600 text-xs font-black uppercase tracking-[0.5em]">定义拉美电商新纪元</p>
+            <p className="text-blue-600 text-[11px] font-black uppercase tracking-[0.5em]">定义拉美电商新纪元</p>
         </div>
         <div className="prose max-w-none space-y-8">
             <p className="text-slate-600 text-lg leading-relaxed font-medium">

@@ -58,11 +58,11 @@ const InvitationTable = ({ onGenerateCode }) => {
   const statusBadge = (status) => {
     const map = {
       unused: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      used: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+      used: 'bg-slate-500/20 text-slate-600 border-slate-500/30',
       expired: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs border ${map[status] || map.unused}`}>
+      <span className={`px-2 py-1 rounded-full text-[11px] whitespace-nowrap border ${map[status] || map.unused}`}>
         {status === 'unused' ? '未使用' : status === 'used' ? '已使用' : '已过期'}
       </span>
     );
@@ -74,7 +74,7 @@ const InvitationTable = ({ onGenerateCode }) => {
       permanent: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs border ${map[type] || map.trial}`}>
+      <span className={`px-2 py-1 rounded-full text-[11px] whitespace-nowrap border ${map[type] || map.trial}`}>
         {type === 'trial' ? '试用' : '永久'}
       </span>
     );
@@ -86,7 +86,7 @@ const InvitationTable = ({ onGenerateCode }) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">邀请码管理</h2>
-          <p className="text-sm text-slate-400 mt-1">管理用户的访问权限</p>
+          <p className="text-sm text-slate-600 mt-1">管理用户的访问权限</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -101,23 +101,23 @@ const InvitationTable = ({ onGenerateCode }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-700/50">
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">邀请码</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">类型</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">状态</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">创建时间</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">操作</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-500">邀请码</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-500">类型</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-500">状态</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-500">创建时间</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-500">操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
+                <td colSpan="5" className="px-6 py-12 text-center text-slate-600">
                   加载中...
                 </td>
               </tr>
             ) : codes.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
+                <td colSpan="5" className="px-6 py-12 text-center text-slate-600">
                   暂无邀请码，点击上方按钮生成
                 </td>
               </tr>
@@ -129,7 +129,7 @@ const InvitationTable = ({ onGenerateCode }) => {
                   </td>
                   <td className="px-6 py-4">{typeBadge(item.type)}</td>
                   <td className="px-6 py-4">{statusBadge(item.status)}</td>
-                  <td className="px-6 py-4 text-sm text-slate-400">
+                  <td className="px-6 py-4 text-sm text-slate-600">
                     {item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : '-'}
                   </td>
                   <td className="px-6 py-4">
@@ -155,7 +155,7 @@ const InvitationTable = ({ onGenerateCode }) => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">码类型</label>
+                <label className="block text-sm font-medium text-slate-500 mb-2">码类型</label>
                 <select
                   value={codeType}
                   onChange={(e) => setCodeType(e.target.value)}
@@ -167,7 +167,7 @@ const InvitationTable = ({ onGenerateCode }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">生成数量</label>
+                <label className="block text-sm font-medium text-slate-500 mb-2">生成数量</label>
                 <input
                   type="number"
                   min="1"
@@ -182,7 +182,7 @@ const InvitationTable = ({ onGenerateCode }) => {
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-600 text-slate-500 hover:bg-slate-800 transition-colors"
               >
                 取消
               </button>

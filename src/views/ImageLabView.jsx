@@ -122,11 +122,11 @@ const ImageLabView = () => {
             <div className="flex items-start justify-between">
                 <div>
                     <h3 className="text-[26px] font-black text-slate-800 tracking-tight">视觉图生图</h3>
-                    <p className="text-[11px] text-slate-400 font-medium mt-1">5张商业图 · AI 生成 · MercadoLibre 专用</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">5张商业图 · AI 生成 · MercadoLibre 专用</p>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                    <span className="text-[10px] text-slate-400 font-medium">MiniMax 图生图 3:4</span>
+                    <span className="text-[11px] text-slate-500 font-medium">MiniMax 图生图 3:4</span>
                 </div>
             </div>
 
@@ -155,11 +155,11 @@ const ImageLabView = () => {
                         <img src={referenceImage.base64} alt="参考图" className="w-16 h-16 rounded-2xl object-cover border border-slate-100" />
                         <div className="flex-1 text-left">
                             <p className="text-[12px] font-black text-slate-700">{referenceImage.name}</p>
-                            <p className="text-[10px] text-emerald-500 font-medium mt-0.5">✅ 参考图已就绪，将用于生成</p>
+                            <p className="text-[11px] text-emerald-500 font-medium mt-0.5">✅ 参考图已就绪，将用于生成</p>
                         </div>
                         <button
                             onClick={e => { e.stopPropagation(); setReferenceImage(null); }}
-                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-50 flex items-center justify-center text-slate-400 hover:text-red-400 transition-all"
+                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-50 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
                         >
                             <Icon name="x" className="w-4 h-4" />
                         </button>
@@ -167,17 +167,17 @@ const ImageLabView = () => {
                 ) : (
                     <>
                         <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-slate-100 transition-colors">
-                            <Icon name="upload-cloud" className="w-7 h-7 text-slate-300 group-hover:text-slate-400" />
+                            <Icon name="upload-cloud" className="w-7 h-7 text-slate-500 group-hover:text-slate-500" />
                         </div>
                         <p className="text-[12px] font-black text-slate-500">上传商品原图作为风格参考</p>
-                        <p className="text-[10px] text-slate-300 font-medium mt-1">点击选择 · JPG/PNG · 仅本地处理，不上传</p>
+                        <p className="text-[11px] text-slate-500 font-medium mt-1">点击选择 · JPG/PNG · 仅本地处理，不上传</p>
                     </>
                 )}
             </div>
 
             {/* Cards */}
             <div className="space-y-2.5">
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest px-1">生成结果 · 5张图</p>
+                <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest px-1">生成结果 · 5张图</p>
                 {IMAGE_TYPES.map((type, idx) => {
                     const card = cards.find(c => c.key === type.key) || { prompt: '', url: '', status: 'idle', error: '' };
                     const isDone = card.status === 'done';
@@ -188,8 +188,8 @@ const ImageLabView = () => {
 
                             {/* Left: index + label */}
                             <div className={`w-12 h-12 rounded-2xl ${type.color} ${type.textColor} flex flex-col items-center justify-center shrink-0`}>
-                                <span className="text-[9px] font-black opacity-70">0{idx + 1}</span>
-                                <span className="text-[10px] font-black leading-tight text-center">{type.label}</span>
+                                <span className="text-[11px] font-black opacity-70">0{idx + 1}</span>
+                                <span className="text-[11px] font-black leading-tight text-center">{type.label}</span>
                             </div>
 
                             {/* Center */}
@@ -201,7 +201,7 @@ const ImageLabView = () => {
                                     placeholder={`输入 ${type.label} 指令...`}
                                     rows={2}
                                     maxLength={300}
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-[11px] font-medium text-slate-600 placeholder:text-slate-300 focus:outline-none focus:border-slate-300 resize-none leading-relaxed"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-[11px] font-medium text-slate-600 placeholder:text-slate-500 focus:outline-none focus:border-slate-300 resize-none leading-relaxed"
                                 />
 
                                 {/* Preview */}
@@ -212,7 +212,7 @@ const ImageLabView = () => {
                                             <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
                                                 <button
                                                     onClick={() => downloadOne(card.url, type.label)}
-                                                    className="bg-white/90 backdrop-blur text-slate-700 rounded-xl px-3 py-1.5 text-[10px] font-black flex items-center gap-1.5"
+                                                    className="bg-white/90 backdrop-blur text-slate-700 rounded-xl px-3 py-1.5 text-[11px] font-black flex items-center gap-1.5"
                                                 >
                                                     <Icon name="download" className="w-3.5 h-3.5" />
                                                     下载
@@ -222,16 +222,16 @@ const ImageLabView = () => {
                                     ) : isGen ? (
                                         <div className="h-full flex items-center justify-center gap-3">
                                             <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-slate-500 animate-spin"></div>
-                                            <span className="text-[11px] text-slate-400 font-medium">生成中 ({referenceImage ? '含参考图' : '无参考'})...</span>
+                                            <span className="text-[11px] text-slate-500 font-medium">生成中 ({referenceImage ? '含参考图' : '无参考'})...</span>
                                         </div>
                                     ) : card.error ? (
                                         <div className="px-4 text-center">
-                                            <p className="text-[10px] text-red-400 font-medium">❌ {card.error}</p>
+                                            <p className="text-[11px] text-red-400 font-medium">❌ {card.error}</p>
                                         </div>
                                     ) : (
                                         <div className="h-full flex flex-col items-center justify-center gap-1.5">
-                                            <Icon name="image" className="w-7 h-7 text-slate-200" />
-                                            <span className="text-[10px] text-slate-300 font-medium">{type.desc}</span>
+                                            <Icon name="image" className="w-7 h-7 text-slate-500" />
+                                            <span className="text-[11px] text-slate-500 font-medium">{type.desc}</span>
                                         </div>
                                     )}
                                 </div>
@@ -250,7 +250,7 @@ const ImageLabView = () => {
                                 {isDone && (
                                     <button
                                         onClick={() => downloadOne(card.url, type.label)}
-                                        className="text-[10px] text-slate-400 hover:text-slate-600 font-medium flex items-center gap-1 transition-colors"
+                                        className="text-[11px] text-slate-500 hover:text-slate-600 font-medium flex items-center gap-1 transition-colors"
                                     >
                                         <Icon name="download" className="w-3.5 h-3.5" />
                                         下载

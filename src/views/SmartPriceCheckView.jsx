@@ -45,17 +45,17 @@ const SmartPriceCheckView = () => {
     };
 
     return (
-        <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 overflow-hidden">
+        <div className="h-full flex flex-col p-10 gap-10 animate-in fade-in slide-in-from-bottom-8 duration-700 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>
                     <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">智能核价中心</h3>
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">AI-Powered Profit Intelligence</p>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-2">AI-Powered Profit Intelligence</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none">核价引擎就绪</span>
+                        <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest leading-none">核价引擎就绪</span>
                     </div>
                 </div>
             </div>
@@ -64,13 +64,13 @@ const SmartPriceCheckView = () => {
                 {/* Left: Queue */}
                 <div className="flex-1 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">待核价队列 ({safeQueue.length})</h4>
+                        <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">待核价队列 ({safeQueue.length})</h4>
                         <div className="flex items-center gap-4">
-                            <button onClick={refresh} className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                            <button onClick={refresh} className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
                                 <Icon name="refresh-cw" className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                                 刷新
                             </button>
-                            <button className="text-[10px] font-bold text-slate-400 hover:text-slate-600">清空队列</button>
+                            <button className="text-[11px] font-bold text-slate-500 hover:text-slate-600">清空队列</button>
                         </div>
                     </div>
                     
@@ -86,24 +86,24 @@ const SmartPriceCheckView = () => {
                                     {item.image_url ? (
                                         <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                     ) : (
-                                        <Icon name="image" className="w-6 h-6 text-slate-200" />
+                                        <Icon name="image" className="w-6 h-6 text-slate-500" />
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="px-2 py-0.5 rounded bg-slate-100 text-[8px] font-black uppercase tracking-widest text-slate-500">{item.source_platform}</span>
-                                        <span className="text-[9px] text-slate-400 font-bold">{new Date(item.created_at).toLocaleString()}</span>
+                                    <div className="flex items-center gap-2 mb-1 whitespace-nowrap overflow-hidden">
+                                        <span className="px-2 py-0.5 rounded bg-slate-100 text-[11px] font-black uppercase tracking-widest text-slate-500 shrink-0">{item.source_platform}</span>
+                                        <span className="text-[11px] text-slate-500 font-bold truncate">{new Date(item.created_at).toLocaleString()}</span>
                                     </div>
                                     <h5 className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-1">{item.title}</h5>
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-1 text-[11px] font-black text-slate-500">
-                                            <span className="text-slate-300">成本:</span>
+                                            <span className="text-slate-500">成本:</span>
                                             <span className={item.price_cny ? "text-slate-900" : "text-rose-500"}>
                                                 {item.price_cny ? `¥${item.price_cny}` : '未抓取'}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1 text-[11px] font-black text-slate-500">
-                                            <span className="text-slate-300">重量:</span>
+                                            <span className="text-slate-500">重量:</span>
                                             <span className={item.weight_g ? "text-slate-900" : "text-amber-500"}>
                                                 {item.weight_g ? `${item.weight_g}g` : '预估300g'}
                                             </span>
@@ -112,7 +112,7 @@ const SmartPriceCheckView = () => {
                                 </div>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
-                                    className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                    className="p-2 text-slate-500 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
                                 >
                                     <Icon name="trash-2" className="w-4 h-4" />
                                 </button>
@@ -120,9 +120,9 @@ const SmartPriceCheckView = () => {
                         ))}
 
                         {safeQueue.length === 0 && !loading && (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-300 py-20">
+                            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-20">
                                 <Icon name="inbox" className="w-12 h-12 mb-4 opacity-20" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em]">队列为空，请使用插件采集</p>
+                                <p className="text-[11px] font-black uppercase tracking-widest">队列为空，请使用插件采集</p>
                             </div>
                         )}
                     </div>
@@ -137,9 +137,9 @@ const SmartPriceCheckView = () => {
 
                         <div className="relative z-10 flex flex-col h-full">
                             <div className="flex items-center justify-between mb-8">
-                                <div className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest">盈利能力预测 (Profit Outlook)</div>
+                                <div className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[11px] font-black uppercase tracking-widest">盈利能力预测 (Profit Outlook)</div>
                                 {results && (
-                                    <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${results.margin > 20 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                    <div className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest ${results.margin > 20 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                                         {results.margin > 20 ? '极佳' : '风险'}
                                     </div>
                                 )}
@@ -148,46 +148,46 @@ const SmartPriceCheckView = () => {
                             {selectedItem ? (
                                 <div className="flex-1 flex flex-col">
                                     <div className="mb-8 p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
-                                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">核价参数调整 (Adjust Params)</p>
+                                        <p className="text-[11px] font-black text-white/60 uppercase tracking-widest mb-2">核价参数调整 (Adjust Params)</p>
                                         <div className="grid grid-cols-3 gap-4">
                                             <div>
-                                                <label className="block text-[9px] text-white/40 mb-1">成本 (CNY)</label>
+                                                <label className="block text-[11px] text-white/70 mb-1">成本 (CNY)</label>
                                                 <input 
                                                     type="number" 
                                                     value={editParams.cost_cny}
                                                     onChange={(e) => setEditParams({...editParams, cost_cny: parseFloat(e.target.value)})}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold focus:border-blue-500 outline-none transition-all"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-bold focus:border-blue-500 outline-none transition-all"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[9px] text-white/40 mb-1">重量 (g)</label>
+                                                <label className="block text-[11px] text-white/70 mb-1">重量 (g)</label>
                                                 <input 
                                                     type="number" 
                                                     value={editParams.weight_g}
                                                     onChange={(e) => setEditParams({...editParams, weight_g: parseFloat(e.target.value)})}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold focus:border-blue-500 outline-none transition-all"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-bold focus:border-blue-500 outline-none transition-all"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[9px] text-white/40 mb-1">售价 (Local)</label>
+                                                <label className="block text-[11px] text-white/70 mb-1">售价 (Local)</label>
                                                 <input 
                                                     type="number" 
                                                     value={editParams.target_price_local}
                                                     onChange={(e) => setEditParams({...editParams, target_price_local: parseFloat(e.target.value)})}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold focus:border-blue-500 outline-none transition-all"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-bold focus:border-blue-500 outline-none transition-all"
                                                 />
                                             </div>
                                         </div>
                                         <button 
                                             onClick={handleRecalculate}
-                                            className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                            className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
                                         >
                                             重新计算利润 (Recalculate)
                                         </button>
                                     </div>
 
                                     <div className="mb-10 text-center">
-                                        <p className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">预计净利润率</p>
+                                        <p className="text-[11px] font-black text-white/60 uppercase tracking-[0.2em] mb-4">预计净利润率</p>
                                         <h2 className="text-8xl font-black italic tracking-tighter tnum leading-none">
                                             {isCalculating ? '--' : (results?.margin || 0)}%
                                         </h2>
@@ -195,41 +195,41 @@ const SmartPriceCheckView = () => {
 
                                     <div className="grid grid-cols-2 gap-4 mb-10">
                                         <div className="p-5 rounded-3xl bg-white/5 border border-white/5">
-                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">预估实收 (CNY)</p>
+                                            <p className="text-[11px] font-black text-white/60 uppercase tracking-widest mb-2">预估实收 (CNY)</p>
                                             <p className="text-2xl font-black italic tnum leading-none text-emerald-400">¥{isCalculating ? '--' : (results?.net_profit_cny || 0)}</p>
                                         </div>
                                         <div className="p-5 rounded-3xl bg-white/5 border border-white/5">
-                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">盈亏平衡价 (Local)</p>
+                                            <p className="text-[11px] font-black text-white/60 uppercase tracking-widest mb-2">盈亏平衡价 (Local)</p>
                                             <p className="text-2xl font-black italic tnum leading-none">{isCalculating ? '--' : (results?.break_even_local || 0)}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4 flex-1">
                                         <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5">
-                                            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">平台佣金</span>
-                                            <span className="text-xs font-black tnum">-${results?.details?.commission_local || 0}</span>
+                                            <span className="text-[11px] font-black text-white/60 uppercase tracking-widest">平台佣金</span>
+                                            <span className="text-[11px] font-black tnum">-${results?.details?.commission_local || 0}</span>
                                         </div>
                                         <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5">
-                                            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">预扣税金 (VAT/ISR)</span>
-                                            <span className="text-xs font-black tnum">-${results?.details?.tax_local || 0}</span>
+                                            <span className="text-[11px] font-black text-white/60 uppercase tracking-widest">预扣税金 (VAT/ISR)</span>
+                                            <span className="text-[11px] font-black tnum">-${results?.details?.tax_local || 0}</span>
                                         </div>
                                         <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5">
-                                            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">跨境运费</span>
-                                            <span className="text-xs font-black tnum">-${results?.details?.shipping_local || 0}</span>
+                                            <span className="text-[11px] font-black text-white/60 uppercase tracking-widest">跨境运费</span>
+                                            <span className="text-[11px] font-black tnum">-${results?.details?.shipping_local || 0}</span>
                                         </div>
                                     </div>
 
                                     <button 
                                         onClick={() => { deleteItem(selectedItem.id); setSelectedItem(null); setResults(null); }}
-                                        className="w-full py-5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-[0.3em] transition-all border border-white/10 mt-6"
+                                        className="w-full py-5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-widest transition-all border border-white/10 mt-6"
                                     >
                                         从核价队列移除 (Finished)
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-white/20">
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/60">
                                     <Icon name="activity" className="w-16 h-16 mb-6" />
-                                    <p className="text-xs font-black uppercase tracking-widest">选择一个项目开始核价</p>
+                                    <p className="text-[11px] font-black uppercase tracking-widest">选择一个项目开始核价</p>
                                 </div>
                             )}
                         </div>
@@ -241,3 +241,5 @@ const SmartPriceCheckView = () => {
 };
 
 export default SmartPriceCheckView;
+
+

@@ -24,7 +24,7 @@ class ErrorBoundary extends React.Component {
           <h2 className="text-2xl font-black text-slate-900 mb-2">组件渲染崩溃</h2>
           <p className="text-slate-500 max-w-md mb-8">云帆引擎检测到界面异常，已自动隔离故障模块以保护核心系统。</p>
           <div className="bg-slate-900 rounded-2xl p-6 text-left w-full max-w-2xl overflow-auto mb-8">
-            <code className="text-rose-400 text-xs font-mono break-all">
+            <code className="text-rose-400 text-[11px] whitespace-nowrap font-mono break-all">
               {this.state.error?.toString()}
             </code>
           </div>

@@ -26,7 +26,7 @@ const StatsCards = ({ stats }) => {
             <span className="text-3xl">{stat.icon}</span>
           </div>
           <p className="text-3xl font-bold text-white mb-1">{stat.value}</p>
-          <p className="text-sm text-slate-300">{stat.label}</p>
+          <p className="text-sm text-slate-500">{stat.label}</p>
         </div>
       ))}
     </div>

@@ -32,11 +32,11 @@ const NewsView = () => {
                 {displayArticles.map((news, i) => (
                     <div key={i} className="bg-white p-5 rounded-[20px] border border-slate-100 hover:border-blue-500/30 transition-all cursor-pointer group shadow-sm">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 text-[9px] font-black uppercase tracking-wider">{news.category || news.site_id || '资讯'}</span>
-                            <span className="text-[9px] text-slate-400 font-medium">{news.date || news.created_at?.split(' ')[0]}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 text-[11px] font-black uppercase tracking-wider">{news.category || news.site_id || '资讯'}</span>
+                            <span className="text-[11px] text-slate-500 font-medium">{news.date || news.created_at?.split(' ')[0]}</span>
                         </div>
                         <h4 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1 leading-tight">{news.title}</h4>
-                        <p className="text-xs text-slate-500 leading-none truncate">{news.desc || news.summary}</p>
+                        <p className="text-[11px] text-slate-500 leading-none truncate">{news.desc || news.summary}</p>
                     </div>
                 ))}
             </div>

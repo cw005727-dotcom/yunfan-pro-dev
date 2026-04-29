@@ -77,17 +77,17 @@ const OptimizeTitleView = () => {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="h-full overflow-y-auto p-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
                     <h3 className="text-[26px] font-black text-slate-800 tracking-tight">标题优化</h3>
-                    <p className="text-[11px] text-slate-400 font-medium mt-1">AI 生成 · MercadoLibre 西语标题</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">AI 生成 · MercadoLibre 西语标题</p>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                    <span className="text-[10px] text-slate-400 font-medium">实时生成</span>
+                    <span className="text-[11px] text-slate-500 font-bold">实时生成</span>
                 </div>
             </div>
 
@@ -99,14 +99,14 @@ const OptimizeTitleView = () => {
                     placeholder="粘贴原标题或输入产品关键词..."
                     rows={3}
                     maxLength={500}
-                    className="w-full bg-transparent border-none resize-none text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none leading-relaxed"
+                    className="w-full bg-transparent border-none resize-none text-[13px] font-medium text-slate-700 placeholder:text-slate-500 focus:outline-none leading-relaxed"
                 />
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                    <span className="text-[10px] text-slate-300 font-medium">{input.length}/500</span>
+                    <span className="text-[11px] text-slate-500 font-medium">{input.length}/500</span>
                     {input.trim() && (
                         <button
                             onClick={() => setInput('')}
-                            className="text-[10px] text-slate-400 hover:text-slate-600 font-medium transition-colors"
+                            className="text-[11px] text-slate-500 hover:text-slate-600 font-medium transition-colors"
                         >
                             清空
                         </button>
@@ -116,7 +116,7 @@ const OptimizeTitleView = () => {
 
             {/* Plan Selection */}
             <div className="space-y-2.5">
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest px-1">选择指令方案</p>
+                <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest px-1">选择指令方案</p>
                 <div className="grid grid-cols-4 gap-2">
                     {Object.entries({ ...PROMPT_PLANS, D: { label: 'D · 自定义', color: 'from-slate-500 to-slate-600', bg: 'bg-slate-50', textColor: 'text-slate-500', dot: 'bg-slate-400', desc: '自由填写指令', prompt: '' } }).map(([key, plan]) => {
                         const isActive = activePlan === key;
@@ -138,13 +138,13 @@ const OptimizeTitleView = () => {
                                 <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r ${c.from} ${c.to}`} />
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/5 pointer-events-none" />
                                 <div className={`relative flex flex-col items-center gap-1.5 w-full px-1`}>
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[12px] ${isActive ? `bg-gradient-to-br ${c.from} ${c.to} text-white shadow-md` : 'bg-slate-100 text-slate-400'}`}>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[12px] ${isActive ? `bg-gradient-to-br ${c.from} ${c.to} text-white shadow-md` : 'bg-slate-100 text-slate-500'}`}>
                                         {key}
                                     </div>
-                                    <p className={`text-[10px] font-black ${isActive ? c.label : 'text-slate-400'}`}>{plan.label}</p>
+                                    <p className={`text-[11px] font-black ${isActive ? c.label : 'text-slate-500'}`}>{plan.label}</p>
                                     {isActive && <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />}
                                     {!isCustom && (
-                                        <p className={`text-[8px] leading-relaxed text-center line-clamp-2 ${isActive ? 'text-slate-400' : 'text-slate-300'}`}>{plan.prompt}</p>
+                                        <p className={`text-[11px] leading-relaxed text-center truncate ${isActive ? 'text-slate-500' : 'text-slate-500'}`}>{plan.prompt}</p>
                                     )}
                                     {isCustom && (
                                         <textarea
@@ -153,7 +153,7 @@ const OptimizeTitleView = () => {
                                             onClick={e => e.stopPropagation()}
                                             placeholder="填写指令..."
                                             rows={2}
-                                            className="w-full bg-white/60 border border-slate-200 rounded-xl px-2 py-1 text-[8px] text-slate-600 placeholder:text-slate-300 resize-none focus:outline-none"
+                                            className="w-full bg-white/60 border border-slate-200 rounded-xl px-2 py-1 text-[11px] text-slate-600 placeholder:text-slate-500 resize-none focus:outline-none"
                                         />
                                     )}
                                 </div>
@@ -189,22 +189,22 @@ const OptimizeTitleView = () => {
                 <div className="space-y-2.5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center gap-2 px-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                        <span className="text-[11px] text-slate-500 font-black uppercase tracking-widest">
                             生成结果 · {results.length}条
                         </span>
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg ml-auto ${PROMPT_PLANS[activePlan].bg} ${PROMPT_PLANS[activePlan].textColor}`}>
+                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg ml-auto ${PROMPT_PLANS[activePlan].bg} ${PROMPT_PLANS[activePlan].textColor}`}>
                             {PROMPT_PLANS[activePlan].label}
                         </span>
                     </div>
                     {results.map((title, idx) => (
                         <div key={idx} className="solid-card rounded-2xl p-4 border border-slate-100 hover:border-slate-200 transition-all group flex items-start gap-3">
-                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${idx === 0 ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-400'}`}>
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 mt-0.5 ${idx === 0 ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'}`}>
                                 {idx === 0 ? '✅' : idx + 1}
                             </div>
                             <p className="flex-1 text-[12px] font-medium text-slate-700 leading-relaxed">{title}</p>
                             <button
                                 onClick={() => copyResult(title, idx)}
-                                className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all shrink-0"
+                                className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-600 transition-all shrink-0"
                             >
                                 <Icon name={copiedIdx === idx ? 'check' : 'copy'} className="w-3.5 h-3.5" />
                             </button>
@@ -215,7 +215,7 @@ const OptimizeTitleView = () => {
 
             {/* Empty State */}
             {!isGenerating && results.length === 0 && (
-                <div className="text-center py-12 text-slate-300">
+                <div className="text-center py-12 text-slate-500">
                     <Icon name="sparkles" className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-[11px] font-medium">输入标题，选择方案，即可生成优化标题</p>
                 </div>
@@ -225,3 +225,5 @@ const OptimizeTitleView = () => {
 };
 
 export default OptimizeTitleView;
+w;
+itleView;

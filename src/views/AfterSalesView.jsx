@@ -69,7 +69,7 @@ const MsgBubble = ({ msg, siteId }) => {
     return (
         <div className={`flex ${isSeller ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[82%] p-4 rounded-2xl text-[12px] leading-relaxed ${bubbleClass}`}>
-                <span className="text-[9px] font-black opacity-40 uppercase mb-1 block">{roleLabel}</span>
+                <span className="text-[11px] font-black opacity-40 uppercase mb-1 block">{roleLabel}</span>
 
                 {/* Original text */}
                 <p>{msg.content}</p>
@@ -83,12 +83,12 @@ const MsgBubble = ({ msg, siteId }) => {
 
                 {/* For seller: show translated version */}
                 {isSeller && zh && (
-                    <p className="mt-1.5 pt-1.5 border-t border-white/10 text-[10px] text-slate-400 italic">
+                    <p className="mt-1.5 pt-1.5 border-t border-white/10 text-[11px] text-slate-500 italic">
                         → 发送: {zh}
                     </p>
                 )}
 
-                <p className={`text-[8px] mt-1.5 opacity-50 ${isSeller ? 'text-right' : 'text-left'}`}>
+                <p className={`text-[11px] mt-1.5 opacity-50 ${isSeller ? 'text-right' : 'text-left'}`}>
                     {msg.created_at}
                 </p>
             </div>
@@ -104,14 +104,14 @@ const AiBar = ({ aiText, aiLoading, aiZh, onAdopt }) => {
                 <Icon name="sparkles" className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mb-0.5">AI 高情商回复（西班牙语）</p>
+                <p className="text-[11px] text-indigo-400 font-black uppercase tracking-widest mb-0.5">AI 高情商回复（西班牙语）</p>
                 {aiLoading ? (
                     <p className="text-[11px] text-indigo-400 italic">✨ 翻译中...</p>
                 ) : (
                     <>
                         <p className="text-[11px] font-medium text-indigo-700 truncate">{aiText}</p>
                         {aiZh && (
-                            <p className="text-[10px] text-indigo-400 mt-0.5 italic">💬 {aiZh}</p>
+                            <p className="text-[11px] text-indigo-400 mt-0.5 italic">💬 {aiZh}</p>
                         )}
                     </>
                 )}
@@ -119,7 +119,7 @@ const AiBar = ({ aiText, aiLoading, aiZh, onAdopt }) => {
             {!aiLoading && aiText && aiText !== '✨ 正在生成高情商回复...' && (
                 <button
                     onClick={() => onAdopt(aiText)}
-                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black hover:bg-indigo-700 transition-all shrink-0"
+                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[11px] font-black hover:bg-indigo-700 transition-all shrink-0"
                 >
                     采用
                 </button>
@@ -218,13 +218,13 @@ const DisputesView = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">售后纠纷</h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">
                         {disputes.length} 个纠纷订单 · 双向翻译 · AI 高情商回复
                     </p>
                 </div>
                 <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${disputes.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
-                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">
                         {disputes.length > 0 ? `${disputes.length} Disputas` : 'Sin disputas'}
                     </span>
                 </div>
@@ -236,7 +236,7 @@ const DisputesView = () => {
                 {/* Left: Dispute List */}
                 <div className="w-80 flex flex-col gap-2.5 overflow-y-auto no-scrollbar pr-1">
                     {disputes.length === 0 && (
-                        <div className="text-center py-12 text-slate-400 text-sm">暂无纠纷订单</div>
+                        <div className="text-center py-12 text-slate-500 text-sm">暂无纠纷订单</div>
                     )}
                     {disputes.map(d => {
                         const r = CANCEL_REASON[d.cancel_code] || CANCEL_REASON[d.cancel_detail_group] || '';
@@ -261,22 +261,22 @@ const DisputesView = () => {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${active?.id === d.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                        <span className={`text-[11px] font-black px-1.5 py-0.5 rounded ${active?.id === d.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                             {d.site_id}
                                         </span>
-                                        <span className={`text-[9px] font-black ${active?.id === d.id ? 'text-slate-300' : 'text-slate-400'}`}>
+                                        <span className={`text-[11px] font-black ${active?.id === d.id ? 'text-slate-500' : 'text-slate-500'}`}>
                                             ${d.amount}
                                         </span>
                                     </div>
-                                    <p className={`text-[9px] leading-snug ${active?.id === d.id ? 'text-rose-300' : 'text-rose-500'}`}>
+                                    <p className={`text-[11px] leading-snug ${active?.id === d.id ? 'text-rose-300' : 'text-rose-500'}`}>
                                         {d.status === 'cancelled' ? '🔴 ' : ''}{shortR}
                                     </p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1 shrink-0">
-                                    <span className={`text-[9px] ${active?.id === d.id ? 'text-slate-400' : 'text-slate-400'}`}>
+                                    <span className={`text-[11px] ${active?.id === d.id ? 'text-slate-500' : 'text-slate-500'}`}>
                                         {formatDate(d.order_date)}
                                     </span>
-                                    <span className={`text-[8px] ${active?.id === d.id ? 'text-slate-500' : 'text-slate-300'}`}>
+                                    <span className={`text-[11px] ${active?.id === d.id ? 'text-slate-500' : 'text-slate-500'}`}>
                                         #{d.id.substring(d.id.length - 6)}
                                     </span>
                                 </div>
@@ -296,27 +296,27 @@ const DisputesView = () => {
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-xl">{siteFlag}</span>
                                         <span className="text-[13px] font-black text-slate-800">{active.site_id} · {SITE_NAME[active.site_id]}</span>
-                                        <span className="text-[10px] font-bold text-slate-400">#{active.id.substring(active.id.length - 8)}</span>
+                                        <span className="text-[11px] font-bold text-slate-500">#{active.id.substring(active.id.length - 8)}</span>
                                     </div>
                                     <p className="text-[11px] text-slate-500 font-medium">{active.product_name}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[18px] font-black text-slate-800">${active.amount}</p>
-                                    <p className="text-[9px] text-slate-400">{active.status}</p>
+                                    <p className="text-[11px] text-slate-500">{active.status}</p>
                                 </div>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-nowrap gap-2">
                                 {reason && (
-                                    <span className="px-3 py-1 bg-rose-50 border border-rose-200 rounded-full text-[10px] font-bold text-rose-600">
+                                    <span className="px-3 py-1 bg-rose-50 border border-rose-200 rounded-full text-[11px] font-bold text-rose-600">
                                         ⚠️ {reason}
                                     </span>
                                 )}
                                 {active.mediations_count > 0 && (
-                                    <span className="px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-[10px] font-bold text-amber-600">
+                                    <span className="px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-[11px] font-bold text-amber-600">
                                         🛡 {active.mediations_count} 次调解
                                     </span>
                                 )}
-                                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-medium text-slate-500">
+                                <span className="px-3 py-1 bg-slate-100 rounded-full text-[11px] font-medium text-slate-500">
                                     🏪 {active.store_name || active.nickname}
                                 </span>
                             </div>
@@ -326,7 +326,7 @@ const DisputesView = () => {
                     {/* Chat Messages */}
                     <div className="flex-1 p-5 overflow-y-auto space-y-3 no-scrollbar">
                         {!active && (
-                            <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                            <div className="h-full flex items-center justify-center text-slate-500 text-sm">
                                 ← 选择一个纠纷订单查看详情
                             </div>
                         )}
@@ -364,7 +364,7 @@ const DisputesView = () => {
                                 发送
                             </button>
                         </div>
-                        <p className="text-[9px] text-slate-400 mt-1.5 ml-1">
+                        <p className="text-[11px] text-slate-500 mt-1.5 ml-1">
                             💡 输入中文后点击发送，系统自动翻译为西班牙语/葡萄牙语发送给买家
                         </p>
                     </div>

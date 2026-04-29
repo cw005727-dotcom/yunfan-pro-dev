@@ -29,7 +29,7 @@ const AuthPrepareView = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">前期准备</h3>
-                    <p className="text-slate-400 text-xs font-medium mt-1">MercadoLibre 授权与店铺连接</p>
+                    <p className="text-slate-500 text-[11px] font-medium mt-1">MercadoLibre 授权与店铺连接</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
@@ -55,7 +55,7 @@ const AuthPrepareView = () => {
                         </div>
                         <div>
                             <p className="text-[13px] font-black text-slate-800">{item.title}</p>
-                            <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{item.desc}</p>
+                            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
                         </div>
                     </div>
                 ))}
@@ -67,7 +67,7 @@ const AuthPrepareView = () => {
                 </div>
                 <div className="max-w-md space-y-2">
                     <h4 className="text-xl font-black text-slate-900 tracking-tight">连接您的 MercadoLibre 店铺</h4>
-                    <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                    <p className="text-[12px] text-slate-500 font-bold leading-relaxed">
                         点击下方按钮将跳转至美客多官方授权页面。授权完成后，系统将自动同步近 30 天的订单及全量商品数据。
                     </p>
                 </div>
@@ -81,12 +81,12 @@ const AuthPrepareView = () => {
                 </button>
                 <div className="flex items-center gap-6 pt-2">
                     <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">SSL 加密传输</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">SSL 加密传输</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">官方 API 对接</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">官方 API 对接</span>
                     </div>
                 </div>
             </div>
@@ -95,3 +95,5 @@ const AuthPrepareView = () => {
 };
 
 export default AuthPrepareView;
+repareView;
+reView;

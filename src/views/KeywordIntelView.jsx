@@ -11,7 +11,7 @@ const KeywordIntelView = (props) => {
                 <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
                 <div className="text-center space-y-4">
                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">关键词情报局</h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.4em] mt-1">Real-time Semantic Analysis</p>
+                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">Real-time Semantic Analysis</p>
                 </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -23,7 +23,7 @@ const KeywordIntelView = (props) => {
                             </div>
                             <div className="space-y-4">
                                 {loading ? (
-                                    <div className="flex items-center justify-center py-10"><Icon name="loader" className="w-6 h-6 animate-spin text-slate-300" /></div>
+                                    <div className="flex items-center justify-center py-10"><Icon name="loader" className="w-6 h-6 animate-spin text-slate-500" /></div>
                                 ) : (trending || []).map((item, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors">
                                         <span className="text-slate-900 font-bold">{item.word}</span>
@@ -41,14 +41,14 @@ const KeywordIntelView = (props) => {
                             </div>
                             <div className="space-y-4">
                                 {loading ? (
-                                    <div className="flex items-center justify-center py-10"><Icon name="loader" className="w-6 h-6 animate-spin text-slate-300" /></div>
+                                    <div className="flex items-center justify-center py-10"><Icon name="loader" className="w-6 h-6 animate-spin text-slate-500" /></div>
                                 ) : (gaps || []).map((item, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                         <div>
                                             <p className="text-slate-900 font-bold">{item.word}</p>
-                                            <p className="text-[10px] text-slate-400 font-black uppercase mt-1">竞争度: {item.competition}</p>
+                                            <p className="text-[11px] text-slate-500 font-black uppercase mt-1">竞争度: {item.competition}</p>
                                         </div>
-                                        <span className="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-600 text-[10px] font-black">商机</span>
+                                        <span className="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-600 text-[11px] font-black">商机</span>
                                     </div>
                                 ))}
                             </div>

@@ -34,7 +34,7 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-white">数据概览</h2>
-              <p className="text-sm text-slate-400 mt-1">系统实时运行状态</p>
+              <p className="text-sm text-slate-600 mt-1">系统实时运行状态</p>
             </div>
             <StatsCards stats={stats} />
           </div>
@@ -46,7 +46,7 @@ const AdminPanel = () => {
           <div className="glass-effect rounded-2xl p-12 text-center">
             <div className="text-6xl mb-4">👥</div>
             <h3 className="text-xl font-bold text-white mb-2">用户管理</h3>
-            <p className="text-slate-400">功能开发中，敬请期待</p>
+            <p className="text-slate-600">功能开发中，敬请期待</p>
           </div>
         );
       case 'settings':
@@ -54,7 +54,7 @@ const AdminPanel = () => {
           <div className="glass-effect rounded-2xl p-12 text-center">
             <div className="text-6xl mb-4">⚙️</div>
             <h3 className="text-xl font-bold text-white mb-2">系统设置</h3>
-            <p className="text-slate-400">功能开发中，敬请期待</p>
+            <p className="text-slate-600">功能开发中，敬请期待</p>
           </div>
         );
       default:

@@ -29,7 +29,7 @@ const LoginPage = ({ onLogin }) => (
                     <Icon name="command" className="w-10 h-10 text-emerald-500" />
                 </div>
                 <h1 className="text-3xl font-black text-white tracking-tighter uppercase">云帆 PRO</h1>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">指挥官 V4.29.33</p>
+                <p className="text-slate-500 text-[11px] whitespace-nowrap font-bold uppercase tracking-widest">指挥官 V4.29.33</p>
             </div>
             <div className="space-y-4 pt-4">
                 <button 
@@ -83,7 +83,7 @@ const MonitoringSidebar = () => {
             <div className="h-[64px] border-b border-white/5 flex items-center px-6 shrink-0 z-20">
                 <div className="flex flex-col">
                     <span className="text-[13px] font-black text-white tracking-widest uppercase">实时监控</span>
-                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tight">Intelligence Stream</span>
+                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-tight whitespace-nowrap">Intelligence Stream</span>
                 </div>
             </div>
             
@@ -100,12 +100,12 @@ const MonitoringSidebar = () => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-1.5 h-1.5 rounded-full`} style={{ backgroundColor: cfg.hex, boxShadow: `0 0 8px ${cfg.hex}` }}></div>
-                                        <span className="text-[10px] font-black text-white/90 uppercase tracking-tight">{log.label}</span>
+                                        <span className="text-[11px] whitespace-nowrap font-black text-white/90 uppercase tracking-tight">{log.label}</span>
                                     </div>
-                                    <span className="text-[8px] text-slate-500 font-mono italic">{log.time}</span>
+                                    <span className="text-[11px] whitespace-nowrap text-slate-500 font-mono italic">{log.time}</span>
                                 </div>
                                 
-                                <p className="text-[11px] text-slate-300 font-bold leading-relaxed group-hover:text-white transition-colors">
+                                <p className="text-[11px] text-slate-500 font-bold leading-relaxed group-hover:text-white transition-colors">
                                     {log.desc}
                                 </p>
                             </div>
@@ -114,7 +114,7 @@ const MonitoringSidebar = () => {
                             {log.urgent && (
                                 <div className="bg-red-500/20 border-t border-red-500/30 px-4 py-1.5 flex items-center justify-center gap-2">
                                     <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></div>
-                                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">紧急预警</span>
+                                    <span className="text-[11px] whitespace-nowrap font-black text-red-400 uppercase tracking-widest">紧急预警</span>
                                 </div>
                             )}
                         </div>
@@ -125,7 +125,7 @@ const MonitoringSidebar = () => {
             <div className="h-12 border-t border-white/5 flex items-center px-6 shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Active Connection</span>
+                    <span className="text-[11px] whitespace-nowrap text-slate-500 font-black uppercase tracking-widest">Active Connection</span>
                 </div>
             </div>
         </div>
@@ -139,7 +139,7 @@ const App = () => {
 
     const menuConfig = {
         home: [
-            { id: 'auth', label: '前期准备', icon: 'key', color: 'text-slate-400', active: 'bg-slate-500/10 border-slate-500/30' },
+            { id: 'auth', label: '前期准备', icon: 'key', color: 'text-slate-600', active: 'bg-slate-500/10 border-slate-500/30' },
             { id: 'news', label: '最新资讯', icon: 'newspaper', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'intro', label: '业务介绍', icon: 'info', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30' },
             { id: 'activity', label: '活动中心', icon: 'star', color: 'text-amber-500', bg: 'bg-amber-500', shadow: 'shadow-amber-500/30' }
@@ -190,11 +190,11 @@ const App = () => {
             <div className="w-[170px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full shrink-0 overflow-hidden relative">
                 <div className="absolute left-0 top-0 w-[4px] h-full bg-emerald-500 shadow-[2px_0_12px_rgba(16,185,129,0.3)]"></div>
                 <div className="h-[64px] flex items-center justify-center border-b border-white/5 bg-white/[0.02] shrink-0">
-                    <span className="text-xs font-black text-white tracking-[0.2em] uppercase">云帆 PRO</span>
+                    <span className="text-[11px] whitespace-nowrap font-black text-white tracking-[0.2em] uppercase">云帆 PRO</span>
                 </div>
                 <div className="flex-1 overflow-hidden p-2 space-y-7 pt-6">
                     {[
-                        { id: 'home', label: '首页', icon: 'home', color: 'text-slate-400', active: 'bg-slate-500', shadow: 'shadow-slate-500/20' },
+                        { id: 'home', label: '首页', icon: 'home', color: 'text-slate-600', active: 'bg-slate-500', shadow: 'shadow-slate-500/20' },
                         { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-blue-400', active: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
                         { id: 'ops', label: '运营中心', icon: 'zap', color: 'text-emerald-500', active: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
                         { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-purple-400', active: 'bg-purple-500', shadow: 'shadow-purple-500/20' }
@@ -276,6 +276,8 @@ const App = () => {
                             </div>
                         </Suspense>
                     </ErrorBoundary>
+                    
+                    {toast && <Toast {...toast} onClose={() => showToast(null)} />}
                 </div>
             </div>
         </div>

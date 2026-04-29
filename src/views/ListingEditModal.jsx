@@ -67,10 +67,10 @@ const ListingEditModal = ({ isOpen, onClose, item }) => {
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                     <div>
                         <h3 className="text-xl font-black text-slate-900">修改商品详情</h3>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">{item.item_id} · {item.site_id}</p>
+                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{item.item_id} · {item.site_id}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                        <Icon name="x" className="w-5 h-5 text-slate-400" />
+                        <Icon name="x" className="w-5 h-5 text-slate-500" />
                     </button>
                 </div>
 
@@ -84,7 +84,7 @@ const ListingEditModal = ({ isOpen, onClose, item }) => {
                             key={t.key}
                             onClick={() => setActiveTab(t.key)}
                             className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 ${
-                                activeTab === t.key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'
+                                activeTab === t.key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-600'
                             }`}
                         >
                             {t.label}
@@ -97,18 +97,18 @@ const ListingEditModal = ({ isOpen, onClose, item }) => {
                     {activeTab === 'basic' ? (
                         <>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">商品标题 (Max 60)</label>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">商品标题 (Max 60)</label>
                                 <textarea
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
                                     className="w-full rounded-2xl border border-slate-200 p-4 text-[13px] font-medium text-slate-700 focus:border-slate-400 focus:outline-none transition-all"
                                     rows={2}
                                 />
-                                <p className="text-[10px] text-right text-slate-300">{title.length}/60</p>
+                                <p className="text-[11px] text-right text-slate-500">{title.length}/60</p>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">主图链接</label>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">主图链接</label>
                                 <div className="flex gap-4">
                                     <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
                                         <img src={imageUrl} alt="" className="w-full h-full object-cover" />
@@ -124,7 +124,7 @@ const ListingEditModal = ({ isOpen, onClose, item }) => {
                         </>
                     ) : (
                         <div className="space-y-2 h-full flex flex-col">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">详情描述 (Plain Text)</label>
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">详情描述 (Plain Text)</label>
                             <textarea
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
@@ -139,7 +139,7 @@ const ListingEditModal = ({ isOpen, onClose, item }) => {
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all"
+                        className="px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-600 transition-all"
                     >
                         取消
                     </button>

@@ -7,7 +7,7 @@ const Brand = ({ slogan = "跨境电商智能工作台" }) => (
         </div>
         <div className="flex flex-col -space-y-1 text-left">
             <span className="text-slate-900 font-black tracking-tighter text-2xl whitespace-nowrap">云帆跨境</span>
-            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">{slogan}</span>
+            <span className="text-slate-600 text-[11px] whitespace-nowrap font-bold uppercase tracking-widest whitespace-nowrap">{slogan}</span>
         </div>
     </div>
 );

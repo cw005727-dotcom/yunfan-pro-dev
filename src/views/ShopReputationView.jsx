@@ -62,23 +62,23 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
                 <span className="text-xl">{siteInfo.flag}</span>
                 <div className="flex-1">
                     <p className="text-[12px] font-black text-slate-800">{storeName}</p>
-                    <p className="text-[10px] text-slate-400">{siteInfo.name}</p>
+                    <p className="text-[11px] text-slate-500 font-bold">{siteInfo.name}</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
                 <div className="flex flex-col gap-1">
-                    <span className="text-[8px] font-black text-slate-400 uppercase">官方信誉</span>
+                    <span className="text-[11px] font-black text-slate-500 uppercase">官方信誉</span>
                     <div className="flex items-center gap-1.5">
                         <div className={`w-2 h-2 rounded-full ${offMeta.bg}`}></div>
-                        <span className="text-[10px] font-black text-slate-700">{offMeta.label}</span>
+                        <span className="text-[11px] font-black text-slate-700">{offMeta.label}</span>
                     </div>
                 </div>
                 <div className="flex flex-col gap-1 border-l border-slate-100 pl-2">
-                    <span className="text-[8px] font-black text-slate-400 uppercase">系统判定</span>
+                    <span className="text-[11px] font-black text-slate-500 uppercase">系统判定</span>
                     <div className="flex items-center gap-1.5">
                         <div className={`w-2 h-2 rounded-full ${meta.dot} ${meta.pulse}`}></div>
-                        <span className={`text-[10px] font-black ${meta.text}`}>{statusLabel}</span>
+                        <span className={`text-[11px] font-black ${meta.text}`}>{statusLabel}</span>
                     </div>
                 </div>
             </div>
@@ -86,33 +86,33 @@ const Tooltip = ({ data, storeName, site, position, onClose }) => {
             <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                     <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.reclamos) > 0 || data.new_claims > 0 ? 'bg-rose-50' : 'bg-slate-50'}`}>
-                        <p className="text-[8px] text-slate-400 font-bold">投诉率</p>
+                        <p className="text-[11px] text-slate-500 font-bold">投诉率</p>
                         <p className={`text-sm font-black ${getMetricColor(data.reclamos, data.status, data.new_claims)}`}>{data.reclamos}</p>
                     </div>
                     <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.despacho) > 0 || data.new_delayed > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
-                        <p className="text-[8px] text-slate-400 font-bold">延误率</p>
+                        <p className="text-[11px] text-slate-500 font-bold">延误率</p>
                         <p className={`text-sm font-black ${getMetricColor(data.despacho, data.status, data.new_delayed)}`}>{data.despacho}</p>
                     </div>
                     <div className={`flex flex-col items-center gap-1 p-2 rounded-xl ${parseFloat(data.cancel) > 0 || data.new_cancel > 0 ? 'bg-purple-50' : 'bg-slate-50'}`}>
-                        <p className="text-[8px] text-slate-400 font-bold">取消率</p>
+                        <p className="text-[11px] text-slate-500 font-bold">取消率</p>
                         <p className={`text-sm font-black ${getMetricColor(data.cancel, data.status, data.new_cancel)}`}>{data.cancel || '0.00%'}</p>
                     </div>
                 </div>
 
                 {(data.new_claims > 0 || data.new_violations > 0) && (
                     <div className="pt-2 border-t border-dashed border-slate-100">
-                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2">今日紧急待办</p>
+                        <p className="text-[11px] font-black text-slate-500 uppercase mb-2">今日紧急待办</p>
                         <div className="space-y-1.5">
                             {data.new_claims > 0 && (
                                 <div className="flex justify-between items-center px-2 py-1 rounded-lg bg-rose-50 border border-rose-100">
-                                    <span className="text-[10px] font-bold text-rose-600">🚨 新增投诉纠纷</span>
-                                    <span className="text-[10px] font-black text-rose-600">+{data.new_claims}</span>
+                                    <span className="text-[11px] font-bold text-rose-600 whitespace-nowrap">🚨 新增投诉纠纷</span>
+                                    <span className="text-[11px] font-black text-rose-600">+{data.new_claims}</span>
                                 </div>
                             )}
                             {data.new_violations > 0 && (
                                 <div className="flex justify-between items-center px-2 py-1 rounded-lg bg-amber-50 border border-amber-100">
-                                    <span className="text-[10px] font-bold text-amber-600">⚠️ 新增违规处罚</span>
-                                    <span className="text-[10px] font-black text-amber-600">+{data.new_violations}</span>
+                                    <span className="text-[11px] font-bold text-amber-600">⚠️ 新增违规处罚</span>
+                                    <span className="text-[11px] font-black text-amber-600">+{data.new_violations}</span>
                                 </div>
                             )}
                         </div>
@@ -189,12 +189,12 @@ const ShopReputationView = () => {
                                 <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></div>
                             </div>
                             <span className="text-[11px] font-black text-indigo-700 uppercase tracking-widest">云帆 AI 实时守卫监控中</span>
-                            <span className="text-[11px] text-slate-300">|</span>
+                            <span className="text-[11px] text-slate-500">|</span>
                             <span className="text-[11px] text-slate-500 font-bold">已连接 {groupNames.length} 个店铺组 / {(reputation || []).length} 个站点</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-400 font-mono uppercase">Last Sync</span>
-                            <span className="text-[10px] text-slate-700 font-black">{logs[0]?.timestamp ? new Date(logs[0].timestamp).toLocaleTimeString() : '--:--:--'}</span>
+                            <span className="text-[11px] text-slate-500 font-mono uppercase">Last Sync</span>
+                            <span className="text-[11px] text-slate-700 font-black">{logs[0]?.timestamp ? new Date(logs[0].timestamp).toLocaleTimeString() : '--:--:--'}</span>
                         </div>
                     </div>
 
@@ -204,11 +204,11 @@ const ShopReputationView = () => {
                     <div className="flex items-center gap-2">
                         <button 
                             onClick={() => setStatusFilter('all')}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${statusFilter === 'all' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-100'}`}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${statusFilter === 'all' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-100'}`}
                         >全部 ({groupNames.length})</button>
                         <button 
                             onClick={() => setStatusFilter('abnormal')}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${statusFilter === 'abnormal' ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-500 hover:bg-slate-100'}`}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${statusFilter === 'abnormal' ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'text-slate-500 hover:bg-slate-100'}`}
                         >异常 ({groupNames.filter(n => storeGroups[n].some(s => s.status !== 'green' || s.is_suspended)).length})</button>
                     </div>
                     <div className="relative">
@@ -217,14 +217,14 @@ const ShopReputationView = () => {
                             placeholder="搜索..." 
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-48 pl-8 pr-4 py-1.5 rounded-xl bg-white border border-slate-200 text-[10px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            className="w-48 pl-8 pr-4 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                         />
-                        <Icon name="search" className="absolute left-3 top-2 w-3 h-3 text-slate-400" />
+                        <Icon name="search" className="absolute left-3 top-2 w-3 h-3 text-slate-500" />
                     </div>
                 </div>
 
                 <div className="p-4 flex flex-col flex-1 min-h-0">
-                    <div className="grid grid-cols-[160px_1fr] gap-4 mb-2 text-[9px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 pb-1 shrink-0">
+                    <div className="grid grid-cols-[160px_1fr] gap-4 mb-2 text-[11px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 pb-1 shrink-0">
                         <div>店铺分组</div>
                         <div className="grid grid-cols-6 gap-2 text-center">
                             {SITE_COLS.map(c => <div key={c.code}>{c.flag} {c.name}</div>)}
@@ -244,7 +244,7 @@ const ShopReputationView = () => {
                                 >
                                     <div className="flex flex-col justify-center">
                                         <span className={`text-[12px] font-black truncate ${isSelected ? 'text-indigo-600' : 'text-slate-700'}`}>{name}</span>
-                                        {isSelected && <span className="text-[8px] font-black text-indigo-400 uppercase mt-0.5 tracking-tighter">Selected ▸</span>}
+                                        {isSelected && <span className="text-[11px] font-black text-indigo-400 uppercase mt-0.5 tracking-tighter">Selected ▸</span>}
                                     </div>
                                     <div className="grid grid-cols-6 gap-2">
                                         {SITE_COLS.map(col => {
@@ -265,7 +265,7 @@ const ShopReputationView = () => {
                                                     </div>
                                                     
                                                     {(siteData.new_claims > 0 || siteData.new_violations > 0) && (
-                                                        <div className="absolute -top-1.5 -right-1 bg-rose-500 text-white text-[7px] font-black px-1 rounded-full border border-white">
+                                                        <div className="absolute -top-1.5 -right-1 bg-rose-500 text-white text-[11px] font-black px-1 rounded-full border border-white">
                                                             +{(siteData.new_claims || 0) + (siteData.new_violations || 0)}
                                                         </div>
                                                     )}
@@ -299,31 +299,31 @@ const ShopReputationView = () => {
                                             <span className="text-sm">{col.flag}</span>
                                             <div className="flex flex-col">
                                                 <span className="text-[12px] font-black text-slate-800">{col.name}</span>
-                                                {siteData?.last_updated && <span className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">刷新 {siteData.last_updated.slice(11, 16)}</span>}
+                                                {siteData?.last_updated && <span className="text-[11px] text-slate-500 font-bold uppercase tracking-tighter">刷新 {siteData.last_updated.slice(11, 16)}</span>}
                                             </div>
                                         </div>
-                                        {siteData?.is_suspended && <span className="px-1 py-0.5 rounded-lg bg-rose-50 text-rose-500 text-[8px] font-black uppercase">Suspended</span>}
+                                        {siteData?.is_suspended && <span className="px-1 py-0.5 rounded-lg bg-rose-50 text-rose-500 text-[11px] font-black uppercase">Suspended</span>}
                                     </div>
 
                                     {siteData ? (
                                         <div className="space-y-2.5">
                                             <div className="grid grid-cols-3 gap-1">
                                                 <div className="flex flex-col items-center p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors">
-                                                    <p className="text-[9px] font-black text-indigo-500/80 uppercase mb-0.5 tracking-tight">投诉率</p>
+                                                    <p className="text-[11px] font-black text-indigo-500/80 uppercase mb-0.5 tracking-tight">投诉率</p>
                                                     <div className="flex items-center gap-0.5">
                                                         <p className={`text-[14px] font-black ${getMetricColor(siteData.reclamos, siteData.status, siteData.new_claims)}`}>{siteData.reclamos}</p>
-                                                        {siteData.new_claims > 0 && <span className="text-rose-500 text-[8px] font-black animate-pulse">+{siteData.new_claims}</span>}
+                                                        {siteData.new_claims > 0 && <span className="text-rose-500 text-[11px] font-black animate-pulse">+{siteData.new_claims}</span>}
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col items-center p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors">
-                                                    <p className="text-[9px] font-black text-slate-500/80 uppercase mb-0.5 tracking-tight">延误率</p>
+                                                    <p className="text-[11px] font-black text-slate-500/80 uppercase mb-0.5 tracking-tight">延误率</p>
                                                     <div className="flex items-center gap-0.5">
                                                         <p className={`text-[14px] font-black ${getMetricColor(siteData.despacho, siteData.status, siteData.new_delayed)}`}>{siteData.despacho}</p>
                                                         {siteData.new_delayed > 0 && <span className="text-amber-500"><Icon name="alert-triangle" className="w-2.5 h-2.5" /></span>}
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col items-center p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors">
-                                                    <p className="text-[9px] font-black text-slate-500/80 uppercase mb-0.5 tracking-tight">取消率</p>
+                                                    <p className="text-[11px] font-black text-slate-500/80 uppercase mb-0.5 tracking-tight">取消率</p>
                                                     <p className={`text-[14px] font-black ${getMetricColor(siteData.cancel, siteData.status, siteData.new_cancel)}`}>{siteData.cancel || '0.00%'}</p>
                                                 </div>
                                             </div>
@@ -331,27 +331,27 @@ const ShopReputationView = () => {
                                             <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-100">
                                                 <div className="flex flex-col items-center">
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-[9px] font-black text-indigo-500/80 uppercase tracking-tight">官方信用</span>
+                                                        <span className="text-[11px] font-black text-indigo-500/80 uppercase tracking-tight">官方信用</span>
                                                         {siteData.status === 'red' && siteData.claims_history === 'Healthy' && (
-                                                            <span className="text-[6px] bg-amber-100 text-amber-600 px-0.5 rounded-sm font-black animate-pulse">Lag</span>
+                                                            <span className="text-[11px] whitespace-nowrap bg-amber-100 text-amber-600 px-0.5 rounded-sm font-black animate-pulse">Lag</span>
                                                         )}
                                                     </div>
-                                                    <span className={`text-[10px] font-black ${siteData.claims_history === 'Healthy' ? 'text-emerald-500' : 'text-amber-500'}`}>{siteData.claims_history || '正常'}</span>
+                                                    <span className={`text-[11px] font-black ${siteData.claims_history === 'Healthy' ? 'text-emerald-500' : 'text-amber-500'}`}>{siteData.claims_history || '正常'}</span>
                                                 </div>
                                                 <div className="flex flex-col items-center border-l border-r border-slate-100 px-0.5">
-                                                    <span className="text-[9px] font-black text-slate-500/80 uppercase tracking-tight">今日违规</span>
-                                                    <span className={`text-[10px] font-black ${siteData.new_violations > 0 ? 'text-rose-500' : 'text-slate-300'}`}>+{siteData.new_violations || 0}</span>
+                                                    <span className="text-[11px] font-black text-slate-500/80 uppercase tracking-tight">今日违规</span>
+                                                    <span className={`text-[11px] font-black ${siteData.new_violations > 0 ? 'text-rose-500' : 'text-slate-500'}`}>+{siteData.new_violations || 0}</span>
                                                 </div>
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-[9px] font-black text-slate-500/80 uppercase tracking-tight">未读消息</span>
-                                                    <span className={`text-[10px] font-black ${siteData.new_messages > 0 ? 'text-indigo-500' : 'text-slate-300'}`}>+{siteData.new_messages || 0}</span>
+                                                    <span className="text-[11px] font-black text-slate-500/80 uppercase tracking-tight">未读消息</span>
+                                                    <span className={`text-[11px] font-black ${siteData.new_messages > 0 ? 'text-indigo-500' : 'text-slate-500'}`}>+{siteData.new_messages || 0}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="py-6 flex flex-col items-center justify-center text-slate-200">
+                                        <div className="py-6 flex flex-col items-center justify-center text-slate-500">
                                             <span className="text-lg mb-1">—</span>
-                                            <span className="text-[8px] font-bold uppercase">未开通</span>
+                                            <span className="text-[11px] font-bold uppercase">未开通</span>
                                         </div>
                                     )}
                                 </div>
@@ -376,3 +376,4 @@ const ShopReputationView = () => {
 };
 
 export default ShopReputationView;
+w;
