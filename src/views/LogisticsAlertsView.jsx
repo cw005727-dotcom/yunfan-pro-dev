@@ -125,12 +125,6 @@ const LogisticsDetailModal = ({ order, onClose }) => {
   );
 };
 
-const SITE_FLAGS = {
-  MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾',
-};
-
-const DEFAULT_FLAG = '🌐';
-
 const getStatusConfig = (ts, ss) => {
   // 优先用 shipments API 的 tracking_status，其次 shipping_substatus，最后 shipping_status
   if (ts && STATUS_MAP[ts]) return STATUS_MAP[ts];
@@ -536,64 +530,6 @@ const LogisticsAlertsView = (props) => {
           order={selectedOrder} 
           onClose={() => setSelectedOrder(null)} 
         />
-      )}
-
-      {/* Marquee keyframe injection */}
-      <style>{`
-        @keyframes marquee {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
-    </div>
-  );
-};
-
-      {/* Marquee Ticker */}
-      <MarqueeTicker orders={marqueeOrders} />
-
-      {/* Filter Buttons */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {FILTERS.map(filter => {
-          const cnt = (filterGroups[filter.key] || []).length;
-          return (
-            <button
-              key={filter.key}
-              onClick={() => setActiveFilter(filter.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[11px] font-black transition-all duration-200 ${getFilterBtnClass(filter)}`}
-            >
-              {filter.icon}{filter.label}
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-lg text-[10px] ${
-                activeFilter === filter.key
-                  ? 'bg-white/20 text-white'
-                  : cnt > 0
-                    ? filter.color === 'red' ? 'bg-red-100 text-red-600'
-                    : filter.color === 'amber' ? 'bg-amber-100 text-amber-600'
-                    : filter.color === 'emerald' ? 'bg-emerald-100 text-emerald-600'
-                    : filter.color === 'blue' ? 'bg-blue-100 text-blue-600'
-                    : 'bg-slate-100 text-slate-400'
-                    : 'bg-slate-100 text-slate-400'
-              }`}>
-                {cnt}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Card Grid */}
-      {currentOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200">
-          <Icon name="package" className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm font-black text-slate-500 uppercase tracking-widest">暂无相关订单</p>
-          <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-widest">当前分类下没有需要处理的包裹</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {currentOrders.map(order => (
-            <LogisticsCard key={order.id} order={order} />
-          ))}
-        </div>
       )}
 
       {/* Marquee keyframe injection */}
