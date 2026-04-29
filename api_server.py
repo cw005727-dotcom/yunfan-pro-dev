@@ -1058,13 +1058,18 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 site_names = {"MLM": "墨西哥 (MX)", "MCO": "哥伦比亚 (CO)", "MLA": "阿根廷 (AR)", "MLB": "巴西 (BR)", "CBT": "全球/跨境 (CBT)"}
                 suspended_display = ", ".join([site_names.get(s, s) for s in suspended_sites])
                 
-                # 如果账号被暂停，展示所有商品（包括已下架），否则只看在售
+                # 如果账号被暂停，展示所有商品；否则展示 active + under_review + closed（新品多处于审核或刚下架状态）
                 if is_suspended:
                     status_filter = "(status = 'active' OR status = 'closed' OR status = 'inactive')"
-                    site_filter = "1=1" 
                 else:
-                    status_filter = "status = 'active'"
-                    site_filter = "site_id != 'CBT'"
+                    status_filter = "(status = 'active' OR status = 'under_review' OR status = 'closed')"
+
+                # site 参数：支持前端切换站点筛选，默认排除 CBT
+                req_site = query.get('site', [''])[0]
+                if req_site and req_site != 'all':
+                    site_filter = f"site_id = '{req_site}'"
+                else:
+                    site_filter = "1=1"  # 默认展示所有站点（包括CBT）
 
                 # 获取大姐店全店汇总
                 cursor.execute(f"""
@@ -1088,9 +1093,23 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 }
                 
                 # 获取列表
-                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} ORDER BY is_core DESC, exposure DESC LIMIT 100")
+                cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} ORDER BY is_core DESC, exposure DESC LIMIT 500")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
-                
+
+                # ---- 已上架天数计算 ----
+                now = datetime.now()
+                for row in rows:
+                    st = row.get('start_time')
+                    if st:
+                        try:
+                            dt_str = str(st).split('T')[0]
+                            dt = datetime.strptime(dt_str, '%Y-%m-%d')
+                            row['days_listed'] = (now - dt).days
+                        except:
+                            row['days_listed'] = 0
+                    else:
+                        row['days_listed'] = 0
+
                 self.send_json({
                     "items": rows,
                     "summary": summary

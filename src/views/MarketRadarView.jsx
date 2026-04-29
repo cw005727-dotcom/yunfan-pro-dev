@@ -13,10 +13,10 @@ const SITES = [
 ];
 
 const PLATFORMS = [
-    { id: 'amazon', label: 'AMAZON', icon: 'shopping-bag' },
-    { id: '1688', label: '1688', icon: 'box' },
-    { id: 'aliexpress', label: 'AE', icon: 'globe' },
-    { id: 'temu', label: 'TEMU', icon: 'zap' }
+    { id: 'amazon', label: 'AMAZON', color: '#FF9900', logo: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Amazon_icon.svg' },
+    { id: '1688', label: '1688', color: '#FF6600', logo: 'https://cbu01.alicdn.com/cms/upload/2016/092/105/2501290_1340156972.png' },
+    { id: 'aliexpress', label: 'AE', color: '#E62E04', logo: 'https://ae01.alicdn.com/kf/S8f09d81d4a8e458e807604791552a443Z.png' },
+    { id: 'temu', label: 'TEMU', color: '#FF6000', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Temu_logo.svg' }
 ];
 
 const MarketRadarView = () => {
@@ -42,8 +42,6 @@ const MarketRadarView = () => {
                 })
             });
             
-            // In a real scenario, we'd wait for a webhook or poll. 
-            // For now, we simulate the scan by refreshing after a delay.
             setTimeout(() => {
                 refresh();
                 setIsScanning(false);
@@ -57,51 +55,52 @@ const MarketRadarView = () => {
     return (
         <div className="flex flex-col h-screen bg-slate-50 p-6 overflow-hidden">
             {/* Top Control Bar (The Commander) */}
-            <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                {/* 1. Site Selector */}
+            <div className="flex items-center gap-4 mb-6 bg-white p-3 rounded-3xl shadow-sm border border-slate-100">
+                {/* 1. Site Selector with Tooltips */}
                 <div className="flex items-center gap-2 pr-4 border-r border-slate-100">
                     {SITES.map(site => (
                         <button
                             key={site.id}
+                            title={site.label}
                             onClick={() => setActiveSite(site.id)}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
                                 activeSite === site.id 
-                                ? 'bg-amber-500 scale-110 shadow-lg shadow-amber-200' 
-                                : 'bg-slate-50 hover:bg-slate-100'
+                                ? 'bg-amber-500 shadow-lg shadow-amber-200' 
+                                : 'bg-slate-50'
                             }`}
                         >
-                            <span className="text-xl">{site.flag}</span>
+                            <span className="text-lg">{site.flag}</span>
                         </button>
                     ))}
                 </div>
 
-                {/* 2. Platform Selector */}
+                {/* 2. Platform Selector with Colored Logos */}
                 <div className="flex items-center gap-2 pr-4 border-r border-slate-100">
                     {PLATFORMS.map(p => (
                         <button
                             key={p.id}
                             onClick={() => setActivePlatform(p.id)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-2 border ${
                                 activePlatform === p.id 
-                                ? 'bg-slate-900 text-white shadow-lg' 
-                                : 'text-slate-400 hover:bg-slate-50'
+                                ? 'bg-slate-900 border-slate-900 shadow-md' 
+                                : 'bg-white border-slate-100 hover:border-slate-300'
                             }`}
                         >
-                            <div className="flex items-center gap-2">
-                                <Icon name={p.icon} size={14} />
+                            <img src={p.logo} alt={p.label} className="w-5 h-5 object-contain" />
+                            <span className={`text-[9px] font-black tracking-tighter ${activePlatform === p.id ? 'text-white' : 'text-slate-500'}`}>
                                 {p.label}
-                            </div>
+                            </span>
                         </button>
                     ))}
                 </div>
 
                 {/* 3. AI Deep Scan Input */}
-                <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 focus-within:border-amber-400 transition-all">
-                    <Icon name="search" size={16} className="text-slate-400" />
+                <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-1.5 rounded-2xl border border-slate-100 focus-within:border-amber-400 transition-all">
+                    <Icon name="search" size={14} className="text-slate-400" />
                     <input 
                         type="text" 
-                        placeholder={`在 ${activeSite} 的 ${activePlatform} 中深度扫描关键词...`}
-                        className="bg-transparent border-none outline-none flex-1 text-[13px] font-medium text-slate-700"
+                        placeholder={`在 ${SITES.find(s=>s.id===activeSite)?.label} 的 ${activePlatform} 中扫描...`}
+                        className="bg-transparent border-none outline-none flex-1 text-[12px] font-medium text-slate-700"
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleScan()}
@@ -109,64 +108,68 @@ const MarketRadarView = () => {
                     <button 
                         onClick={handleScan}
                         disabled={isScanning}
-                        className={`px-6 py-2 rounded-xl bg-amber-500 text-white text-[11px] font-black tracking-widest hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-100 ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`px-5 py-1.5 rounded-xl bg-amber-500 text-white text-[10px] font-black tracking-widest hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-100 ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        {isScanning ? 'SCANNING...' : 'AI SCAN'}
+                        {isScanning ? 'SCANNING...' : 'SCAN'}
                     </button>
                 </div>
             </div>
 
-            {/* Main Content: 1x4 Matrix */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* Main Content: 1x6 Matrix */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-1">
                 <div className="mb-4 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-[14px] font-black text-slate-800 tracking-tight uppercase">
-                            {activeSite} Intelligence Feed <span className="text-amber-500">/ {activePlatform}</span>
-                        </h2>
-                        <p className="text-[9px] text-slate-400 font-bold tracking-widest">REAL-TIME SHADOW COLLECTOR ACTIVE</p>
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-white">
+                            <Icon name="activity" size={16} />
+                        </div>
+                        <div>
+                            <h2 className="text-[12px] font-black text-slate-800 tracking-tight uppercase flex items-center gap-2">
+                                {SITES.find(s=>s.id===activeSite)?.label}情报矩阵
+                                <span className="text-amber-500">/ {activePlatform}</span>
+                            </h2>
+                            <p className="text-[8px] text-slate-400 font-bold tracking-widest uppercase">Intelligent Shadow Feed Active</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                        <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-                        {isScanning ? '影子采集节点正在同步数据...' : '同步节点就绪 (Node MX-01)'}
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
+                        <div className={`w-1.5 h-1.5 rounded-full ${isScanning ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                        {isScanning ? '正在获取实时情报...' : '节点就绪: MX-01'}
                     </div>
                 </div>
 
                 {loading || isScanning ? (
-                    <div className="grid grid-cols-4 gap-4">
-                        {[1,2,3,4,5,6,7,8].map(i => (
-                            <div key={i} className="bg-white rounded-3xl p-4 h-[220px] animate-pulse border border-slate-100">
-                                <div className="w-full h-32 bg-slate-50 rounded-2xl mb-4" />
-                                <div className="h-3 w-3/4 bg-slate-50 rounded mb-2" />
-                                <div className="h-3 w-1/2 bg-slate-50 rounded" />
+                    <div className="grid grid-cols-6 gap-3">
+                        {[1,2,3,4,5,6,7,8,9,10,11,12].map(i => (
+                            <div key={i} className="bg-white rounded-2xl p-2 h-[180px] animate-pulse border border-slate-100">
+                                <div className="w-full h-24 bg-slate-50 rounded-xl mb-3" />
+                                <div className="h-2.5 w-3/4 bg-slate-50 rounded mb-2" />
+                                <div className="h-2.5 w-1/2 bg-slate-50 rounded" />
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-4 pb-12">
+                    <div className="grid grid-cols-6 gap-3 pb-12">
                         {safeMarketProducts.map((p, i) => (
-                            <div key={i} className="group bg-white rounded-3xl border border-slate-100 p-3 hover:border-amber-400 transition-all hover:shadow-2xl hover:-translate-y-1 relative">
-                                <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 relative mb-3">
+                            <div key={i} className="group bg-white rounded-2xl border border-slate-50 p-2.5 hover:border-amber-400 transition-all hover:shadow-xl hover:-translate-y-1 relative">
+                                <div className="aspect-square rounded-xl overflow-hidden bg-slate-50 relative mb-2.5">
                                     <img 
                                         src={p.image || p.thumbnail} 
                                         alt={p.title} 
                                         referrerPolicy="no-referrer"
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                                     />
-                                    <div className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-white/90 backdrop-blur-md text-[9px] font-black text-slate-800 shadow-sm border border-slate-100">
+                                    <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-white/90 backdrop-blur-md text-[8px] font-black text-slate-800 shadow-sm border border-slate-100">
                                         {p.currency || 'MXN'}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <p className="text-slate-800 font-bold text-[11px] line-clamp-2 min-h-[30px] leading-snug group-hover:text-amber-600 transition-colors">
+                                <div className="space-y-1.5">
+                                    <p className="text-slate-700 font-bold text-[9px] line-clamp-2 min-h-[26px] leading-tight group-hover:text-amber-600 transition-colors">
                                         {p.title}
                                     </p>
-                                    <div className="flex items-center justify-between pt-1">
-                                        <span className="text-amber-500 font-black text-[15px] tracking-tight">
+                                    <div className="flex items-center justify-between pt-0.5 border-t border-slate-50">
+                                        <span className="text-amber-500 font-black text-[13px] tracking-tighter">
                                             {p.currency === 'MXN' ? '$' : ''}{p.price}
                                         </span>
-                                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter bg-slate-50 px-2 py-1 rounded-lg">
-                                            🔥 Trending
-                                        </span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="High Potential" />
                                     </div>
                                 </div>
                             </div>
@@ -177,10 +180,10 @@ const MarketRadarView = () => {
             
             {/* System Status Footer */}
             <div className="mt-4 flex items-center justify-center">
-                <div className="px-6 py-2 bg-slate-900 rounded-full flex items-center gap-3 shadow-xl">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">
-                        Cloud Sync Active • Agent: ML-Pulse-V6 • Latency: 42ms
+                <div className="px-5 py-1.5 bg-slate-900 rounded-full flex items-center gap-2.5 shadow-xl">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[8px] text-slate-400 font-black tracking-[0.2em] uppercase">
+                        Global Intel Sync • MX-SCAN-V6.1 • Live
                     </span>
                 </div>
             </div>
