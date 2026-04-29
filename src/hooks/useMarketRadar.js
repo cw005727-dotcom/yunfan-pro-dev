@@ -11,13 +11,19 @@ export const useMarketRadar = (site = 'MLM', platform = 'mercado_libre') => {
   const [trends, setTrends] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [platformReason, setPlatformReason] = useState(null);
+  const [platformMessage, setPlatformMessage] = useState(null);
 
-  const fetchRadar = useCallback(async () => {
+  const fetchRadar = useCallback(async (keyword = null) => {
     try {
       setLoading(true);
+      
+      let radarUrl = `${API_BASE}/market_radar?site=${site}&platform=${platform}`;
+      if (keyword) radarUrl += `&keyword=${encodeURIComponent(keyword)}`;
+
       // Fetch both Radar Items and Trends in parallel
       const [radarRes, trendsRes] = await Promise.all([
-        fetch(`${API_BASE}/market_radar?site=${site}&platform=${platform}`),
+        fetch(radarUrl),
         fetch(`${API_BASE}/trends?site=${site}`)
       ]);
       
@@ -27,8 +33,15 @@ export const useMarketRadar = (site = 'MLM', platform = 'mercado_libre') => {
       const radarData = await radarRes.json();
       const trendsData = await trendsRes.json();
       
+      // Handle both array response (normal) and object response (platform_unsupported)
       if (Array.isArray(radarData)) {
         setItems(radarData);
+        setPlatformReason(null);
+        setPlatformMessage(null);
+      } else if (radarData.items !== undefined) {
+        setItems(radarData.items || []);
+        setPlatformReason(radarData.reason || null);
+        setPlatformMessage(radarData.message || null);
       }
       setTrends(prev => ({ ...prev, [site]: trendsData }));
       setError(null);
@@ -43,7 +56,7 @@ export const useMarketRadar = (site = 'MLM', platform = 'mercado_libre') => {
     fetchRadar();
   }, [fetchRadar]);
 
-  return { items, trends, loading, error, refresh: fetchRadar };
+  return { items, trends, loading, error, platformReason, platformMessage, refresh: fetchRadar };
 };
 
 /**

@@ -1,24 +1,128 @@
 import { useAppContext } from '../context/AppContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 
 // ─── Status mapping ─────────────────────────────────────────────────────────
 const STATUS_MAP = {
   // 物流轨迹状态（优先 tracking_status，其次 shipping_substatus）
-  pending:           { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
-  ready_to_ship:     { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
-  picked_up:         { label: '已揽收',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
-  shipped:           { label: '已发货',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
-  in_transit:        { label: '运输中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
-  in_local_transit:  { label: '目的国运输', color: 'bg-amber-500', textColor: 'text-white', marqueeColor: 'bg-amber-500', badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
-  at_customs:        { label: '清关中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
-  not_delivered:     { label: '未送达',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
-  delivered:         { label: '已签收',    color: 'bg-emerald-500',textColor: 'text-white', marqueeColor: 'bg-emerald-500',badge: 'bg-emerald-100 text-emerald-600',dot:'bg-emerald-500' },
-  failed:            { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
-  exception:         { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
-  returned:          { label: '退回',      color: 'bg-purple-500', textColor: 'text-white', marqueeColor: 'bg-purple-500',badge: 'bg-purple-100 text-purple-600',dot:'bg-purple-500' },
-  delayed:           { label: '延误',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
-  pending_recovery:  { label: '待取回',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
+  pending:           { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400', icon: 'clock' },
+  ready_to_ship:     { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400', icon: 'package' },
+  picked_up:         { label: '已揽收',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500', icon: 'truck' },
+  shipped:           { label: '已发货',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500', icon: 'truck' },
+  in_transit:        { label: '运输中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500', icon: 'plane' },
+  in_local_transit:  { label: '目的国运输', color: 'bg-amber-500', textColor: 'text-white', marqueeColor: 'bg-amber-500', badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500', icon: 'truck' },
+  at_customs:        { label: '清关中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500', icon: 'shield' },
+  not_delivered:     { label: '未送达',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'alert-triangle' },
+  delivered:         { label: '已签收',    color: 'bg-emerald-500',textColor: 'text-white', marqueeColor: 'bg-emerald-500',badge: 'bg-emerald-100 text-emerald-600',dot:'bg-emerald-500', icon: 'check-circle' },
+  failed:            { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'x-circle' },
+  exception:         { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'x-circle' },
+  returned:          { label: '退回',      color: 'bg-purple-500', textColor: 'text-white', marqueeColor: 'bg-purple-500',badge: 'bg-purple-100 text-purple-600',dot:'bg-purple-500', icon: 'rotate-ccw' },
+  delayed:           { label: '延误',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'alert-circle' },
+  pending_recovery:  { label: '待取回',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500', icon: 'refresh-cw' },
+};
+
+const SITE_FLAGS = {
+  MLM: '🇲🇽', MLB: '🇧🇷', MLA: '🇦🇷', MCO: '🇨🇴', MLC: '🇨🇱', MLU: '🇺🇾',
+};
+
+const DEFAULT_FLAG = '🌐';
+
+// ─── Logistics Detail Modal ──────────────────────────────────────────────────
+const LogisticsDetailModal = ({ order, onClose }) => {
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!order) return;
+    fetch(`/api/logistics/detail?id=${order.id}`)
+      .then(r => r.json())
+      .then(data => {
+        setDetails(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [order]);
+
+  if (!order) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white">
+              <Icon name="truck" className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-black text-slate-900">物流全链路追踪</h4>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">#{order.tracking_id || 'N/A'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors">
+            <Icon name="x" className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Order Brief */}
+          <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <img src={order.thumbnail} className="w-16 h-16 rounded-xl object-cover" alt="" />
+            <div className="flex-1">
+              <p className="text-xs font-black text-slate-800 line-clamp-1">{order.product_name}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 rounded-lg font-black">{order.logistic_company || '官方物流'}</span>
+                <span className="text-[10px] font-bold text-slate-400">{SITE_FLAGS[order.site_id]} {order.site_id}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Risk Alert if any */}
+          {details?.risk && (
+            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3">
+              <Icon name="alert-triangle" className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-black text-red-700">异常风险警示</p>
+                <p className="text-[11px] text-red-600/80 font-medium mt-0.5">{details.risk.message}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Timeline */}
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+              {details?.events?.map((ev, i) => (
+                <div key={i} className="relative">
+                  {/* Point */}
+                  <div className={`absolute -left-8 top-1.5 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center shadow-sm z-10 ${i === 0 ? 'bg-blue-500' : 'bg-slate-200'}`}>
+                    {i === 0 && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-black ${i === 0 ? 'text-blue-600' : 'text-slate-900'}`}>{ev.desc}</span>
+                      <span className="text-[9px] text-slate-400 font-bold">{ev.time}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1 font-medium">{ev.location}</p>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-center py-4 text-slate-400 text-xs font-medium">暂无详细轨迹信息</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+           <button className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[11px] font-black hover:bg-slate-800 transition-colors">导出报告</button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const SITE_FLAGS = {
@@ -112,7 +216,7 @@ const ProgressBar = ({ stage }) => {
 };
 
 // ─── Logistics Card ─────────────────────────────────────────────────────────
-const LogisticsCard = ({ order }) => {
+const LogisticsCard = ({ order, onClick }) => {
   // 优先级：tracking_status(shipments API) > shipping_substatus > shipping_status
   const ts = order.tracking_status || order.shipping_substatus || order.shipping_status;
   const ss = order.shipping_substatus || order.shipping_status;
@@ -129,8 +233,21 @@ const LogisticsCard = ({ order }) => {
 
   const imgUrl = order.thumbnail || `https://picsum.photos/seed/${order.id || 'default'}/200/200`;
 
+  // Risk detection logic
+  const isHighRisk = ['failed', 'exception', 'returned', 'delayed', 'not_delivered'].includes(ts) || (ts === 'at_customs');
+
   return (
-    <div className="solid-card rounded-[24px] p-5 border border-slate-200 bg-white hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-200/80 transition-all duration-300 cursor-pointer group">
+    <div 
+      onClick={() => onClick(order)}
+      className="solid-card rounded-[24px] p-5 border border-slate-200 bg-white hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-200/80 transition-all duration-300 cursor-pointer group relative"
+    >
+      {/* Risk Indicator */}
+      {isHighRisk && (
+        <div className="absolute -top-1 -right-1 z-20 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white border-4 border-white shadow-lg animate-bounce">
+          <Icon name="alert-triangle" className="w-4 h-4" />
+        </div>
+      )}
+
       {/* Image */}
       <div className="relative rounded-2xl overflow-hidden bg-slate-50 mb-4" style={{ height: '140px' }}>
         <img
@@ -251,6 +368,7 @@ const LogisticsAlertsView = (props) => {
   const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -344,16 +462,92 @@ const LogisticsAlertsView = (props) => {
   return (
     <div className="space-y-5 px-6 py-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-6 bg-white border border-slate-200 rounded-[32px] shadow-sm">
         <div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tight">📦 物流实时监控 (V5)</h3>
-          <p className="text-slate-400 text-xs font-medium mt-1">订单物流 · 实时追踪</p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Operations Command</span>
+          </div>
+          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">物流指挥中心 <span className="text-blue-500">PRO</span></h3>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-          <span className="text-[10px] text-slate-500 font-bold">{orders.length} 个订单</span>
+        <div className="flex gap-4">
+          <div className="text-right">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">在途总数</p>
+            <p className="text-xl font-black text-slate-900">{filterGroups.transit.length}</p>
+          </div>
+          <div className="w-[1px] h-10 bg-slate-100 mx-2"></div>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">异常告警</p>
+            <p className="text-xl font-black text-red-500">{filterGroups.exception.length}</p>
+          </div>
         </div>
       </div>
+
+      {/* Marquee Ticker */}
+      <MarqueeTicker orders={marqueeOrders} />
+
+      {/* Filter Buttons */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {FILTERS.map(filter => {
+          const cnt = (filterGroups[filter.key] || []).length;
+          return (
+            <button
+              key={filter.key}
+              onClick={() => setActiveFilter(filter.key)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[11px] font-black transition-all duration-200 ${getFilterBtnClass(filter)}`}
+            >
+              {filter.icon}{filter.label}
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-lg text-[10px] ${
+                activeFilter === filter.key
+                  ? 'bg-white/20 text-white'
+                  : cnt > 0
+                    ? filter.color === 'red' ? 'bg-red-100 text-red-600'
+                    : filter.color === 'amber' ? 'bg-amber-100 text-amber-600'
+                    : filter.color === 'emerald' ? 'bg-emerald-100 text-emerald-600'
+                    : filter.color === 'blue' ? 'bg-blue-100 text-blue-600'
+                    : 'bg-slate-100 text-slate-400'
+                    : 'bg-slate-100 text-slate-400'
+              }`}>
+                {cnt}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Card Grid */}
+      {currentOrders.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200">
+          <Icon name="package" className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+          <p className="text-sm font-black text-slate-500 uppercase tracking-widest">暂无相关订单</p>
+          <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-widest">当前分类下没有需要处理的包裹</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {currentOrders.map(order => (
+            <LogisticsCard key={order.id} order={order} onClick={setSelectedOrder} />
+          ))}
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedOrder && (
+        <LogisticsDetailModal 
+          order={selectedOrder} 
+          onClose={() => setSelectedOrder(null)} 
+        />
+      )}
+
+      {/* Marquee keyframe injection */}
+      <style>{`
+        @keyframes marquee {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
       {/* Marquee Ticker */}
       <MarqueeTicker orders={marqueeOrders} />

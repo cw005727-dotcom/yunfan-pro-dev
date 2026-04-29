@@ -28,7 +28,7 @@ ChartJS.register(
 
 const TABS = [
     { key: 'new',      label: '上新关注',  suffix: '🆕', desc: '上架 15 天内的新品监控：SKU 级深度漏斗追踪。' },
-    { key: 'hot',      label: '潜力爆款',  suffix: '🔥', desc: '潜力定义：曝光进入全店前 20 的高热度产品。对标美客多市场基准提供优化建议。' },
+    { key: 'hot',      label: '潜力爆款',  suffix: '🔥', desc: '每个站点曝光排名前20的高热度商品，全店共可显示120个（6站×20）' },
     { key: 'cart',     label: '已售商品',  suffix: '⚡' },
     { key: 'risk',     label: '风险产品',  suffix: '⚠️' },
     { key: 'inactive', label: '无效商品',  suffix: '💤' },
@@ -502,10 +502,21 @@ const ProductPerformanceView = () => {
     const categorized = useMemo(() => ({
         new:      sortItems(items.filter(d => (d.days_listed || 0) <= 15)),
         hot:      (() => {
-                    const sortedExp = [...items].sort((a,b) => (b.exposure||0)-(a.exposure||0)).slice(0, 20).map(i => i.item_id);
-                    const topSet = new Set(sortedExp);
-                    return items.filter(d => topSet.has(d.item_id))
-                                .sort((a,b) => (b.exposure||0) - (a.exposure||0));
+                    // 每个站点各取曝光前20，然后合并（站点内按曝光排序）
+                    const bySite = {};
+                    for (const d of items) {
+                      const site = d.site_id || 'OTHER';
+                      if (!bySite[site]) bySite[site] = [];
+                      bySite[site].push(d);
+                    }
+                    const result = [];
+                    for (const site of Object.keys(bySite)) {
+                      const top20 = bySite[site]
+                        .sort((a,b) => (b.exposure||0) - (a.exposure||0))
+                        .slice(0, 20);
+                      result.push(...top20);
+                    }
+                    return result;
                   })(),
         cart:     [...items].sort((a,b) => (b.cart_rate||0) - (a.cart_rate||0)).slice(0,10),
         risk:     items.filter(d => {

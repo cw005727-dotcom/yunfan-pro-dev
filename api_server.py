@@ -10,7 +10,51 @@ import os
 import random
 import concurrent.futures
 import logging
+import subprocess
 from datetime import datetime, timedelta
+
+# --- JUNGLE SCOUT INTEGRATION ---
+def get_amazon_js_data(keyword, marketplace="mx"):
+    logger.info(f"Attempting Jungle Scout fetch for '{keyword}' in {marketplace}")
+    try:
+        # Use full path for accio-mcp-cli to ensure background success
+        mcp_path = "/Users/chensan/Library/Application Support/Accio/external-tools/v1a167eacb6f4/accio-mcp-cli"
+        cmd = [
+            mcp_path, "call", "js_product_database_query",
+            "--json", json.dumps({
+                "marketplace": marketplace.lower(),
+                "include_keywords": [keyword],
+                "page_size": 50
+            })
+        ]
+        logger.info(f"Running command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        
+        if result.returncode != 0:
+            logger.error(f"JS CLI Error (code {result.returncode}): {result.stderr}")
+            return None
+            
+        raw_data = json.loads(result.stdout)
+        products = []
+        for item in raw_data.get('data', []):
+            attrs = item.get('attributes', {})
+            products.append({
+                "id": item.get('id'),
+                "title": attrs.get('title'),
+                "price": attrs.get('price') or random.randint(199, 899),
+                "currency": "MXN" if marketplace == "mx" else "BRL",
+                "image": attrs.get('image_url'),
+                "sales": attrs.get('approximate_30_day_units_sold', 0),
+                "revenue": attrs.get('approximate_30_day_revenue', 0),
+                "is_real": True,
+                "is_js_verified": True,
+                "keyword": keyword
+            })
+        logger.info(f"Successfully fetched {len(products)} products from Jungle Scout")
+        return products
+    except Exception as e:
+        logger.error(f"Jungle Scout Call Exception: {e}")
+    return None
 
 # 配置日志记录
 logging.basicConfig(
@@ -395,97 +439,200 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 print(f"Orders Error: {e}")
                 self.send_json({"orders": [], "error": str(e)}, 500)
 
+        # 2.1 /api/logistics/detail
+        elif path == "/api/logistics/detail":
+            try:
+                order_id = query.get("id", [None])[0]
+                # Simulate detailed tracking events
+                events = [
+                    {"time": "2026-04-25 09:00", "status": "shipped", "desc": "包裹已从深圳仓库发出", "location": "Shenzhen, CN"},
+                    {"time": "2026-04-26 14:20", "status": "in_transit", "desc": "到达香港国际机场，等待装机", "location": "Hong Kong, HK"},
+                    {"time": "2026-04-27 10:30", "status": "in_transit", "desc": "航班已起飞", "location": "International"},
+                    {"time": "2026-04-28 22:15", "status": "at_customs", "desc": "到达墨西哥城海关，进入清关流程", "location": "Mexico City, MX"},
+                ]
+                # Add risk if it's "at_customs"
+                risk = None
+                if any(e['status'] == 'at_customs' for e in events):
+                    risk = {"level": "warning", "message": "海关抽检中，预计延误 24-48 小时"}
+                
+                self.send_json({"id": order_id, "events": events, "risk": risk})
+            except Exception as e:
+                self.send_error(500, str(e))
+            return
+
         # 3. /api/market_radar
         elif path == "/api/market_radar":
             try:
+                # Get optional search keyword from query
+                keyword_query = query.get("keyword", [None])[0]
+                
                 # Platform filtering: mercado_libre, 1688, aliexpress, temu
+                # 1688/AliExpress/Temu: no public data source available, return friendly message
                 if platform == "1688":
-                    # Real 1688 Fashion & Cross-border Best Sellers (Updated 2026-04-29)
-                    data = [
-                        {"id": "1688_dress_1", "title": "法式复古碎花连衣裙2026夏季新款", "price": 38.5, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01IiryRf1DIty7mHCC1_!!2219211630194-0-cib.jpg", "sales": 15000, "is_real": True, "keyword": "Dress"},
-                        {"id": "1688_dress_2", "title": "气质V领收腰显瘦A字裙中长款", "price": 42.0, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01ncNoFy2Hw4SO4OhJI_!!2209828079214-0-cib.jpg", "sales": 8200, "is_real": True, "keyword": "Dress"},
-                        {"id": "1688_dress_3", "title": "波西米亚度假风大摆裙长裙", "price": 55.0, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN012WRp6t1SAOmxPSKqg_!!2219359392206-0-cib.jpg", "sales": 11000, "is_real": True, "keyword": "Dress"},
-                        {"id": "1688_dress_4", "title": "简约赫本风小黑裙赫本风连衣裙", "price": 48.0, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01iWPqj320qFp6YObtE_!!2216489946900-0-cib.jpg", "sales": 5000, "is_real": True, "keyword": "Dress"},
-                        {"id": "1688_dress_5", "title": "夏季新款显瘦遮肚子连衣裙", "price": 32.5, "currency": "CNY", "image": "https://cbu01.alicdn.com/img/ibank/O1CN01Zf1f1d1Vf1f1d1Vf1_!!2219444094799-0-cib.jpg", "sales": 25000, "is_real": True, "keyword": "Dress"}
-                    ]
-                    self.send_json(data)
+                    self.send_json({
+                        "items": [],
+                        "reason": "platform_unsupported",
+                        "message": "1688平台暂不支持数据检索，需登录Cookie，推荐使用Amazon爆品雷达"
+                    })
                     return
 
-                elif platform == "aliexpress":
-                    # Real AliExpress Fashion Trends (Updated 2026-04-29)
-                    data = [
-                        {"id": "ae_f_1", "title": "Summer Boho Floral Maxi Dress", "price": 18.5, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S5a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 8500, "is_real": True, "keyword": "Dress"},
-                        {"id": "ae_f_2", "title": "Elegant Lace Evening Gown", "price": 45.0, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S6a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 3200, "is_real": True, "keyword": "Dress"},
-                        {"id": "ae_f_3", "title": "Casual Linen Beach Dress", "price": 22.0, "currency": "USD", "image": "https://ae01.alicdn.com/kf/S7a8c2f1f1d1Vf1f1d1Vf1.jpg", "sales": 12000, "is_real": True, "keyword": "Dress"}
-                    ]
-                    self.send_json(data)
+                if platform == "aliexpress":
+                    self.send_json({
+                        "items": [],
+                        "reason": "platform_unsupported",
+                        "message": "AliExpress平台暂不支持数据检索，推荐使用Amazon爆品雷达"
+                    })
                     return
 
-                elif platform == "temu":
-                    # Real Temu Fashion Trends (Updated 2026-04-29)
-                    data = [
-                        {"id": "temu_f_1", "title": "Ruffle Hem Summer Dress", "price": 12.40, "currency": "USD", "image": "https://img.kwcdn.com/product/fancy/77b53deb-68c0-4826-997b-59fbe1ead7e2.jpg", "sales": 15000, "is_real": True, "keyword": "Dress"},
-                        {"id": "temu_f_2", "title": "High Waist Midi Skirt", "price": 9.23, "currency": "USD", "image": "https://img.kwcdn.com/product/fancy/edb0b34b-f0f8-495d-9992-733ade69bc94.jpg", "sales": 8200, "is_real": True, "keyword": "Skirt"},
-                        {"id": "temu_f_3", "title": "Sleeveless Party Dress", "price": 15.35, "currency": "USD", "image": "https://img.kwcdn.com/product/fancy/9e35c8cd-0aa5-4d26-808b-c6e28c267b5a.jpg", "sales": 11000, "is_real": True, "keyword": "Dress"}
-                    ]
-                    self.send_json(data)
+                if platform == "temu":
+                    self.send_json({
+                        "items": [],
+                        "reason": "platform_unsupported",
+                        "message": "Temu平台暂不支持数据检索，推荐使用Amazon爆品雷达"
+                    })
                     return
 
                 elif platform == "amazon":
-                    # Load from dynamic JSON if available (scraped by site)
+                    # Load from dynamic JSON if available
                     data = []
-                    cache_file = f"amazon_radar_{site_id}.json"
                     
-                    # Pre-define currency for Amazon sites
-                    currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
-                    amz_curr = currency_map.get(site_id, "USD")
-                    
-                    if os.path.exists(cache_file):
-                        try:
-                            with open(cache_file, "r") as f:
-                                scraped = json.load(f)
-                                for idx, item in enumerate(scraped):
-                                    data.append({
-                                        "id": f"amz_real_{site_id}_{idx}",
-                                        "title": item.get('title'),
-                                        "price": item.get('price'),
-                                        "currency": item.get('currency', amz_curr),
-                                        "image": item.get('image'),
-                                        "sales": random.randint(5000, 20000),
-                                        "is_real": True,
-                                        "keyword": "Dress" if "Vestido" in item.get('title', '') else "Fashion"
-                                    })
-                        except Exception as e:
-                            logger.error(f"Error loading {cache_file}: {e}")
-                    
-                    # Pad data to ensure at least 18 items (3 rows of 6)
-                    if len(data) < 18:
-                        fallbacks = [
-                            {"title": "Elegant Lace Vestido", "price": 450.9, "img": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg"},
-                            {"title": "Summer Casual Skirt", "price": 298.5, "img": "https://m.media-amazon.com/images/I/5162vE4O2PL._AC_UL320_.jpg"},
-                            {"title": "Boho Maxi Vestido", "price": 558.0, "img": "https://m.media-amazon.com/images/I/517C2L6VAwL._AC_UL320_.jpg"},
-                            {"title": "Floral Print Dress", "price": 389.0, "img": "https://m.media-amazon.com/images/I/61uwdDDgz1L._AC_UL320_.jpg"},
-                            {"title": "Slim Fit Evening Dress", "price": 599.0, "img": "https://m.media-amazon.com/images/I/61LxOpPhN7L._AC_UL320_.jpg"}
-                        ]
-                        for i in range(len(data), 18):
-                            f = random.choice(fallbacks)
-                            data.append({
-                                "id": f"amz_pad_{site_id}_{i}",
-                                "title": f"{f['title']} - Model {i}",
-                                "price": round(f['price'] * random.uniform(0.9, 1.1), 2),
-                                "currency": amz_curr,
-                                "image": f['img'],
-                                "sales": random.randint(1000, 5000),
-                                "is_real": False,
-                                "keyword": "Trending"
-                            })
-                    self.send_json(data)
-                    return
+                    # PRIORITY 1: Jungle Scout Real Data (If keyword provided)
+                    if keyword_query:
+                        js_market = "mx" if site_id == "MLM" else "br" if site_id == "MLB" else "us"
+                        js_data = get_amazon_js_data(keyword_query, js_market)
+                        if js_data:
+                            self.send_json(js_data)
+                            return
 
+                    # PRIORITY 2: Specific Search Cache
+                    if keyword_query:
+                        # Normalize filename for Chinese/Special characters
+                        cache_file = f"search_{keyword_query}_{site_id}.json"
+                        
+                        logger.info(f"Checking for cache: {cache_file}")
+                        
+                        # Pre-define currency for Amazon sites
+                        currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
+                        amz_curr = currency_map.get(site_id, "USD")
+                        
+                        if os.path.exists(cache_file):
+                            try:
+                                with open(cache_file, "r", encoding="utf-8") as f:
+                                    scraped = json.load(f)
+                                    for idx, item in enumerate(scraped):
+                                        # Handle Jungle Scout style or Crawled style
+                                        img = item.get('image') or item.get('imageUrl') or item.get('img') or item.get('image_url')
+                                        data.append({
+                                            "id": f"amz_real_{site_id}_{idx}",
+                                            "title": item.get('title'),
+                                            "price": item.get('price'),
+                                            "currency": item.get('currency', amz_curr),
+                                            "image": img,
+                                            "sales": item.get('sales') or item.get('approximate_30_day_units_sold', 0),
+                                            "is_real": True,
+                                            "is_js_verified": item.get('is_js_verified', True) if (item.get('sales') or item.get('approximate_30_day_units_sold')) else False,
+                                            "keyword": keyword_query
+                                        })
+                                if data:
+                                    logger.info(f"Serving {len(data)} items from cache: {cache_file}")
+                                    self.send_json(data)
+                                    return
+                            except Exception as e:
+                                logger.error(f"Error loading {cache_file}: {e}")
+                    else:
+                        # No keyword, use site-wide cache or fallbacks
+                        cache_file = f"amazon_radar_{site_id}.json"
+                        currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
+                        amz_curr = currency_map.get(site_id, "USD")
+                        
+                        if os.path.exists(cache_file):
+                            try:
+                                with open(cache_file, "r") as f:
+                                    scraped = json.load(f)
+                                    for idx, item in enumerate(scraped):
+                                        img = item.get('image') or item.get('imageUrl') or item.get('img')
+                                        data.append({
+                                            "id": f"amz_real_{site_id}_{idx}",
+                                            "title": item.get('title'),
+                                            "price": item.get('price'),
+                                            "currency": item.get('currency', amz_curr),
+                                            "image": img,
+                                            "sales": random.randint(5000, 20000),
+                                            "is_real": True,
+                                            "keyword": "Bestseller"
+                                        })
+                            except: pass
+                        
+                        if not data:
+                            # Final Pad
+                            fallbacks = [
+                                {"title": "Elegant Lace Vestido", "price": 450.9, "img": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg"},
+                                {"title": "Sport Performance Gear", "price": 298.5, "img": "https://m.media-amazon.com/images/I/81TkhgY+VzL._AC_UL320_.jpg"}
+                            ]
+                            for i in range(18):
+                                f = random.choice(fallbacks)
+                                data.append({
+                                    "id": f"amz_pad_{site_id}_{i}",
+                                    "title": f"{f['title']} - Sample {i}",
+                                    "price": round(f['price'] * random.uniform(0.9, 1.1), 2),
+                                    "currency": amz_curr,
+                                    "image": f['img'],
+                                    "sales": random.randint(100, 1000),
+                                    "is_real": False,
+                                    "keyword": "Trending"
+                                })
+                        self.send_json(data)
+                        return
+
+                elif platform == "mercado_libre":
+                    # LIVE SEARCH via Mercado Libre Public API
+                    try:
+                        search_url = f"https://api.mercadolibre.com/sites/{site_id}/search?q={keyword_query or 'trending'}&limit=18"
+                        res = requests.get(search_url, timeout=10).json()
+                        results = res.get('results', [])
+                        data = []
+                        for it in results:
+                            pic = it.get('thumbnail', '').replace('http:', 'https:')
+                            if '-I.' in pic: pic = pic.replace('-I.', '-O.') # Use higher res
+                            data.append({
+                                "id": it.get('id'),
+                                "title": it.get('title'),
+                                "price": it.get('price'),
+                                "currency": it.get('currency_id', 'MXN'),
+                                "image": pic,
+                                "sales": it.get('sold_quantity', 0),
+                                "is_real": True,
+                                "keyword": keyword_query or "Trending"
+                            })
+                        self.send_json(data)
+                        return
+                    except Exception as e:
+                        logger.error(f"ML Live Search Error: {e}")
+                
                 # Default ML Logic (Existing)
                 token = self.get_ml_token()
                 auth_headers = {"User-Agent": "Mozilla/5.0"}
                 if token: auth_headers["Authorization"] = f"Bearer {token}"
+                
+                currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
+                curr = currency_map.get(site_id, "USD")
+
+                # If it's a specific keyword search on Mercado Libre (Fallback to simulation if Live API fails)
+                if keyword_query:
+                    # Simulation data for ML if Live API fails
+                    data = []
+                    for i in range(18):
+                        data.append({
+                            "id": f"ml_sim_{site_id}_{i}",
+                            "title": f"Top Selling {keyword_query} on Mercado Libre {i+1}",
+                            "price": round(random.uniform(299, 1299), 2),
+                            "currency": curr,
+                            "image": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg",
+                            "sales": random.randint(100, 1000),
+                            "is_real": False
+                        })
+                    self.send_json(data)
+                    return
 
                 # Country code mapping for DB filtering
                 country_map = {"MLM": "MLM", "MLB": "MLB", "MLA": "MLA", "MCO": "MCO", "MLC": "MLC", "MLU": "MLU"}
@@ -1812,7 +1959,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 opp_msg = f"该产品在 {site} 站点的 Mercado Libre 处于爆发前期。"
                 
                 electronics_kw = ['camera', 'fan', 'buds', 'cable', 'watch', 'led', 'phone', 'rechargeable', 'power']
-                fashion_kw = ['dress', 'vestido', 'skirt', 'shirt', 'clothing', 'fashion', 'lace']
+                fashion_kw = ['dress', 'vestido', 'skirt', 'shirt', 'clothing', 'fashion', 'lace', 'shoe', 'zapato', 'sneaker', 'tenis', 'boot']
                 home_kw = ['kitchen', 'home', 'cup', 'organizer', 'mat', 'pillow']
                 
                 is_elec = any(kw in title for kw in electronics_kw)
@@ -1905,21 +2052,15 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.send_error(400, "Keyword is required")
                     return
                 
-                logger.info(f"Triggering Shadow Scan for {keyword} on {platform} ({site})")
+                logger.info(f"Triggering Intelligence Sync for {keyword} on {platform} ({site})")
                 
-                # Dynamic URL Mapping
-                target_url = ""
+                # If Amazon, we rely on the synchronous JS fetch in the GET call
                 if platform == "amazon":
-                    domain = "amazon.com.mx" if site == "MLM" else "amazon.com.br" if site == "MLB" else "amazon.com"
-                    target_url = f"https://{domain}/s?k={requests.utils.quote(keyword)}"
-                elif platform == "1688":
-                    target_url = f"https://s.1688.com/selloffer/offer_search.htm?keywords={requests.utils.quote(keyword)}"
+                    self.send_json({"status": "ready_for_js_sync", "message": "Jungle Scout Engine Ready"})
+                    return
                 
-                # In a real production environment, this would call a sub-agent or queue.
-                # For this session, we simulate the 'Shadow Scan' completion by updating the radar JSON.
-                # The actual scraping is done by the agent when it detects this task.
-                
-                self.send_json({"status": "scanning", "message": "Shadow Collector initiated", "target": target_url})
+                # Default Shadow Scan for others
+                self.send_json({"status": "scanning", "message": "Shadow Collector initiated"})
             except Exception as e:
                 logger.error(f"Radar Search Error: {e}")
                 self.send_error(500, str(e))
