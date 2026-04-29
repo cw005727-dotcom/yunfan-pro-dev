@@ -77,7 +77,7 @@ MINIMAX_CONFIG = {
 }
 
 import os
-DB_PATH = "/Users/chensan/yunfan-pro-dev/mercadolibre.db"
+DB_PATH = "/home/admin/yunfan-pro-dev/mercadolibre.db"
 
 def background_notification_worker():
     """后台处理美客多 Webhook 通知"""
