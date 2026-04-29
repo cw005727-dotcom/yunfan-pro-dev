@@ -594,10 +594,10 @@ const ProductPerformanceView = () => {
                                 ))}
                             </div>
                         </div>
-                        {/* 在售数量（与站点联动） */}
+                        {/* 在售数量（该站点全部商品） */}
                         <div className="text-right">
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">在售</p>
-                            <p className="text-sm font-black text-slate-800">{filtered.length}</p>
+                            <p className="text-sm font-black text-indigo-600">{allItems.length.toLocaleString()}</p>
                         </div>
                     </div>
 

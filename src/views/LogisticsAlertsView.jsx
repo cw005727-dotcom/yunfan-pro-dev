@@ -2,12 +2,12 @@ import { useAppContext } from '../context/AppContext';
 import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 
-// ─── Status Mapping (Synced with Shop Reputation) ───────────────────────────
+// ─── Status Mapping (Synced with Shop Reputation - High Saturation) ───────
 const STATUS_META = {
-  1: { label: '待处理', dot: 'bg-slate-400', text: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', icon: 'clock' },
-  2: { label: '在途中', dot: 'bg-blue-400', text: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', icon: 'truck' },
-  3: { label: '已妥投', dot: 'bg-emerald-400', text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'check-circle' },
-  4: { label: '有异常', dot: 'bg-rose-400', text: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', icon: 'alert-triangle', pulse: 'relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40' },
+  1: { label: '待处理', dot: 'bg-slate-500', text: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-300', icon: 'clock', accent: 'bg-slate-500' },
+  2: { label: '在途中', dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-100/50', border: 'border-blue-200', icon: 'truck', accent: 'bg-blue-500' },
+  3: { label: '已妥投', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-100/50', border: 'border-emerald-200', icon: 'check-circle', accent: 'bg-emerald-500' },
+  4: { label: '有异常', dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-100/50', border: 'border-rose-200', icon: 'alert-triangle', accent: 'bg-rose-500', pulse: 'relative after:absolute after:inset-0 after:rounded-full after:bg-rose-500 after:animate-ping after:opacity-40' },
 };
 
 const SITE_FLAGS = {
@@ -18,28 +18,37 @@ const SITE_FLAGS = {
 
 const CategoryRibbon = ({ stats, active, onChange }) => {
   return (
-    <div className="flex gap-3 p-4 shrink-0 overflow-x-auto no-scrollbar bg-white border-b border-slate-100">
+    <div className="flex gap-4 p-5 shrink-0 overflow-x-auto no-scrollbar bg-white border-b border-slate-100">
       {Object.entries(STATUS_META).map(([id, meta]) => {
         const isActive = active === id;
         const countKey = id === '1' ? 'preparing' : id === '2' ? 'in_transit' : id === '3' ? 'delivered' : 'issues';
         const count = stats[countKey] || 0;
+        const colorName = meta.text.split('-')[1]; // e.g. blue, emerald, rose
+        
         return (
           <button
             key={id}
             onClick={() => onChange(id)}
-            className={`flex-1 min-w-[160px] flex items-center gap-4 p-4 rounded-xl border transition-all relative group
-              ${isActive ? `${meta.bg} ${meta.border} shadow-sm` : 'bg-white border-slate-100 hover:border-slate-300'}`}
+            className={`flex-1 min-w-[180px] flex items-center gap-5 p-5 rounded-2xl border-2 transition-all relative overflow-hidden group
+              ${meta.bg} ${isActive ? `${meta.border} shadow-lg shadow-${colorName}-100` : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-200'}`}
           >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActive ? 'bg-white shadow-inner' : 'bg-slate-50'}`}>
-              <Icon name={meta.icon} className={`w-5 h-5 ${isActive ? meta.text : 'text-slate-300'}`} />
+            {/* Top Accent Bar - Always visible but brighter when active */}
+            <div className={`absolute top-0 left-0 w-full h-1.5 ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-40'}`} />
+            
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all bg-white shadow-sm
+              ${isActive ? 'scale-110' : 'scale-100'}`}>
+              <Icon name={meta.icon} className={`w-6 h-6 ${meta.text}`} />
             </div>
             <div className="text-left">
-              <p className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>
+              <p className={`text-[11px] font-black uppercase tracking-[0.1em] ${isActive ? 'text-slate-700' : 'text-slate-500'}`}>
                 {meta.label}
               </p>
-              <p className={`text-xl font-black ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>
-                {count.toLocaleString()}
-              </p>
+              <div className="flex items-baseline gap-1">
+                <p className={`text-2xl font-black ${meta.text}`}>
+                  {count.toLocaleString()}
+                </p>
+                <span className={`text-[10px] font-bold ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>单</span>
+              </div>
             </div>
           </button>
         );
