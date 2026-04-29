@@ -646,8 +646,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         d['category'] = 2
                     else:
                         d['category'] = 1
-                        
-                    d['expiration_date'] = d.get('last_ship_date')
+                        # 计算最晚发货时间：下单后5个自然日内
+                        if d.get('order_date'):
+                            dt_str = d['order_date'][:19]
+                            dt = datetime.fromisoformat(dt_str)
+                            deadline = dt + timedelta(days=5)
+                            d['ship_deadline'] = deadline.strftime('%Y-%m-%d')
+                        else:
+                            d['ship_deadline'] = None
                     orders.append(d)
                 
                 conn.close()

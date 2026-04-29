@@ -45,23 +45,23 @@ const CategoryRibbon = ({ stats, active, onChange }) => {
             key={id}
             onClick={() => onChange(id)}
             className={`flex-1 min-w-[180px] flex items-center gap-5 p-5 rounded-2xl border-2 transition-all relative overflow-hidden group
-              ${meta.bg} ${isActive ? `${meta.border} shadow-lg shadow-${colorName}-100` : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-200'}`}
+              ${meta.bg} ${isActive ? `${meta.border} shadow-lg shadow-${colorName}-200` : 'border-slate-200 shadow-sm'}`}
           >
-            <div className={`absolute top-0 left-0 w-full h-1.5 ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-40'}`} />
+            <div className={`absolute top-0 left-0 w-full h-1.5 ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-80'}`} />
             
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all bg-white shadow-sm
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all bg-white shadow-md
               ${isActive ? 'scale-110' : 'scale-100'}`}>
               <Icon name={meta.icon} className={`w-6 h-6 ${meta.text}`} />
             </div>
             <div className="text-left">
-              <p className={`text-[11px] font-black uppercase tracking-[0.1em] ${isActive ? 'text-slate-700' : 'text-slate-500'}`}>
+              <p className={`text-[11px] font-black uppercase tracking-[0.1em] ${isActive ? 'text-slate-950' : 'text-slate-900'}`}>
                 {meta.label}
               </p>
               <div className="flex items-baseline gap-1">
                 <p className={`text-2xl font-black ${meta.text}`}>
                   {count.toLocaleString()}
                 </p>
-                <span className={`text-[10px] font-bold ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>单</span>
+                <span className={`text-[10px] font-bold ${isActive ? 'text-slate-950' : 'text-slate-800'}`}>单</span>
               </div>
             </div>
           </button>
@@ -78,16 +78,16 @@ const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
       <div className="flex items-center justify-between mb-4 px-2">
         <div className="flex items-center gap-2">
           <div className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${meta.pulse || ''}`} />
-          <span className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{meta.radarTitle}</span>
+          <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">{meta.radarTitle}</span>
         </div>
-        <span className="text-[9px] font-mono text-slate-400">指挥官 V8 系统</span>
+        <span className="text-[9px] font-mono text-slate-500">指挥官 V8 系统</span>
       </div>
       
       <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
         {orders.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
-            <Icon name="inbox" className="w-8 h-8 text-slate-200 mx-auto" />
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2">该分类下暂无单据</p>
+            <Icon name="inbox" className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest mt-2">该分类下暂无单据</p>
           </div>
         ) : (
           orders.map((order) => (
@@ -102,29 +102,30 @@ const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
                 <img src={order.thumbnail} className="w-12 h-12 object-cover rounded-lg border border-slate-100 shrink-0" alt="" />
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-2">
-                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">订单编号 #{order.id}</span>
+                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">订单编号 #{order.id}</span>
                      <div className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}></div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
                      <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-slate-400 uppercase">站点</span>
-                        <span className="text-[10px] font-black text-slate-700">{SITE_FLAGS[order.site_id]?.split(' ')[1] || order.site_id}</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase">站点</span>
+                        <span className="text-[10px] font-black text-slate-900">{SITE_FLAGS[order.site_id]?.split(' ')[1] || order.site_id}</span>
                      </div>
                      <div className="flex flex-col text-right">
-                        <span className="text-[8px] font-black text-slate-400 uppercase">{categoryId === '1' ? '当前状态' : '当前环节'}</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase">{categoryId === '1' ? '当前状态' : '当前环节'}</span>
                         <span className={`text-[10px] font-black ${order.is_overdue ? 'text-rose-600' : (SHIPPING_STATUS_COLORS[order.shipping_status]?.text || meta.text)}`}>
                           {order.status_zh}
                         </span>
                      </div>
                   </div>
-                  {(categoryId === '1' || order.shipping_status === 'out_for_delivery' || order.shipping_status === 'pick_up') && (
+                  {/* 在途中的单据也要显示详细的位置信息块 */}
+                  {(categoryId === '1' || categoryId === '2' || order.shipping_status === 'out_for_delivery' || order.shipping_status === 'pick_up') && (
                     <div className={`mt-2 flex items-center justify-between px-1 p-1.5 rounded-lg border ${order.is_overdue ? 'bg-rose-50 border-rose-100' : 'bg-slate-100/50 border-slate-100'}`}>
-                      <span className="text-[8px] font-black text-slate-400 uppercase">
-                        {categoryId === '1' ? '最晚发货' : (order.shipping_status === 'pick_up' ? '待自提' : '派送中')}
+                      <span className="text-[8px] font-black text-slate-500 uppercase">
+                        {categoryId === '1' ? '最晚发货' : (order.shipping_status === 'pick_up' ? '待自提' : (order.shipping_status === 'out_for_delivery' ? '派送中' : '最新位置'))}
                       </span>
-                      <span className={`text-[10px] font-mono font-black ${order.is_overdue ? 'text-rose-600' : 'text-slate-600'}`}>
-                        {categoryId === '1' ? (order.expiration_date?.split('T')[0] || '未设置') : '实时追踪中'}
+                      <span className={`text-[10px] font-mono font-black ${order.is_overdue ? 'text-rose-600' : 'text-slate-800'} truncate ml-4`}>
+                        {categoryId === '1' ? (order.ship_deadline || '未设置') : (order.last_location || '实时查询中')}
                       </span>
                     </div>
                   )}
@@ -141,6 +142,7 @@ const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
 const FocusTrace = ({ order }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!order) {
@@ -153,6 +155,7 @@ const FocusTrace = ({ order }) => {
       .then(data => {
         setDetails(data);
         setLoading(false);
+        setShowAll(false);
       })
       .catch(() => setLoading(false));
   }, [order]);
@@ -166,69 +169,221 @@ const FocusTrace = ({ order }) => {
     );
   }
 
+  // 计算大环节进度 (宏观轨迹)
+  const getStageStatus = (stage) => {
+    const s = order.shipping_status;
+    // 细化权重，确保“在途中”各阶段能触发导轨流动
+    const orderRank = {
+      'pending': 0, 'ready_to_print': 0.5, 'printed': 1, 'ready_to_ship': 2,
+      'shipped': 3,       // 已发货，开始走向“干线”
+      'in_transit': 4,    // 国际转运中，正在“干线”
+      'at_customs': 5,    // 到达海关，开始走向“清关”
+      'out_for_delivery': 6, // 派送中，走向“妥投”
+      'delivered': 7      // 已妥投
+    }[s] || 0;
+    
+    const stageRanks = {
+      'outbound': 0,
+      'international': 3,
+      'customs': 5,
+      'delivery': 7
+    };
+    
+    const currentStageRank = stageRanks[stage];
+    if (orderRank > currentStageRank) return 'completed';
+    if (orderRank === currentStageRank) return 'active';
+    return 'pending';
+  };
+
+  const STAGES = [
+    { id: 'outbound', label: '出库', icon: 'package' },
+    { id: 'international', label: '干线', icon: 'send' },
+    { id: 'customs', label: '清关', icon: 'shield' },
+    { id: 'delivery', label: '妥投', icon: 'home' }
+  ];
+
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-20">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-             <Icon name="activity" className="w-6 h-6" />
+    <div className="h-full flex flex-col bg-white overflow-hidden">
+      {/* 顶部紧凑标题栏 */}
+      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-200">
+             <Icon name="activity" className="w-5 h-5" />
           </div>
-          <div className="space-y-0.5">
-             <h4 className="text-[14px] font-black text-slate-900 uppercase tracking-widest">全链路动态实时监测</h4>
-             <div className="flex items-center gap-3">
-               <span className="text-[10px] text-slate-400 font-mono tracking-tighter">运单号: {order.tracking_id || '待生成'}</span>
-               <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 rounded-sm uppercase">{order.status_zh}</span>
+          <div>
+             <h4 className="text-[13px] font-black text-slate-900 uppercase tracking-widest leading-none mb-1">动态监测</h4>
+             <div className="flex items-center gap-2">
+               <span className="text-[9px] text-slate-400 font-mono">#{order.id}</span>
+               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${SHIPPING_STATUS_COLORS[order.shipping_status]?.bg || 'bg-slate-100'} ${SHIPPING_STATUS_COLORS[order.shipping_status]?.text || 'text-slate-600'} uppercase`}>
+                 {order.status_zh}
+               </span>
              </div>
           </div>
         </div>
-        <button className="h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black uppercase tracking-widest rounded-lg transition-all shadow-lg shadow-slate-200">
+        <button className="h-8 px-4 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 shadow-md shadow-slate-100">
           强制同步
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
-        <div className="grid grid-cols-4 gap-3">
-           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">国家 / 站点</p>
-              <p className="text-[12px] font-black text-slate-800">{SITE_FLAGS[order.site_id]}</p>
-           </div>
-           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">成交金额</p>
-              <p className="text-[12px] font-black text-emerald-600 font-mono">${order.amount}</p>
-           </div>
-           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">买家编号</p>
-              <p className="text-[12px] font-black text-slate-800 font-mono">{order.buyer_id}</p>
-           </div>
-           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">物流承运商</p>
-              <p className="text-[12px] font-black text-blue-600">菜鸟国际</p>
-           </div>
+      <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+        {/* 水平大环节轨道 (带流动动效) */}
+        <div className="relative px-4 h-20">
+          {/* 统一的背景与流动导轨 (SVG) */}
+          <svg className="absolute inset-x-0 top-4 w-full h-1 overflow-visible">
+            {/* 基础底线 (全长) */}
+            <line x1="16" y1="0" x2="calc(100% - 16px)" y2="0" stroke="#f1f5f9" strokeWidth="2" strokeDasharray="4 4" />
+            
+            {STAGES.slice(0, -1).map((_, i) => {
+              const s0 = getStageStatus(STAGES[i].id);
+              const s1 = getStageStatus(STAGES[i+1].id);
+              
+              // 线条逻辑：
+              // 1. 如果下一站已完成 -> 绿色实线
+              // 2. 如果当前站已完成且下一站未完成 -> 蓝色流动虚线
+              const isGreen = s1 === 'completed' || s1 === 'active';
+              const isFlowing = (s0 === 'completed' || s0 === 'active') && s1 === 'pending';
+              
+              const startX = `${(i / 3) * 100}%`;
+              const endX = `${((i + 1) / 3) * 100}%`;
+              
+              return (
+                <g key={i}>
+                  {/* 绿色实线 */}
+                  {isGreen && (
+                    <line 
+                      x1={startX} x2={endX} y1="0" y2="0"
+                      stroke="#10b981" strokeWidth="3"
+                      className="transition-all duration-700"
+                    />
+                  )}
+                  {/* 蓝色流动虚线 */}
+                  {isFlowing && (
+                    <line 
+                      x1={startX} x2={endX} y1="0" y2="0"
+                      stroke="#3b82f6" strokeWidth="3"
+                      strokeDasharray="8 4"
+                      style={{ animation: 'flow 1s linear infinite' }}
+                    />
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* 节点图标 (绝对定位以确保与线对齐) */}
+          <div className="absolute inset-x-0 top-0 flex justify-between px-0">
+            {STAGES.map((s, idx) => {
+              const status = getStageStatus(s.id);
+              // 呼吸灯逻辑：如果是下一站（即将到达的站），则呼吸
+              const prevStatus = idx > 0 ? getStageStatus(STAGES[idx-1].id) : 'completed';
+              const isNextTarget = (prevStatus === 'completed' || prevStatus === 'active') && status === 'pending';
+              const isCurrentActive = status === 'active';
+
+              return (
+                <div key={s.id} className="flex flex-col items-center gap-2" style={{ width: '32px' }}>
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-white relative
+                    ${status === 'completed' ? 'border-emerald-500 bg-emerald-50' : (isCurrentActive || isNextTarget) ? 'border-blue-500 shadow-lg shadow-blue-100' : 'border-slate-100'}`}>
+                    {status === 'completed' ? (
+                      <Icon name="check" className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <Icon name={s.icon} className={`w-4 h-4 ${(isCurrentActive || isNextTarget) ? 'text-blue-600' : 'text-slate-300'}`} />
+                    )}
+                    
+                    {/* 呼吸灯动效 (当前站或下一站) */}
+                    {(isCurrentActive || isNextTarget) && (
+                      <div className="absolute inset-0 rounded-full border-2 border-blue-500 animate-ping opacity-30" />
+                    )}
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap
+                    ${status === 'completed' ? 'text-emerald-700' : (isCurrentActive || isNextTarget) ? 'text-blue-600' : 'text-slate-400'}`}>
+                    {s.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <style>{`
+            @keyframes flow {
+              from { stroke-dashoffset: 12; }
+              to { stroke-dashoffset: 0; }
+            }
+          `}</style>
         </div>
 
-        <div className="relative pl-10 space-y-10 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+        {/* 核心数据块 (极简) */}
+        <div className="grid grid-cols-4 gap-2">
+           {[
+             { label: '站点', val: SITE_FLAGS[order.site_id]?.split(' ')[1], color: 'text-slate-900' },
+             { label: '金额', val: `$${order.amount}`, color: 'text-emerald-600' },
+             { 
+               label: '运单 (点击复制)', 
+               val: order.tracking_id || '待生成', 
+               color: 'text-blue-600', 
+               onClick: () => {
+                 if (!order.tracking_id) return;
+                 navigator.clipboard.writeText(order.tracking_id);
+                 if (showToast) showToast('运单号已复制', 'success');
+               }
+             },
+             { 
+               label: '承运 (点击查询)', 
+               val: '菜鸟国际', 
+               color: 'text-slate-900',
+               onClick: () => {
+                 if (!order.tracking_id) {
+                   if (showToast) showToast('暂无运单号，无法查询', 'warning');
+                   return;
+                 }
+                 window.open(`https://global.cainiao.com/detail.htm?mailNo=${order.tracking_id}`, '_blank');
+               }
+             }
+           ].map((item, idx) => (
+             <div 
+               key={idx} 
+               onClick={item.onClick}
+               className={`p-2 rounded-lg border border-slate-100 transition-all ${item.onClick ? 'cursor-pointer hover:bg-white hover:shadow-sm active:scale-95 bg-white/50' : 'bg-slate-50/50'}`}
+             >
+               <p className="text-[7px] font-black text-slate-400 uppercase leading-none mb-1">{item.label}</p>
+               <p className={`text-[10px] font-black ${item.color} truncate font-mono`}>{item.val}</p>
+             </div>
+           ))}
+        </div>
+
+        {/* 实时动态流 (紧凑) */}
+        <div className="space-y-3 relative">
+          <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-100" />
           {loading ? (
-             <div className="py-20 flex justify-center"><div className="w-8 h-8 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin" /></div>
+             <div className="py-10 flex justify-center"><div className="w-6 h-6 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin" /></div>
           ) : (
-            details?.events?.map((ev, i) => (
-              <div key={i} className="relative group">
-                <div className={`absolute -left-10 top-0.5 w-8 h-8 rounded-full border flex items-center justify-center z-10 transition-all
-                  ${i === 0 ? 'bg-slate-900 border-slate-900 shadow-xl' : 'bg-white border-slate-200'}`}>
-                  {i === 0 && <div className="absolute inset-0 bg-slate-900 rounded-full animate-ping opacity-20" />}
-                  <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-white' : 'bg-slate-300'}`} />
+            <>
+              {(showAll ? details?.events : details?.events?.slice(0, 3))?.map((ev, i) => (
+                <div key={i} className="relative pl-6">
+                  <div className={`absolute left-0 top-1 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center bg-white
+                    ${i === 0 ? 'border-slate-900 scale-110' : 'border-slate-200'}`}>
+                    <div className={`w-1 h-1 rounded-full ${i === 0 ? 'bg-slate-900' : 'bg-slate-300'}`} />
+                  </div>
+                  <div className={`p-3 rounded-xl border transition-all ${i === 0 ? 'bg-slate-50 border-slate-200' : 'bg-white border-transparent'}`}>
+                    <div className="flex justify-between items-start mb-0.5">
+                      <p className={`text-[11px] font-black leading-tight ${i === 0 ? 'text-slate-900' : 'text-slate-500'}`}>{ev.desc}</p>
+                      <span className="text-[9px] text-slate-400 font-mono shrink-0 ml-4">{ev.time.split(' ')[1]}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                       <Icon name="map-pin" className="w-2.5 h-2.5 text-slate-300" />
+                       <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{ev.location}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1 bg-slate-50/50 p-4 rounded-xl border border-transparent hover:border-slate-100 hover:bg-white transition-all group-hover:shadow-sm">
-                   <div className="flex items-center justify-between">
-                      <p className={`text-[12px] font-black uppercase tracking-tight ${i === 0 ? 'text-slate-900' : 'text-slate-500'}`}>{ev.desc}</p>
-                      <span className="text-[10px] text-slate-400 font-mono italic">{ev.time}</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                      <Icon name="map-pin" className="w-3 h-3 text-slate-300" />
-                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{ev.location === 'TRANSSHIPPED' ? '中转中' : ev.location}</span>
-                   </div>
-                </div>
-              </div>
-            ))
+              ))}
+              {details?.events?.length > 3 && (
+                <button 
+                  onClick={() => setShowAll(!showAll)}
+                  className="w-full py-2 text-[9px] font-black text-blue-600 hover:text-blue-700 bg-blue-50/50 rounded-lg border border-blue-100/50 transition-all uppercase tracking-widest"
+                >
+                  {showAll ? '收起历史记录 ↑' : `查看其余 ${details.events.length - 3} 条动态 ↓`}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -241,21 +396,21 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
     <div className="flex-1 min-h-0 bg-white border-t border-slate-100 flex flex-col">
       <div className="h-10 border-b border-slate-100 flex items-center px-6 shrink-0 justify-between bg-slate-50/30">
         <div className="flex items-center gap-4">
-           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">全量订单监测池</span>
-           <div className="h-3 w-[1px] bg-slate-200" />
-           <span className="text-[10px] text-slate-500 font-black uppercase">总计: {orders.length} 项结果</span>
+           <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">全量订单监测池</span>
+           <div className="h-3 w-[1px] bg-slate-300" />
+           <span className="text-[10px] text-slate-700 font-black uppercase">总计: {orders.length} 项结果</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar relative">
         <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10">
             <tr>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">核心订单信息</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">商品详情</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">
+              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100">核心订单信息</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100">商品详情</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 text-center">
                 {activeCategory === '1' ? '最晚发货期限' : '当前物流环节'}
               </th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">金额</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-slate-100 text-right">金额</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -268,15 +423,15 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
                   className="hover:bg-slate-50/80 cursor-pointer group transition-colors"
                 >
                   <td className="px-6 py-4 space-y-1">
-                    <p className="text-[11px] font-black text-slate-800 group-hover:text-blue-600 transition-colors">#{o.id}</p>
-                    <p className="text-[9px] text-slate-400 font-mono tracking-tighter uppercase">运单: {o.tracking_id || '等待生成'}</p>
+                    <p className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">#{o.id}</p>
+                    <p className="text-[9px] text-slate-500 font-mono tracking-tighter uppercase font-black">运单: {o.tracking_id || '等待生成'}</p>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img src={o.thumbnail} className="w-12 h-12 object-cover rounded border border-slate-100 group-hover:border-slate-300 transition-all shadow-sm" alt="" />
                       <div className="flex flex-col">
-                         <span className="text-[11px] font-black text-slate-800 group-hover:text-blue-600 transition-colors">#{o.id}</span>
-                         <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{SITE_FLAGS[o.site_id]}</span>
+                         <span className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">#{o.id}</span>
+                         <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{SITE_FLAGS[o.site_id]}</span>
                       </div>
                     </div>
                   </td>
@@ -287,9 +442,9 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
                          <div className={`w-1 h-1 rounded-full ${SHIPPING_STATUS_COLORS[o.shipping_status]?.dot || meta.dot}`} />
                          {o.status_zh}
                        </div>
-                       {(activeCategory === '1' || o.shipping_status === 'out_for_delivery' || o.shipping_status === 'pick_up') && (
+                       {(activeCategory === '1' || activeCategory === '2' || o.shipping_status === 'out_for_delivery' || o.shipping_status === 'pick_up') && (
                          <span className={`text-[9px] ${o.is_overdue ? 'text-rose-600' : 'text-slate-500'} font-mono border-t border-slate-200/50 mt-0.5 pt-0.5 w-full text-center`}>
-                           {activeCategory === '1' ? `截止: ${o.expiration_date?.split('T')[0] || '未设置'}` : (o.shipping_status === 'pick_up' ? '请联系买家自提' : '正在派送中')}
+                           {activeCategory === '1' ? `截止: ${o.ship_deadline || '未设置'}` : (o.shipping_status === 'pick_up' ? '请联系买家自提' : (o.shipping_status === 'out_for_delivery' ? '正在派送中' : `位置: ${o.last_location || '国际中转'}`))}
                          </span>
                        )}
                     </div>
@@ -389,7 +544,7 @@ const LogisticsAlertsView = () => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]" />
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">物流监测核心已挂载</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">物流监测核心已挂载</span>
           </div>
         </div>
         <div className="flex items-center gap-4 text-[9px] text-slate-300 font-black uppercase tracking-widest">
