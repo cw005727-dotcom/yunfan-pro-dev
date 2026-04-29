@@ -8,6 +8,7 @@ import requests
 import sqlite3
 import time
 import gc
+from datetime import datetime
 from token_manager import load_tokens
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -101,14 +102,22 @@ def save_batch(items, site_id):
         sold_qty = detail.get("sold_quantity", 0) or 0
         category_id = detail.get("category_id", "")
 
+        # date_created → start_time (毫秒时间戳)
+        date_created = detail.get("date_created", "")
+        if date_created:
+            dt = datetime.fromisoformat(date_created.replace('Z', '+00:00'))
+            start_ts = int(dt.timestamp() * 1000)
+        else:
+            start_ts = 0
+
         cursor.execute("""
             INSERT OR REPLACE INTO product_metrics
             (item_id, name, price, image_url, site_id, status, sales, last_updated,
              exposure, clicks, carts, cart_rate, returns, claims, health_score,
              price_index, category_avg_rate, logistic_type, is_core, start_time,
              currency, sub_status, trend_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0.0, 0, 0, 0, 0.0, 0.0, '', 0, 0, '', ?, 0.0)
-        """, (item_id, title, price, image_url, site_id, status, sold_qty, now, category_id))
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0.0, 0, 0, 0, 0.0, 0.0, '', 0, ?, '', ?, 0.0)
+        """, (item_id, title, price, image_url, site_id, status, sold_qty, now, start_ts, category_id))
         saved += 1
 
     conn.commit()
