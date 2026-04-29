@@ -23,7 +23,8 @@ const SmartPriceCheckView = lazy(() => import('./views/SmartPriceCheckView'));
 
 const LoginPage = ({ onLogin }) => {
     return (
-        <div className="min-h-screen flex items-stretch gradient-bg relative overflow-hidden text-slate-900">
+        <div className="h-screen flex bg-slate-50 overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
+            {/* Sidebar (Fixed Navigation) */}
             <div className="hidden lg:flex flex-col justify-center p-32 w-1/2 relative z-10">
                 <div className="space-y-10">
                     <Brand slogan="跨境 AI 协作平台" />
@@ -338,8 +339,8 @@ const App = () => {
                 </header>
 
                 {/* Main Content Area */}
-                <main className={`flex-1 overflow-hidden relative custom-scrollbar bg-slate-50 ${['reputation', 'infringement'].includes(sidebarItem) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-                    <div className="h-full p-10">
+                <main className={`flex-1 overflow-hidden relative custom-scrollbar bg-slate-50 ${['reputation', 'infringement', 'radar'].includes(sidebarItem) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                    <div className={`h-full overflow-hidden ${sidebarItem === 'radar' ? 'p-0' : 'p-10'}`}>
                         <ErrorBoundary key={sidebarItem}>
                             <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
                                 {sidebarItem === 'news' && <NewsView />}

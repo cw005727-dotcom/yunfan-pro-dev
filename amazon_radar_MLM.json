@@ -1,0 +1,146 @@
+[
+  {
+    "id": "B0DHWYMZN3",
+    "title": "BTFBM Vestido Elegante Mujer",
+    "price": 360,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg",
+    "sales": 850
+  },
+  {
+    "id": "B0D3Q3X5NV",
+    "title": "LEU LEU Vestido Casual Primavera",
+    "price": 298,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/5162vE4O2PL._AC_UL320_.jpg",
+    "sales": 1200
+  },
+  {
+    "id": "B0F4WR2KWY",
+    "title": "MYCITY Vestido de Fiesta Boho",
+    "price": 358,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/517C2L6VAwL._AC_UL320_.jpg",
+    "sales": 640
+  },
+  {
+    "id": "B0F4WH8XGK",
+    "title": "MYCITY Vestido Largo Estampado",
+    "price": 358,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61uwdDDgz1L._AC_UL320_.jpg",
+    "sales": 520
+  },
+  {
+    "id": "B0CZJPL918",
+    "title": "PYJMAX Vestido de Noche Ajustado",
+    "price": 399,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61LxOpPhN7L._AC_UL320_.jpg",
+    "sales": 310
+  },
+  {
+    "id": "B0FP4GXFCB",
+    "title": "MYCITY Vestido Corto Casual",
+    "price": 358,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61Bg4Oorc3L._AC_UL320_.jpg",
+    "sales": 1100
+  },
+  {
+    "id": "B0FYPNGN9Y",
+    "title": "MYCITY Maxi Vestido Verano",
+    "price": 489,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61BUNIIC2bL._AC_UL320_.jpg",
+    "sales": 420
+  },
+  {
+    "id": "B0DRV4M232",
+    "title": "CEEMACE Vestido de Coctel",
+    "price": 459,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61eeBpUt0FL._AC_UL320_.jpg",
+    "sales": 280
+  },
+  {
+    "id": "B0DHWZGL5D",
+    "title": "BTFBM Vestido Plisado Chic",
+    "price": 360,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/71FI6qbWezL._AC_UL320_.jpg",
+    "sales": 950
+  },
+  {
+    "id": "B0FG34JH17",
+    "title": "BIMOZY Vestido Basico Algodon",
+    "price": 239,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/71iTZzwm3+L._AC_UL320_.jpg",
+    "sales": 1500
+  },
+  {
+    "id": "B0DHXGRDH4",
+    "title": "AILLOSA Vestido Premium Satin",
+    "price": 699.99,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/71c55SilDmL._AC_UL320_.jpg",
+    "sales": 150
+  },
+  {
+    "id": "B0DBLBC7QB",
+    "title": "ANLIEKI Vestido Vintage Retro",
+    "price": 459,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/51e30w80V-L._AC_UL320_.jpg",
+    "sales": 330
+  },
+  {
+    "id": "B0F7LJ9S38",
+    "title": "OUSIMEN Vestido de Punto",
+    "price": 598,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/51yaqNMEv2L._AC_UL320_.jpg",
+    "sales": 210
+  },
+  {
+    "id": "B0D2NGXF8V",
+    "title": "COLIZAMX Vestido Escote V",
+    "price": 459,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/51QXA9qn3yL._AC_UL320_.jpg",
+    "sales": 480
+  },
+  {
+    "id": "B0G1M6Z9TC",
+    "title": "Lukovee Vestido Estilo Coreano",
+    "price": 339,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/619xXPwqfUL._AC_UL320_.jpg",
+    "sales": 720
+  },
+  {
+    "id": "B0G1YG37ST",
+    "title": "Lukovee Vestido de Playa",
+    "price": 299.99,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/71pQw0g51KL._AC_UL320_.jpg",
+    "sales": 890
+  },
+  {
+    "id": "B0DQV7Z1BJ",
+    "title": "SEYOCRO Vestido Casual Floral",
+    "price": 349.99,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/61nh5Jm1JQL._AC_UL320_.jpg",
+    "sales": 660
+  },
+  {
+    "id": "B0D7VK32FQ",
+    "title": "AGYMNX Vestido Deportivo Active",
+    "price": 256.84,
+    "currency": "MXN",
+    "image": "https://m.media-amazon.com/images/I/51O85f20MRL._AC_UL320_.jpg",
+    "sales": 1300
+  }
+]
