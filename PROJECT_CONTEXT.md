@@ -13,6 +13,9 @@
    - **开发流程**：本地 Mac 修改 → git push → 服务器 git pull → pm2 restart
    - **服务器SSH**：IP 47.76.179.242，用户 admin，通过阿里云控制台远程连接操作
    - ML App ID: `8105299077213607`（新创建，替代旧ID `2853782117476515`）
+   - **重要**：本地开发后 `git push`，然后告知"大脑"在服务器执行 `git pull && pm2 restart yunfan-api`
+   - **生产环境URL**：`https://chensan.vip`（唯一线上地址，不再使用 Vercel）
+   - **本地开发**：`npm run dev` 跑在 localhost:5173，但需确保 API_BASE 指向 `https://chensan.vip/api`
 
 ### 🗺️ 数据-UI 映射协议 (Data-to-UI Mapping Protocol)
 > **致所有协作 AI:** 为了确保"大姐店"真实在售数据精准落地,必须遵循以下映射规则。禁止跨模块混用字段。
