@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Icon from './components/Icon';
 import Brand from './components/Brand';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Views - Lazy Loading
 const NewsView = lazy(() => import('./views/NewsView'));
@@ -18,6 +19,7 @@ const AfterSalesView = lazy(() => import('./views/AfterSalesView'));
 const OptimizeTitleView = lazy(() => import('./views/OptimizeTitleView'));
 const ImageLabView = lazy(() => import('./views/ImageLabView'));
 const KeywordIntelView = lazy(() => import('./views/KeywordIntelView'));
+const SmartPriceCheckView = lazy(() => import('./views/SmartPriceCheckView'));
 
 const LoginPage = ({ onLogin }) => {
     return (
@@ -102,10 +104,11 @@ const App = () => {
         data: [
             { id: 'reputation', label: '店铺声誉', icon: 'shield', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'infringement', label: '商品性能表', icon: 'bar-chart-2', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', count: 0 },
-            { id: 'radar', label: '爆品雷达', icon: 'zap', color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-500/30' },
             { id: 'data-overview', label: '数据大盘', icon: 'pie-chart', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' }
         ],
         ops: [
+            { id: 'radar', label: '爆品雷达', icon: 'zap', color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-500/30' },
+            { id: 'price-check', label: '智能核价', icon: 'calculator', color: 'text-emerald-500', bg: 'bg-emerald-500', shadow: 'shadow-emerald-500/30' },
             { id: 'collect', label: '产品采集', icon: 'download-cloud', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'maintain', label: '商品维护', icon: 'settings', color: 'text-slate-500', bg: 'bg-slate-500', shadow: 'shadow-slate-500/30' },
             { id: 'service', label: '售后处理', icon: 'headphones', color: 'text-rose-500', bg: 'bg-rose-500', shadow: 'shadow-rose-500/30' },
@@ -118,6 +121,28 @@ const App = () => {
             { id: 'keyword', label: '关键词衍生', icon: 'hash', color: 'text-amber-600', bg: 'bg-amber-600', shadow: 'shadow-amber-600/30' }
         ]
     };
+
+    // Hash sync logic
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash.replace('#/', '');
+            if (hash) {
+                // Find which tab this item belongs to
+                for (const [tabId, items] of Object.entries(menuConfig)) {
+                    if (items.some(item => item.id === hash)) {
+                        setTopTab(tabId);
+                        setSidebarItem(hash);
+                        setModuleClass(`theme-${tabId}`);
+                        break;
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        handleHashChange(); // Init
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
 
     const handleTopTabChange = (tabId) => {
         setTopTab(tabId);
@@ -315,32 +340,35 @@ const App = () => {
                 {/* Main Content Area */}
                 <main className={`flex-1 overflow-hidden relative custom-scrollbar bg-slate-50 ${['reputation', 'infringement'].includes(sidebarItem) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                     <div className="h-full p-10">
-                        <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
-                            {sidebarItem === 'news' && <NewsView />}
-                            {sidebarItem === 'intro' && <BusinessIntroView />}
-                            {sidebarItem === 'activity' && <ActivityCenterView />}
-                            {sidebarItem === 'reputation' && <ShopReputationView />}
-                            {sidebarItem === 'radar' && <MarketRadarView />}
-                            {sidebarItem === 'data-overview' && <DataOverviewView />}
-                            {sidebarItem === 'infringement' && <ProductPerformanceView />}
-                            {sidebarItem === 'logistics' && <LogisticsAlertsView />}
-                            {sidebarItem === 'auth' && <AuthPrepareView />}
-                            {sidebarItem === 'collect' && <ProductCollectView />}
-                            {sidebarItem === 'maintain' && <ProductMaintainView />}
-                            {sidebarItem === 'service' && <AfterSalesView />}
+                        <ErrorBoundary key={sidebarItem}>
+                            <Suspense fallback={<div className="h-full flex items-center justify-center"><Icon name="loader" className="w-8 h-8 animate-spin text-slate-300" /></div>}>
+                                {sidebarItem === 'news' && <NewsView />}
+                                {sidebarItem === 'intro' && <BusinessIntroView />}
+                                {sidebarItem === 'activity' && <ActivityCenterView />}
+                                {sidebarItem === 'reputation' && <ShopReputationView />}
+                                {sidebarItem === 'radar' && <MarketRadarView />}
+                                {sidebarItem === 'price-check' && <SmartPriceCheckView />}
+                                {sidebarItem === 'data-overview' && <DataOverviewView />}
+                                {sidebarItem === 'infringement' && <ProductPerformanceView />}
+                                {sidebarItem === 'logistics' && <LogisticsAlertsView />}
+                                {sidebarItem === 'auth' && <AuthPrepareView />}
+                                {sidebarItem === 'collect' && <ProductCollectView />}
+                                {sidebarItem === 'maintain' && <ProductMaintainView />}
+                                {sidebarItem === 'service' && <AfterSalesView />}
 
-                            {!['news', 'intro', 'activity', 'reputation', 'radar', 'data-overview', 'traffic', 'infringement', 'logistics', 'auth', 'collect', 'maintain', 'service', 'title', 'image', 'keyword'].includes(sidebarItem) && (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
-                                    <div className="w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center">
-                                        <Icon name="construction" className="w-10 h-10" />
+                                {!['news', 'intro', 'activity', 'reputation', 'radar', 'price-check', 'data-overview', 'traffic', 'infringement', 'logistics', 'auth', 'collect', 'maintain', 'service', 'title', 'image', 'keyword'].includes(sidebarItem) && (
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
+                                        <div className="w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                            <Icon name="construction" className="w-10 h-10" />
+                                        </div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.4em]">模块开发中...</p>
                                     </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">模块开发中...</p>
-                                </div>
-                            )}
-                            {sidebarItem === 'title' && <OptimizeTitleView />}
-                            {sidebarItem === 'image' && <ImageLabView />}
-                            {sidebarItem === 'keyword' && <KeywordIntelView />}
-                        </Suspense>
+                                )}
+                                {sidebarItem === 'title' && <OptimizeTitleView />}
+                                {sidebarItem === 'image' && <ImageLabView />}
+                                {sidebarItem === 'keyword' && <KeywordIntelView />}
+                            </Suspense>
+                        </ErrorBoundary>
                     </div>
                 </main>
             </div>

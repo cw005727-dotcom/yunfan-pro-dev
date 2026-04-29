@@ -38,7 +38,7 @@ def simple_decrypt(enc_data, key):
     return result.decode()
 
 def save_tokens(tokens):
-    """Save tokens to encrypted file AND update database stores table."""
+    """Save tokens to encrypted file AND update all relevant stores rows."""
     key = get_key()
     data_str = json.dumps(tokens)
     encrypted = simple_crypt(data_str, key)
@@ -46,35 +46,39 @@ def save_tokens(tokens):
         f.write(encrypted)
     print(f"Tokens saved and encrypted to {TOKEN_FILE_ENC}")
 
-    # Also write new access_token to database stores table for site MLM
     access_token = tokens.get("access_token")
     refresh_token = tokens.get("refresh_token")
     expires_in = tokens.get("expires_in", 21600)
-    if access_token:
-        db_path = os.path.join(os.path.dirname(__file__) or ".", "mercadolibre.db")
-        try:
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            expires_at = time.time() + expires_in
-            cursor.execute(
-                "UPDATE stores SET access_token=?, refresh_token=?, expires_at=? WHERE site_id=?",
-                (access_token, refresh_token, expires_at, "MLM")
-            )
-            conn.commit()
-            if cursor.rowcount > 0:
-                print(f"access_token updated in stores table for site_id=MLM.")
-            else:
-                print("Warning: No stores row found for site_id=MLM, inserting new row.")
-                cursor.execute(
-                    "INSERT INTO stores (site_id, access_token, refresh_token, expires_at) VALUES (?, ?, ?, ?)",
-                    ("MLM", access_token, refresh_token, expires_at)
-                )
-                conn.commit()
-            conn.close()
-        except Exception as e:
-            print(f"Warning: Failed to update stores table: {e}")
+    if not access_token:
+        return
 
-    # Optionally remove old json file
+    # Parse user_id from access_token payload (second segment)
+    # Format: APP_USR-{app_id}-{timestamp}-{sig}-{user_id}
+    user_id = None
+    try:
+        parts = access_token.split('-')
+        if len(parts) >= 5:
+            user_id = parts[-1]
+    except: pass
+
+    db_path = os.path.join(os.path.dirname(__file__) or ".", "mercadolibre.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        expires_at = time.time() + expires_in
+
+        # Update ALL stores rows that match the user_id from token
+        if user_id:
+            cursor.execute(
+                "UPDATE stores SET access_token=?, refresh_token=? WHERE user_id=?",
+                (access_token, refresh_token, int(user_id))
+            )
+            print(f"access_token updated in stores for user_id={user_id}, rows={cursor.rowcount}")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Warning: Failed to update stores table: {e}")
+
     if os.path.exists(TOKEN_FILE_JSON):
         os.remove(TOKEN_FILE_JSON)
 

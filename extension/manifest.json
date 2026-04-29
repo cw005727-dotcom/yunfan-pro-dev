@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "云帆全网采集助手",
+  "version": "1.0.0",
+  "description": "一键采集 1688/Temu 商品至云帆跨境 PRO 智能核价队列",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.1688.com/*",
+    "https://*.temu.com/*",
+    "https://*.amazon.com/*",
+    "http://localhost:8506/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.1688.com/offer/*.html*",
+        "https://*.temu.com/*.html*",
+        "https://*.amazon.com/*/dp/*",
+        "https://*.amazon.com/dp/*"
+      ],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ]
+}

@@ -4,8 +4,9 @@ import { API_BASE } from '../api/client';
 /**
  * 市场雷达获取钩子 (获取热销商品与趋势)
  * @param {string} site - 站点 ID (MLM, MLB, etc.)
+ * @param {string} platform - 平台 ID (mercado_libre, 1688, temu, etc.)
  */
-export const useMarketRadar = (site = 'MLM') => {
+export const useMarketRadar = (site = 'MLM', platform = 'mercado_libre') => {
   const [items, setItems] = useState([]);
   const [trends, setTrends] = useState({});
   const [loading, setLoading] = useState(true);
@@ -16,7 +17,7 @@ export const useMarketRadar = (site = 'MLM') => {
       setLoading(true);
       // Fetch both Radar Items and Trends in parallel
       const [radarRes, trendsRes] = await Promise.all([
-        fetch(`${API_BASE}/market_radar?site=${site}`),
+        fetch(`${API_BASE}/market_radar?site=${site}&platform=${platform}`),
         fetch(`${API_BASE}/trends?site=${site}`)
       ]);
       
@@ -36,7 +37,7 @@ export const useMarketRadar = (site = 'MLM') => {
     } finally {
       setLoading(false);
     }
-  }, [site]);
+  }, [site, platform]);
 
   useEffect(() => {
     fetchRadar();
