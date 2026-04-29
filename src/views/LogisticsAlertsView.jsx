@@ -4,18 +4,21 @@ import Icon from '../components/Icon.jsx';
 
 // ─── Status mapping ─────────────────────────────────────────────────────────
 const STATUS_MAP = {
-  // ML shipping_status values → display config
-  pending:      { label: '待取件', color: 'bg-slate-400', textColor: 'text-white',  marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
-  ready_to_ship:{ label: '待取件', color: 'bg-slate-400', textColor: 'text-white',  marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
-  shipped:      { label: '运输中', color: 'bg-blue-500',  textColor: 'text-white',  marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
-  in_transit:   { label: '运输中', color: 'bg-blue-500',  textColor: 'text-white',  marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
-  in_local_transit: { label: '目的', color: 'bg-blue-500', textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
-  at_customs:   { label: '清关中', color: 'bg-amber-500',  textColor: 'text-white',  marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
-  delivered:    { label: '已签收', color: 'bg-emerald-500',textColor: 'text-white',  marqueeColor: 'bg-emerald-500',badge: 'bg-emerald-100 text-emerald-600',dot:'bg-emerald-500' },
-  failed:       { label: '异常',   color: 'bg-red-500',    textColor: 'text-white',  marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
-  exception:    { label: '异常',   color: 'bg-red-500',    textColor: 'text-white',  marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
-  returned:     { label: '退回',   color: 'bg-purple-500', textColor: 'text-white',  marqueeColor: 'bg-purple-500',badge: 'bg-purple-100 text-purple-600',dot:'bg-purple-500' },
-  delayed:      { label: '延误',   color: 'bg-red-500',    textColor: 'text-white',  marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
+  // 物流轨迹状态（优先 tracking_status，其次 shipping_substatus）
+  pending:           { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
+  ready_to_ship:     { label: '待取件',    color: 'bg-slate-400',  textColor: 'text-white', marqueeColor: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
+  picked_up:         { label: '已揽收',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
+  shipped:           { label: '已发货',    color: 'bg-blue-500',   textColor: 'text-white', marqueeColor: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-600',   dot: 'bg-blue-500' },
+  in_transit:        { label: '运输中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
+  in_local_transit:  { label: '目的国运输', color: 'bg-amber-500', textColor: 'text-white', marqueeColor: 'bg-amber-500', badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
+  at_customs:        { label: '清关中',    color: 'bg-amber-500',  textColor: 'text-white', marqueeColor: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-600', dot: 'bg-amber-500' },
+  not_delivered:     { label: '未送达',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
+  delivered:         { label: '已签收',    color: 'bg-emerald-500',textColor: 'text-white', marqueeColor: 'bg-emerald-500',badge: 'bg-emerald-100 text-emerald-600',dot:'bg-emerald-500' },
+  failed:            { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
+  exception:         { label: '异常',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
+  returned:          { label: '退回',      color: 'bg-purple-500', textColor: 'text-white', marqueeColor: 'bg-purple-500',badge: 'bg-purple-100 text-purple-600',dot:'bg-purple-500' },
+  delayed:           { label: '延误',      color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
+  pending_recovery:  { label: '待取回',    color: 'bg-red-500',    textColor: 'text-white', marqueeColor: 'bg-red-500',   badge: 'bg-red-100 text-red-600',     dot: 'bg-red-500' },
 };
 
 const SITE_FLAGS = {
@@ -24,20 +27,20 @@ const SITE_FLAGS = {
 
 const DEFAULT_FLAG = '🌐';
 
-const getStatusConfig = (ss, sss) => {
-  // Try substatus first, then main status
-  if (sss && STATUS_MAP[sss]) return STATUS_MAP[sss];
+const getStatusConfig = (ts, ss) => {
+  // 优先用 shipments API 的 tracking_status，其次 shipping_substatus，最后 shipping_status
+  if (ts && STATUS_MAP[ts]) return STATUS_MAP[ts];
   if (ss && STATUS_MAP[ss]) return STATUS_MAP[ss];
-  return { label: ss || '-', color: 'bg-slate-400', textColor: 'text-white', marqueeColor: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
+  return { label: ts || ss || '-', color: 'bg-slate-400', textColor: 'text-white', marqueeColor: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
 };
 
-const getProgressStage = (ss, sss) => {
-  // Returns 0-3: 发货, 中转, 目的, 签收
-  if (ss === 'delivered') return 3;
-  if (ss === 'in_transit' || sss === 'in_transit' || sss === 'in_local_transit') return 2;
-  if (ss === 'shipped' || sss === 'picked_up') return 1;
-  if (ss === 'pending' || ss === 'ready_to_ship') return 0;
-  return 0;
+const getProgressStage = (ts, ss) => {
+  // 物流进度节点：0=发货前 1=已发货 2=运输中 3=已签收
+  if (ts === 'delivered') return 3;
+  if (['in_transit', 'in_local_transit'].includes(ts)) return 2;
+  if (['shipped', 'picked_up'].includes(ts)) return 1;
+  if (['pending', 'ready_to_ship'].includes(ts)) return 0;
+  return 1; // 有 tracking_id 默认视为已发货
 };
 
 // 4-node labels
@@ -110,11 +113,20 @@ const ProgressBar = ({ stage }) => {
 
 // ─── Logistics Card ─────────────────────────────────────────────────────────
 const LogisticsCard = ({ order }) => {
-  const status = getStatusConfig(order.shipping_status, order.shipping_substatus);
-  const stage = getProgressStage(order.shipping_status, order.shipping_substatus);
+  // 优先级：tracking_status(shipments API) > shipping_substatus > shipping_status
+  const ts = order.tracking_status || order.shipping_substatus || order.shipping_status;
+  const ss = order.shipping_substatus || order.shipping_status;
+  const status = getStatusConfig(order.tracking_status, ss);
+  const stage = getProgressStage(order.tracking_status, ss);
   const flag = SITE_FLAGS[order.site_id] || DEFAULT_FLAG;
-  
-  // 优先使用真实的 thumbnail，如果没有则回退到 picsum
+
+  // 物流商：优先用 logistic_company（shipments API），回退 logistic_type
+  const logisticCompany = order.logistic_company || order.logistic_type || order.logistics_type || '未知';
+  // 收件地
+  const receiverAddr = order.receiver_city || order.receiver_state
+    ? `${order.receiver_city || ''}${order.receiver_state ? ', ' + order.receiver_state : ''}`
+    : null;
+
   const imgUrl = order.thumbnail || `https://picsum.photos/seed/${order.id || 'default'}/200/200`;
 
   return (
@@ -155,10 +167,14 @@ const LogisticsCard = ({ order }) => {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">物流商</span>
-          <span className="text-[10px] font-black text-slate-600">
-            {order.logistic_type || order.logistics_type || '未知'}
-          </span>
+          <span className="text-[10px] font-black text-slate-600">{logisticCompany}</span>
         </div>
+        {receiverAddr && (
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">收件地</span>
+            <span className="text-[10px] font-black text-slate-600">{receiverAddr}</span>
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}
@@ -183,7 +199,7 @@ const MarqueeTicker = ({ orders }) => {
         }}
       >
         {items.map((order, i) => {
-          const status = getStatusConfig(order.shipping_status, order.shipping_substatus);
+          const status = getStatusConfig(order.tracking_status, order.shipping_substatus || order.shipping_status);
           const flag = SITE_FLAGS[order.site_id] || DEFAULT_FLAG;
           const imgUrl = order.thumbnail || `https://picsum.photos/seed/${order.id || 'default'}/60/60`;
           const updateTime = order.order_date
@@ -259,21 +275,27 @@ const LogisticsAlertsView = (props) => {
     </div>
   );
 
-  // Filter groups based on task requirements
+  // Filter groups: 同时参考 tracking_status（shipments API）和 shipping_status
+  const getEffectiveStatus = (o) => o.tracking_status || o.shipping_status;
+  const getEffectiveSubstatus = (o) => o.shipping_substatus;
+
   const filterGroups = {
     all: orders,
     transit: orders.filter(o => {
-      const s = o.shipping_status; const ss = o.shipping_substatus;
+      const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
       return ['shipped', 'in_transit', 'in_local_transit', 'at_customs'].includes(s) || ['picked_up', 'in_transit', 'in_local_transit', 'at_customs'].includes(ss);
     }),
     pending: orders.filter(o => {
-      const s = o.shipping_status;
+      const s = getEffectiveStatus(o);
       return ['pending', 'ready_to_ship'].includes(s);
     }),
-    delivered: orders.filter(o => o.shipping_status === 'delivered'),
+    delivered: orders.filter(o => {
+      const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
+      return s === 'delivered' || ss === 'delivered';
+    }),
     exception: orders.filter(o => {
-      const s = o.shipping_status; const ss = o.shipping_substatus;
-      return ['failed', 'exception', 'returned', 'delayed'].includes(s) || ['failed', 'exception', 'returned'].includes(ss);
+      const s = getEffectiveStatus(o); const ss = getEffectiveSubstatus(o);
+      return ['failed', 'exception', 'returned', 'delayed', 'not_delivered', 'pending_recovery'].includes(s) || ['failed', 'exception', 'returned'].includes(ss);
     }),
   };
 
@@ -291,12 +313,13 @@ const LogisticsAlertsView = (props) => {
   const marqueeOrders = [...orders]
     .sort((a, b) => {
       // Prioritize: in-transit > pending > delivered > others
+      const getMarqueeStatus = (o) => o.tracking_status || o.shipping_status;
       const priority = (o) => {
-        const s = o.shipping_status;
-        if (['shipped', 'in_transit', 'at_customs'].includes(s)) return 0;
+        const s = getMarqueeStatus(o);
+        if (['shipped', 'in_transit', 'in_local_transit', 'at_customs', 'picked_up'].includes(s)) return 0;
         if (['pending', 'ready_to_ship'].includes(s)) return 1;
         if (['delivered'].includes(s)) return 3;
-        if (['failed', 'exception', 'returned', 'delayed'].includes(s)) return 2;
+        if (['failed', 'exception', 'returned', 'delayed', 'not_delivered', 'pending_recovery'].includes(s)) return 2;
         return 4;
       };
       return priority(a) - priority(b);
