@@ -1,6 +1,7 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://manufacture-cheaper-holidays-con.trycloudflare.com/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://describing-cold-collins-frederick.trycloudflare.com/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
