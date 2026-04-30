@@ -19,12 +19,22 @@ async def health():
 @router.get("/monitoring_logs")
 async def monitoring_logs():
     """监控日志"""
-    # TODO: 实现
-    return []
+    from ..db import get_db_connection
+    with get_db_connection() as conn:
+        rows = conn.execute("""
+            SELECT timestamp, level, message, store_id
+            FROM monitoring_logs
+            ORDER BY timestamp DESC
+            LIMIT 100
+        """).fetchall()
+        return [dict(row) for row in rows]
 
 
 @router.get("/monitoring/stream")
 async def monitoring_stream():
-    """监控流"""
-    # TODO: 实现
-    return {}
+    """监控流 - 返回最新日志统计"""
+    from ..db import get_db_connection
+    import time
+    with get_db_connection() as conn:
+        count = conn.execute("SELECT COUNT(*) as c FROM monitoring_logs").fetchone()
+        return {"connected": True, "total": count["c"] if count else 0, "timestamp": int(time.time())}

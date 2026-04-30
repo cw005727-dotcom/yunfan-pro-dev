@@ -18,8 +18,11 @@ from ..db import get_db_connection
 router = APIRouter(prefix="/api", tags=["数据同步"])
 logger = logging.getLogger(__name__)
 
-# 同步脚本路径（来自旧 api_server.py）
-SCRIPT_DIR = "/Users/chensan/.accio/accounts/7086454425/agents/MID-95454425U1776995-4A33A1-0369-3FFD58/project"
+# 同步脚本路径（可配置环境变量，生产环境部署时设置）
+SCRIPT_DIR = os.environ.get(
+    "SYNC_SCRIPTS_DIR",
+    "/Users/chensan/.accio/accounts/7086454425/agents/MID-95454425U1776995-4A33A1-0369-3FFD58/project"
+)
 LARK_SYNC_SCRIPT = os.path.join(SCRIPT_DIR, "final_lark_sync.py")
 GLOBAL_SYNC_SCRIPT = os.path.join(SCRIPT_DIR, "global_sync.py")
 
