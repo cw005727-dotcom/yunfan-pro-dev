@@ -29,11 +29,11 @@ def get_amazon_js_data(keyword, marketplace="mx"):
         ]
         logger.info(f"Running command: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        
+
         if result.returncode != 0:
             logger.error(f"JS CLI Error (code {result.returncode}): {result.stderr}")
             return None
-            
+
         raw_data = json.loads(result.stdout)
         products = []
         for item in raw_data.get('data', []):
@@ -87,34 +87,34 @@ def background_notification_worker():
             conn = sqlite3.connect(DB_PATH)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            
+
             # 获取待处理的通知
             cursor.execute("SELECT * FROM ml_notifications WHERE status = 'pending' ORDER BY received_at ASC LIMIT 10")
             rows = cursor.fetchall()
-            
+
             if not rows:
                 conn.close()
                 time.sleep(10)
                 continue
-                
+
             token = None
             tokens = load_tokens()
             if tokens and tokens.get('access_token'):
                 token = tokens['access_token']
-                
+
             if not token:
                 logger.warning("No ML access token available for background worker.")
                 conn.close()
                 time.sleep(60)
                 continue
-                
+
             for row in rows:
                 notify_id = row['id']
                 resource = row['resource']
                 topic = row['topic']
-                
+
                 logger.info(f"[Worker] Processing: {topic} {resource}")
-                
+
                 try:
                     if topic == 'orders_v2':
                         # 获取订单详情
@@ -123,47 +123,47 @@ def background_notification_worker():
                             order_data = resp.json()
                             order_id = str(order_data['id'])
                             shipping_id = order_data.get('shipping', {}).get('id')
-                            
+
                             # 获取物流详情
                             ship_data = {}
                             if shipping_id:
                                 ship_resp = requests.get(f"https://api.mercadolibre.com/shipments/{shipping_id}", headers={"Authorization": f"Bearer {token}"})
                                 if ship_resp.status_code == 200:
                                     ship_data = ship_resp.json()
-                            
+
                             shipping_status = ship_data.get('status', 'pending')
                             shipping_substatus = ship_data.get('substatus')
                             tracking_id = ship_data.get('tracking_number')
                             last_ship_date = order_data.get('expiration_date')
-                            
+
                             # Extract weight from ship_data
                             weight = 0
                             if ship_data.get('base_cost_detail'):
                                 weight = ship_data['base_cost_detail'].get('weight', 0)
                             elif ship_data.get('dimensions'):
                                 weight = ship_data['dimensions'].get('weight', 0)
-                            
+
                             # Normalize to KG if likely in grams
-                            if weight > 50: 
+                            if weight > 50:
                                 weight = round(weight / 1000.0, 3)
-                            
+
                             cursor.execute("""
-                                UPDATE orders_v2 
+                                UPDATE orders_v2
                                 SET shipping_status = ?, shipping_substatus = ?, tracking_id = ?, last_ship_date = ?, weight = ?
                                 WHERE id = ?
                             """, (shipping_status, shipping_substatus, tracking_id, last_ship_date, weight, order_id))
-                            
+
                             logger.info(f"[Worker] Updated order {order_id}")
-                    
+
                     cursor.execute("UPDATE ml_notifications SET status = 'completed', processed_at = ? WHERE id = ?", (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), notify_id))
-                    
+
                 except Exception as e:
                     logger.error(f"[Worker] Error processing notification {notify_id}: {e}")
                     cursor.execute("UPDATE ml_notifications SET status = 'failed' WHERE id = ?", (notify_id,))
-            
+
             conn.commit()
             conn.close()
-            
+
         except Exception as e:
             logger.error(f"[Worker] Global error: {e}")
             time.sleep(30)
@@ -181,11 +181,11 @@ _token_refresh_lock = threading.Lock()
 _last_refresh_time = 0
 
 def refresh_access_token():
-    """用 refresh_token 刷新 access_token，返回是否成功"""
+    """用 refresh_token 刷新 access_token,返回是否成功"""
     global _last_refresh_time
     tokens = load_tokens()
     if not tokens or not tokens.get('refresh_token'):
-        logger.warning("[Token Refresh] 无 refresh_token，跳过")
+        logger.warning("[Token Refresh] 无 refresh_token,跳过")
         return False
     try:
         payload = {
@@ -200,7 +200,7 @@ def refresh_access_token():
             if new_tokens.get('access_token'):
                 save_tokens(new_tokens)
                 _last_refresh_time = time.time()
-                logger.info(f"[Token Refresh] ✅ 成功刷新，新token: {new_tokens['access_token'][:40]}...")
+                logger.info(f"[Token Refresh] ✅ 成功刷新,新token: {new_tokens['access_token'][:40]}...")
                 return True
         logger.warning(f"[Token Refresh] ❌ 失败 HTTP {resp.status_code}: {resp.text[:100]}")
         return False
@@ -209,27 +209,27 @@ def refresh_access_token():
         return False
 
 def _token_refresh_worker():
-    """后台线程：每4小时检查一次 token 状态"""
+    """后台线程:每4小时检查一次 token 状态"""
     global _last_refresh_time
     while True:
         time.sleep(TOKEN_CHECK_INTERVAL)
         tokens = load_tokens()
         if not tokens:
-            logger.warning("[Token Refresh Worker] 无 token，准备刷新")
+            logger.warning("[Token Refresh Worker] 无 token,准备刷新")
             with _token_refresh_lock:
                 refresh_access_token()
             continue
         expires_in = tokens.get('expires_in', 21600)
-        # 检查是否快过期（剩余不足30分钟）
-        # 注意：load_tokens 本身不记录创建时间，只能用 expires_in 估算
-        # 每次保存时会更新，但进程重启后不知道经过了多久
-        # 所以用保守策略：每次检查都尝试刷新（refresh_token 30天有效）
+        # 检查是否快过期(剩余不足30分钟)
+        # 注意:load_tokens 本身不记录创建时间,只能用 expires_in 估算
+        # 每次保存时会更新,但进程重启后不知道经过了多久
+        # 所以用保守策略:每次检查都尝试刷新(refresh_token 30天有效)
         with _token_refresh_lock:
             refreshed = refresh_access_token()
             if refreshed:
                 logger.info("[Token Refresh Worker] ✅ 本次已刷新")
             else:
-                logger.info("[Token Refresh Worker] ℹ️ 本次无需刷新")
+                logger.info("[Token Refresh Worker] i️ 本次无需刷新")
 
 def start_token_refresh_thread():
     t = threading.Thread(target=_token_refresh_worker, daemon=True)
@@ -245,10 +245,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
     def check_auth(self):
         # 临时允许所有请求以便调试
         return True
-        
+
         auth_header = self.headers.get('Authorization')
         admin_token_header = self.headers.get('X-Admin-Token')
-        
+
         # 兼容两种头部
         if admin_token_header == ADMIN_TOKEN:
             return True
@@ -256,11 +256,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             token = auth_header.split(' ')[1]
             if token == ADMIN_TOKEN:
                 return True
-        
+
         # 允许授权回调和前端 index.html 访问 (虽然 index.html 现在被 do_GET 开头处理了)
         if self.path.startswith("/api/meli-auth") or not self.path.startswith("/api/"):
             return True
-            
+
         return False
 
     def get_ml_token(self):
@@ -306,7 +306,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 # 尝试提供静态文件
                 full_path = path.lstrip('/')
-                
+
                 if not full_path or full_path == '':
                     # 优先检测根目录 index.html (支持开发环境下源码访问)
                     if os.path.exists('index.html'):
@@ -314,7 +314,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     else:
                         full_path = 'dist/index.html'
                 else:
-                    # 如果根目录或子目录(如 src/)下存在该文件，直接映射
+                    # 如果根目录或子目录(如 src/)下存在该文件,直接映射
                     if os.path.exists(full_path) and not os.path.isdir(full_path):
                         pass
                     else:
@@ -328,10 +328,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                                 full_path = 'index.html'
                             else:
                                 full_path = 'dist/index.html'
-                
+
                 if not os.path.exists(full_path):
                      raise FileNotFoundError(f"Static file {full_path} not found")
-                
+
                 # 获取文件扩展名以设置 Content-Type
                 ext = os.path.splitext(full_path)[1].lower()
                 content_type = 'text/html; charset=utf-8'
@@ -341,7 +341,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 elif ext == '.jpg' or ext == '.jpeg': content_type = 'image/jpeg'
                 elif ext == '.svg': content_type = 'image/svg+xml'
                 elif ext == '.json': content_type = 'application/json'
-                
+
                 self.send_response(200)
                 self.send_header('Content-Type', content_type)
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -350,7 +350,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.wfile.write(f.read())
                 return
             except Exception as e:
-                # 如果 dist 不存在，尝试降级到根目录的 index.html
+                # 如果 dist 不存在,尝试降级到根目录的 index.html
                 try:
                     self.send_response(200)
                     self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -373,11 +373,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         # Normalize site parameter
         site_param = query.get("site", ["MLM"])[0]
         site_to_ml = {
-            'MX': 'MLM', 'MLM': 'MLM', 
-            'BR': 'MLB', 'MLB': 'MLB', 
-            'CO': 'MCO', 'MCO': 'MCO', 
-            'AR': 'MLA', 'MLA': 'MLA', 
-            'CL': 'MLC', 'MLC': 'MLC', 
+            'MX': 'MLM', 'MLM': 'MLM',
+            'BR': 'MLB', 'MLB': 'MLB',
+            'CO': 'MCO', 'MCO': 'MCO',
+            'AR': 'MLA', 'MLA': 'MLA',
+            'CL': 'MLC', 'MLC': 'MLC',
             'UY': 'MLU', 'MLU': 'MLU'
         }
         site_id = site_to_ml.get(site_param, site_param)
@@ -397,14 +397,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 data = []
                 for r in rows:
                     level = (r.get('reputation_level') or '').lower()
-                    
+
                     # 1. 基础映射
                     status = 'green'
                     if 'red' in level or 'suspended' in level: status = 'red'
                     elif 'yellow' in level or 'orange' in level: status = 'yellow'
-                    
-                    # 2. 指标驱动修正 (完全信任 stores 表里的官方 status，不再本地判定)
-                    # 如果需要本地强制覆盖逻辑，再开启以下代码
+
+                    # 2. 指标驱动修正 (完全信任 stores 表里的官方 status,不再本地判定)
+                    # 如果需要本地强制覆盖逻辑,再开启以下代码
                     # claims_pct = get_val(r.get('complaints_rate'))
                     # delayed_pct = get_val(r.get('delayed_rate'))
                     # cancel_pct = get_val(r.get('cancellations_rate'))
@@ -419,12 +419,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         return val
 
                     def calculate_dynamic_rate(base_rate_str, historical_v, new_v, total_v):
-                        # 直接用 stores 表里的官方 rate（来自 /global/users/seller_reputation）
-                        # 不再重新计算，避免旧 JSON 镜像的 new_claims 等字段干扰
+                        # 直接用 stores 表里的官方 rate(来自 /global/users/seller_reputation)
+                        # 不再重新计算,避免旧 JSON 镜像的 new_claims 等字段干扰
                         return format_rate(base_rate_str)
 
                     total_v = r.get('total_transactions') or 0
-                    
+
                     data.append({
                         "id": r.get('id'),
                         "account": r.get('nickname') or r.get('store_name'),
@@ -522,131 +522,108 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         # 1.1 /api/monitoring/stream
         elif path == "/api/monitoring/stream":
+            # 只显示当日的真实数据，无假数据
             try:
                 conn = sqlite3.connect(DB_PATH)
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
                 SITE_MAP = {
-                    'MLM': '墨西哥', 'MLB': '巴西', 'MCO': '哥伦比亚', 
+                    'MLM': '墨西哥', 'MLB': '巴西', 'MCO': '哥伦比亚',
                     'MLA': '阿根廷', 'MLC': '智利', 'MLU': '乌拉圭', 'CBT': '跨境'
                 }
                 COLOR_NAME_MAP = {
-                    'green': '绿色', 'light_green': '浅绿色', 
+                    'green': '绿色', 'light_green': '浅绿色',
                     'yellow': '黄色', 'orange': '橙色', 'red': '红色'
                 }
 
                 events = []
+                today = datetime.now().strftime('%Y-%m-%d')
 
-                # 4.1 超期预警 - 归类为“物流类” (第4类：有异常)
+                # 1. 超期发货预警（来自 orders_v2，last_ship_date 已过）
                 now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
                 cursor.execute("""
-                    SELECT o.id, o.last_ship_date, s.nickname, o.site_id 
+                    SELECT o.id, o.last_ship_date, s.nickname, o.site_id
                     FROM orders_v2 o
                     LEFT JOIN stores s ON o.user_id = s.user_id
-                    WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ? 
-                    LIMIT 3
+                    WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ?
+                    LIMIT 5
                 """, (now_str,))
-                overdue_orders = [dict(r) for r in cursor.fetchall()]
-                
-                for row in overdue_orders:
+                for row in cursor.fetchall():
+                    site = SITE_MAP.get(row['site_id'], row['site_id'])
                     events.append({
                         "id": f"overdue_{row['id']}",
                         "type": "logistics",
-                        "label": "物流",
-                        "desc": f"({row['id']}) 发货已超期",
+                        "label": "发货超时",
+                        "desc": f"{site} 订单{row['id']}发货已超期",
                         "time": "紧急",
-                        "urgent": True,
-                        "category": 4
+                        "urgent": True
                     })
 
-                # 1. 基础违规记录 - 违规类
-                cursor.execute("SELECT * FROM product_infringements ORDER BY created_at DESC LIMIT 2")
-                infringements = cursor.fetchall()
-                for row in infringements:
-                    reason_zh = row['reason']
-                    if "trademark" in reason_zh.lower(): reason_zh = "疑似商标侵权"
-                    elif "copyright" in reason_zh.lower(): reason_zh = "疑似著作权侵权"
-                    elif "brand" in reason_zh.lower(): reason_zh = "品牌授权违规"
-                    
+                # 2. 当日新增违规记录（来自 product_infringements，created_at = 今天）
+                cursor.execute("""
+                    SELECT * FROM product_infringements
+                    WHERE date(created_at) = ?
+                    ORDER BY created_at DESC LIMIT 5
+                """, (today,))
+                for row in cursor.fetchall():
+                    reason = row['reason'] or ""
+                    if "trademark" in reason.lower(): reason_zh = "商标侵权"
+                    elif "copyright" in reason.lower(): reason_zh = "著作权侵权"
+                    elif "brand" in reason.lower(): reason_zh = "品牌授权违规"
+                    else: reason_zh = reason
                     events.append({
                         "id": f"violation_{row['id']}",
                         "type": "violation",
                         "label": "违规",
-                        "desc": f"大姐店 墨西哥 站点新增：{reason_zh}",
-                        "time": "最近",
+                        "desc": f"大姐店 新增：{reason_zh}",
+                        "time": row['created_at'][11:16] if row['created_at'] else "",
                         "urgent": row['severity'] == 'high'
                     })
 
-                # 2. 咨询类 - 包含 AI 翻译
+                # 3. 当日新订单（来自 orders_v2，order_date = 今天）
                 cursor.execute("""
-                    SELECT m.*, s.nickname 
-                    FROM customer_messages m
-                    LEFT JOIN stores s ON m.seller_id = s.user_id
-                    WHERE m.status = 'unread' 
-                    ORDER BY m.updated_at DESC LIMIT 3
-                """)
-                messages = cursor.fetchall()
-                for row in messages:
-                    store = row['nickname'] or "云帆店"
-                    if "Dajie" in store or "CNGUI" in store or "PELUCHE" in store: 
-                        store = "大姐店" # 统一汉化店名
+                    SELECT o.id, o.order_date, o.amount, o.site_id, s.nickname
+                    FROM orders_v2 o
+                    LEFT JOIN stores s ON o.user_id = s.user_id
+                    WHERE date(o.order_date) = ?
+                    ORDER BY o.order_date DESC LIMIT 10
+                """, (today,))
+                for row in cursor.fetchall():
                     site = SITE_MAP.get(row['site_id'], row['site_id'])
-                    # 模拟 AI 翻译逻辑
-                    raw_msg = row['last_message'].lower()
-                    translated = "请问该商品是否有现货？"
-                    if "no llega" in raw_msg or "not arrive" in raw_msg:
-                        translated = "我的包裹还没到，请核实。"
-                    elif "descuento" in raw_msg:
-                        translated = "请问购买多件是否有折扣？"
-                    elif "talla" in raw_msg or "size" in raw_msg:
-                        translated = "请问尺码建议是多少？"
-                    
+                    events.append({
+                        "id": f"order_{row['id']}",
+                        "type": "order",
+                        "label": "新订单",
+                        "desc": f"{site} 订单 {row['id']} 成交 ${row['amount']}",
+                        "time": row['order_date'][11:16] if row['order_date'] else "",
+                        "urgent": False
+                    })
+
+                # 4. 当日未读咨询（来自 customer_messages，updated_at = 今天）
+                cursor.execute("""
+                    SELECT m.*, s.nickname FROM customer_messages m
+                    LEFT JOIN stores s ON m.seller_id = s.user_id
+                    WHERE m.status = 'unread' AND date(m.updated_at) = ?
+                    ORDER BY m.updated_at DESC LIMIT 5
+                """, (today,))
+                for row in cursor.fetchall():
+                    store = row['nickname'] or "云帆店"
+                    if "Dajie" in store or "CNGUI" in store or "PELUCHE" in store:
+                        store = "大姐店"
+                    site = SITE_MAP.get(row['site_id'], row['site_id'])
+                    msg_preview = (row['last_message'] or "")[:30]
                     events.append({
                         "id": f"msg_{row['id']}",
                         "type": "message",
                         "label": "咨询",
-                        "desc": f"{store} {site} 站点 咨询：{translated}",
-                        "time": "未读",
+                        "desc": f"{store} {site}：{msg_preview}",
+                        "time": row['updated_at'][11:16] if row['updated_at'] else "未读",
                         "urgent": False
                     })
 
-                # 3. 声誉类
-                cursor.execute("SELECT nickname, site_id, status FROM stores LIMIT 4")
-                stores = cursor.fetchall()
-                for row in stores:
-                    store = row['nickname']
-                    if "Dajie" in store or "CNGUI" in store or "PELUCHE" in store: 
-                        store = "大姐店"
-                    site = SITE_MAP.get(row['site_id'], row['site_id'])
-                    color_zh = COLOR_NAME_MAP.get(row['status'], row['status'])
-                    events.append({
-                        "id": f"rep_{row['nickname']}",
-                        "type": "reputation",
-                        "label": "声誉",
-                        "desc": f"{store} {site} 站点为{color_zh}",
-                        "time": "实时",
-                        "urgent": row['status'] in ['yellow', 'orange', 'red']
-                    })
-
-                # 4. 物流类 (第2类：在途中)
-                cursor.execute("SELECT id, shipping_status, tracking_id FROM orders_v2 WHERE shipping_status NOT IN ('delivered', 'pending', 'ready_to_ship') ORDER BY order_date DESC LIMIT 3")
-                real_orders = cursor.fetchall()
-                for row in real_orders:
-                    log_states = ['包裹已到达扫描中心', '海关清关完成', '末端派送中', '干线运输启动', '派送异常']
-                    events.append({
-                        "id": f"log_{row['id']}",
-                        "type": "logistics",
-                        "label": "物流",
-                        "desc": f"({row['id']}) {random.choice(log_states)}",
-                        "time": "更新",
-                        "urgent": False,
-                        "category": 2,
-                        "lp": row['tracking_id']
-                    })
-                
                 conn.close()
-                self.send_json({"events": events[:15]})
+                self.send_json({"events": events[:20]})
             except Exception as e:
                 print(f"Monitoring Error: {e}")
                 self.send_json({"events": [], "error": str(e)}, 500)
@@ -658,23 +635,23 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 conn = sqlite3.connect(DB_PATH)
                 cursor = conn.cursor()
                 now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-                
+
                 # Category 1: Preparing (待处理)
                 cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('pending', 'ready_to_ship', 'ready_to_print', 'printed')")
                 cat1 = cursor.fetchone()[0]
-                
+
                 # Category 2: In Transit (在途中)
                 cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('shipped', 'in_transit', 'at_customs', 'left_customs', 'picked_up', 'dropped_off')")
                 cat2 = cursor.fetchone()[0]
-                
+
                 # Category 3: Delivered (已妥投)
                 cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status = 'delivered'")
                 cat3 = cursor.fetchone()[0]
-                
-                # Category 4: Issues (有异常) — not_delivered + cancelled
+
+                # Category 4: Issues (有异常) - not_delivered + cancelled
                 cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('not_delivered', 'cancelled', 'detained_at_origin', 'cancelled_measurement_exceeded', 'pending_recovery', 'return_failed')")
                 cat4 = cursor.fetchone()[0]
-                
+
                 conn.close()
                 self.send_json({
                     "preparing": cat1,
@@ -694,11 +671,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 shop_filter = query.get("shop", [None])[0]
                 group_filter = query.get("group", [None])[0]
                 category_filter = query.get("category", [None])[0]
-                
+
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
-                
+
                 now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-                
+
                 # Base status mappings
                 STATUS_MAP = {
                     'pending': '待入库', 'ready_to_ship': '待发货', 'shipped': '已发货',
@@ -709,7 +686,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                 where_clauses = []
                 params = []
-                
+
                 if group_filter:
                     cursor.execute("SELECT user_id FROM stores WHERE group_label = ?", (group_filter,))
                     uids = [r['user_id'] for r in cursor.fetchall() if r['user_id']]
@@ -736,21 +713,21 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     params.append(now_str)
 
                 where = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
-                
+
                 sql = f"SELECT * FROM orders_v2{where} ORDER BY order_date DESC LIMIT 100"
                 logger.info(f"[Orders] SQL: {sql} | Params: {params}")
                 cursor.execute(sql, params)
-                
+
                 orders = []
                 for r in cursor.fetchall():
                     d = dict(r)
                     # Check if overdue
                     is_overdue = d.get('shipping_status') in ['pending', 'ready_to_ship'] and d.get('last_ship_date') and d['last_ship_date'] < now_str
-                    
+
                     d['status_zh'] = "发货超期" if is_overdue else STATUS_MAP.get(d['shipping_status'], d['shipping_status'])
                     d['is_overdue'] = is_overdue
-                    
-                    # 统一计算最晚发货时间：下单后5个自然日内
+
+                    # 统一计算最晚发货时间:下单后5个自然日内
                     if d.get('order_date'):
                         try:
                             dt_str = d['order_date'][:19]
@@ -772,12 +749,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     else:
                         d['category'] = 1
                     orders.append(d)
-                
+
                 conn.close()
                 result = {
-                    "orders": orders, 
+                    "orders": orders,
                     "summary": {
-                        "total_gmv": sum(o['amount'] for o in orders), 
+                        "total_gmv": sum(o['amount'] for o in orders),
                         "total_orders": len(orders)
                     }
                 }
@@ -802,23 +779,23 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 # Real implementation would use requests to scrape or an API
                 events = [
                     {"time": "2026-04-25 09:00", "status": "shipped", "desc": "[中国] 包裹已从菜鸟大件仓发出", "location": "东莞, 中国"},
-                    {"time": "2026-04-26 14:20", "status": "in_transit", "desc": "[中国] 到达菜鸟国际分拨中心，准备装机", "location": "香港, 中国"},
+                    {"time": "2026-04-26 14:20", "status": "in_transit", "desc": "[中国] 到达菜鸟国际分拨中心,准备装机", "location": "香港, 中国"},
                     {"time": "2026-04-27 10:30", "status": "in_transit", "desc": "航空干线启运", "location": "国际枢纽"},
-                    {"time": "2026-04-28 22:15", "status": "at_customs", "desc": f"[{site_id}] 到达目的地清关中心，进入清关流程", "location": "目的地海关"},
+                    {"time": "2026-04-28 22:15", "status": "at_customs", "desc": f"[{site_id}] 到达目的地清关中心,进入清关流程", "location": "目的地海关"},
                 ]
-                
+
                 # Add a "Real-time" node if it's the latest
                 events.insert(0, {
                     "time": datetime.now().strftime('%Y-%m-%d %H:%M'),
                     "status": "in_transit",
-                    "desc": "菜鸟裹裹：实时轨迹同步成功，包裹处理中",
+                    "desc": "菜鸟裹裹:实时轨迹同步成功,包裹处理中",
                     "location": "目的地分拨中心"
                 })
 
                 risk = None
                 if "清关" in events[1]['desc']:
-                    risk = {"level": "warning", "message": "目的地海关政策性抽检，预计延误 24 小时"}
-                
+                    risk = {"level": "warning", "message": "目的地海关政策性抽检,预计延误 24 小时"}
+
                 self.send_json({"id": order_id, "lp": lp_number, "events": events, "risk": risk})
             except Exception as e:
                 self.send_error(500, str(e))
@@ -829,14 +806,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 # Get optional search keyword from query
                 keyword_query = query.get("keyword", [None])[0]
-                
+
                 # Platform filtering: mercado_libre, 1688, aliexpress, temu
                 # 1688/AliExpress/Temu: no public data source available, return friendly message
                 if platform == "1688":
                     self.send_json({
                         "items": [],
                         "reason": "platform_unsupported",
-                        "message": "1688平台暂不支持数据检索，需登录Cookie，推荐使用Amazon爆品雷达"
+                        "message": "1688平台暂不支持数据检索,需登录Cookie,推荐使用Amazon爆品雷达"
                     })
                     return
 
@@ -844,7 +821,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.send_json({
                         "items": [],
                         "reason": "platform_unsupported",
-                        "message": "AliExpress平台暂不支持数据检索，推荐使用Amazon爆品雷达"
+                        "message": "AliExpress平台暂不支持数据检索,推荐使用Amazon爆品雷达"
                     })
                     return
 
@@ -852,14 +829,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.send_json({
                         "items": [],
                         "reason": "platform_unsupported",
-                        "message": "Temu平台暂不支持数据检索，推荐使用Amazon爆品雷达"
+                        "message": "Temu平台暂不支持数据检索,推荐使用Amazon爆品雷达"
                     })
                     return
 
                 elif platform == "amazon":
                     # Load from dynamic JSON if available
                     data = []
-                    
+
                     # PRIORITY 1: Jungle Scout Real Data (If keyword provided)
                     if keyword_query:
                         js_market = "mx" if site_id == "MLM" else "br" if site_id == "MLB" else "us"
@@ -872,13 +849,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     if keyword_query:
                         # Normalize filename for Chinese/Special characters
                         cache_file = f"search_{keyword_query}_{site_id}.json"
-                        
+
                         logger.info(f"Checking for cache: {cache_file}")
-                        
+
                         # Pre-define currency for Amazon sites
                         currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
                         amz_curr = currency_map.get(site_id, "USD")
-                        
+
                         if os.path.exists(cache_file):
                             try:
                                 with open(cache_file, "r", encoding="utf-8") as f:
@@ -908,7 +885,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         cache_file = f"amazon_radar_{site_id}.json"
                         currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
                         amz_curr = currency_map.get(site_id, "USD")
-                        
+
                         if os.path.exists(cache_file):
                             try:
                                 with open(cache_file, "r") as f:
@@ -926,7 +903,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                                             "keyword": "Bestseller"
                                         })
                             except: pass
-                        
+
                         if not data:
                             # Final Pad
                             fallbacks = [
@@ -972,12 +949,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         return
                     except Exception as e:
                         logger.error(f"ML Live Search Error: {e}")
-                
+
                 # Default ML Logic (Existing)
                 token = self.get_ml_token()
                 auth_headers = {"User-Agent": "Mozilla/5.0"}
                 if token: auth_headers["Authorization"] = f"Bearer {token}"
-                
+
                 currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
                 curr = currency_map.get(site_id, "USD")
 
@@ -1019,7 +996,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         trends_res = trends_res.json()
                     if isinstance(trends_res, list):
                         trending_keywords = [t.get('keyword') for t in trends_res[:10] if t.get('keyword')]
-                        
+
                         def search_trend_products(kw):
                             try:
                                 # Search for the keyword
@@ -1199,7 +1176,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "MLU": ["Auriculares Bluetooth", "Reloj Smartwatch", "Zapatillas Running", "Mochila Antirrobo", "Foco LED", "Cable USB-C"]
                     }
                     queries = fallback_data.get(site_id, fallback_data["MLM"])
-                    
+
                     def fetch_fallback(q):
                         try:
                             # IMPORTANT: Don't use Authorization header for general search to avoid token issues
@@ -1236,11 +1213,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 # ---- Post-process: final quality check ----
                 # Filter out items without images to ensure visual quality without fake placeholders.
                 final_items = [it for it in radar_items if it.get('image') and not it.get('image').startswith('https://images.unsplash.com')]
-                
+
                 for it in final_items:
                     if it['image'].startswith('http:'):
                         it['image'] = it['image'].replace('http:', 'https:', 1)
-                
+
                 logger.info(f"Returning market radar for {site_id}: {len(final_items)} items")
                 self.send_json(final_items[:60]) # Show up to 10 rows of real data
             except Exception as e:
@@ -1330,7 +1307,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 shop_filter = query.get("shop", [None])[0]
                 group_filter = query.get("group", [None])[0]
                 conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
-                
+
                 # 1. 基础指标汇总
                 sql = "SELECT SUM(amount), COUNT(*) FROM orders_v2"
                 params = []
@@ -1355,7 +1332,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 gmv_row = cursor.fetchone()
                 gmv = gmv_row[0] or 0
                 count = gmv_row[1] or 0
-                
+
                 # 2. 每日预警汇总 (dailyAlerts)
                 alerts = {"complaints": 0, "violations": 0, "messages": 0}
                 if uids:
@@ -1367,11 +1344,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         alerts["complaints"] = alert_row[0] or 0
                         alerts["violations"] = alert_row[1] or 0
                         alerts["messages"] = alert_row[2] or 0
-                
+
                 conn.close()
                 self.send_json({
-                    "total_gmv": round(gmv, 2), 
-                    "total_orders": count, 
+                    "total_gmv": round(gmv, 2),
+                    "total_orders": count,
                     "alerts": alerts["complaints"],
                     "daily_alerts": alerts
                 })
@@ -1384,18 +1361,18 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 site_filter = query.get("site", [None])[0]
                 group_filter = query.get("group", [None])[0]
                 days_filter = int(query.get("days", [30])[0])
-                
+
                 conn = sqlite3.connect(DB_PATH)
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                
+
                 # 0. 计算日期过滤条件 (ISO8601 字符串比较)
                 cutoff_date = (datetime.now() - timedelta(days=days_filter)).strftime("%Y-%m-%dT%H:%M:%S")
-                
+
                 # 1. 计算核心指标 (Metrics)
                 where_clause = " WHERE order_date >= ?"
                 params = [cutoff_date]
-                
+
                 uids = []
                 if group_filter:
                     cursor.execute("SELECT user_id FROM stores WHERE group_label = ?", (group_filter,))
@@ -1406,7 +1383,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 elif site_filter and site_filter != 'ALL':
                     where_clause += " AND site_id = ?"
                     params.append(site_filter)
-                
+
                 # 当前周期数据
                 cursor.execute(f"SELECT SUM(amount), SUM(quantity), COUNT(*) FROM orders_v2{where_clause}", params)
                 res = cursor.fetchone()
@@ -1414,7 +1391,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 total_units = res[1] or 0
                 total_orders = res[2] or 0
                 aov = round(total_gmv / total_orders, 2) if total_orders > 0 else 0
-                
+
                 # 上一周期数据 (用于计算趋势)
                 prev_cutoff = (datetime.now() - timedelta(days=days_filter*2)).strftime("%Y-%m-%dT%H:%M:%S")
                 prev_where = " WHERE order_date >= ? AND order_date < ?"
@@ -1425,17 +1402,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 elif site_filter and site_filter != 'ALL':
                     prev_where += " AND site_id = ?"
                     prev_params.append(site_filter)
-                    
+
                 cursor.execute(f"SELECT SUM(amount), SUM(quantity), COUNT(*) FROM orders_v2{prev_where}", prev_params)
                 res_prev = cursor.fetchone()
                 p_gmv = res_prev[0] or 0
                 p_units = res_prev[1] or 0
                 p_orders = res_prev[2] or 0
-                
+
                 gmv_trend = ((total_gmv - p_gmv) / p_gmv * 100) if p_gmv > 0 else 12.5
                 units_trend = ((total_units - p_units) / p_units * 100) if p_units > 0 else 8.2
                 orders_trend = ((total_orders - p_orders) / p_orders * 100) if p_orders > 0 else 5.5
-                
+
                 metrics = {
                     "total_gmv": round(total_gmv, 2),
                     "total_units": total_units,
@@ -1447,14 +1424,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     "expected_payout": round(total_gmv * 0.85, 2),
                     "actual_payout": round(total_gmv * 0.6, 2)
                 }
-                
+
                 # 2. 趋势图数据 (Trends) - 真实每日聚合
                 trends = []
                 # 聚合过去 N 天的每日数据
                 trend_sql = f"SELECT strftime('%Y-%m-%d', order_date) as day, SUM(amount) as gmv, SUM(quantity) as units FROM orders_v2{where_clause} GROUP BY day ORDER BY day ASC"
                 cursor.execute(trend_sql, params)
                 trend_rows = {r['day']: r for r in cursor.fetchall()}
-                
+
                 for i in range(days_filter):
                     d_str = (datetime.now() - timedelta(days=days_filter-1-i)).strftime("%Y-%m-%d")
                     day_data = trend_rows.get(d_str, {"gmv": 0, "units": 0})
@@ -1463,23 +1440,23 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "gmv": round(day_data['gmv'] or 0, 2),
                         "units": day_data['units'] or 0
                     })
-                
+
                 # 3. 站点分布 (Store Distribution)
                 dist_sql = f"SELECT site_id, SUM(amount) as gmv FROM orders_v2{where_clause} GROUP BY site_id"
                 cursor.execute(dist_sql, params)
                 store_distribution = [{"name": r['site_id'], "gmv": round(r['gmv'] or 0, 2)} for r in cursor.fetchall()]
-                
+
                 # 4. 商品排行 (Rankings) - 基于真实订单
                 rank_sql = f"SELECT product_name, SUM(amount) as gmv, SUM(quantity) as units FROM orders_v2{where_clause} GROUP BY product_name"
-                
+
                 # Top GMV
                 cursor.execute(f"{rank_sql} ORDER BY gmv DESC LIMIT 5", params)
                 top_gmv = [{"name": r['product_name'], "image_url": None, "gmv": round(r['gmv'], 2)} for r in cursor.fetchall()]
-                
+
                 # Top Units
                 cursor.execute(f"{rank_sql} ORDER BY units DESC LIMIT 5", params)
                 top_units = [{"name": r['product_name'], "image_url": None, "units": r['units']} for r in cursor.fetchall()]
-                
+
                 # 尝试补充图片 (从 product_metrics 匹配)
                 for item in top_gmv + top_units:
                     cursor.execute("SELECT image_url FROM product_metrics WHERE name = ? LIMIT 1", (item['name'],))
@@ -1505,7 +1482,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     if res.status_code == 200:
                         trending = [{"word": t['keyword'], "growth": "+0%"} for t in res.json()[:8]]
                 except: pass
-                
+
                 if not trending: # Fallback to DB
                     conn = sqlite3.connect(DB_PATH)
                     cursor = conn.cursor()
@@ -1522,7 +1499,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     gaps = [{"word": r['name'].split(' ')[-1], "competition": "LOW"} for r in cursor.fetchall()]
                     conn.close()
                 except: pass
-                
+
                 self.send_json({
                     "trending": trending,
                     "gaps": gaps
@@ -1541,12 +1518,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 exposure = exposure or 120000 # Fallback
                 carts = carts or 8500
                 conv_rate = (carts / exposure * 100) if exposure > 0 else 7.15
-                
+
                 # 获取 Top 商品
                 cursor.execute("SELECT name, health_score, site_id FROM product_metrics ORDER BY exposure DESC LIMIT 3")
                 top_products = [{"name": r[0], "score": r[1], "trend": "up", "site": r[2]} for r in cursor.fetchall()]
                 conn.close()
-                
+
                 self.send_json({
                     "exposure": exposure,
                     "exposure_growth": "+12.5%",
@@ -1564,41 +1541,41 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/product_metrics":
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
-                
+
                 # Check which specific sites are suspended for this group
                 cursor.execute("SELECT site_id FROM stores WHERE group_label = '大姐店' AND reputation_level = 'suspended'")
                 suspended_sites = [r['site_id'] for r in cursor.fetchall()]
                 is_suspended = len(suspended_sites) > 0
-                
+
                 # Mapping for display names
                 site_names = {"MLM": "墨西哥 (MX)", "MCO": "哥伦比亚 (CO)", "MLA": "阿根廷 (AR)", "MLB": "巴西 (BR)", "CBT": "全球/跨境 (CBT)"}
                 suspended_display = ", ".join([site_names.get(s, s) for s in suspended_sites])
-                
-                # 如果账号被暂停，展示所有商品；否则展示 active + under_review + closed（新品多处于审核或刚下架状态）
+
+                # 如果账号被暂停,展示所有商品;否则展示 active + under_review + closed(新品多处于审核或刚下架状态)
                 if is_suspended:
                     status_filter = "(status = 'active' OR status = 'closed' OR status = 'inactive')"
                 else:
                     status_filter = "(status = 'active' OR status = 'under_review' OR status = 'closed')"
 
-                # site 参数：支持前端切换站点筛选，默认排除 CBT
+                # site 参数:支持前端切换站点筛选,默认排除 CBT
                 req_site = query.get('site', [''])[0]
                 if req_site and req_site != 'all':
                     site_filter = f"site_id = '{req_site}'"
                 else:
-                    site_filter = "1=1"  # 默认展示所有站点（包括CBT）
+                    site_filter = "1=1"  # 默认展示所有站点(包括CBT)
 
                 # 获取大姐店全店汇总
                 cursor.execute(f"""
-                    SELECT SUM(exposure) as exp, SUM(clicks) as clk, SUM(carts) as crt 
-                    FROM product_metrics 
+                    SELECT SUM(exposure) as exp, SUM(clicks) as clk, SUM(carts) as crt
+                    FROM product_metrics
                     WHERE {site_filter} AND {status_filter} AND site_id IN (SELECT site_id FROM stores WHERE group_label = '大姐店') AND start_time IS NOT NULL AND start_time != 0
                 """)
                 summary_row = cursor.fetchone()
-                
+
                 exposure = summary_row['exp'] if summary_row and summary_row['exp'] else 0
                 clicks = summary_row['clk'] if summary_row and summary_row['clk'] else 0
                 carts = summary_row['crt'] if summary_row and summary_row['crt'] else 0
-                
+
                 summary = {
                     "total_exposure": exposure,
                     "total_clicks": clicks,
@@ -1607,7 +1584,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     "suspended_sites": suspended_sites,
                     "suspension_reason": f"账号在以下站点已暂停: {suspended_display}" if is_suspended else ""
                 }
-                
+
                 # 获取列表
                 cursor.execute(f"SELECT * FROM product_metrics WHERE {site_filter} AND {status_filter} AND start_time IS NOT NULL AND start_time != 0 ORDER BY is_core DESC, exposure DESC LIMIT 2000")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
@@ -1637,12 +1614,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/product_performance":
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
-                
+
                 # Check if group is suspended
                 cursor.execute("SELECT reputation_level FROM stores WHERE group_label = '大姐店' LIMIT 1")
                 store_row = cursor.fetchone()
                 is_suspended = store_row and store_row['reputation_level'] == 'suspended'
-                
+
                 if is_suspended:
                     status_filter = "(status = 'active' OR status = 'closed' OR status = 'inactive')"
                 else:
@@ -1655,7 +1632,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 else:
                     cursor.execute(f"SELECT * FROM product_metrics WHERE {status_filter} ORDER BY is_core DESC, sales DESC, exposure DESC LIMIT 2000")
                 rows = [dict(r) for r in cursor.fetchall()]; conn.close()
-                
+
                 # ---- Ecosystem Buffet (全家桶) 逻辑注入 ----
                 accessory_pool = {
                     "耳机": [
@@ -1679,7 +1656,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         {"name": "Eco-friendly Gift Box", "price": 45, "link": "#", "reason": "提升品牌观感"}
                     ]
                 }
-                
+
                 def get_accessories(name):
                     n = name.lower()
                     if "audifono" in n or "auricular" in n or "earbud" in n: return accessory_pool["耳机"]
@@ -1691,7 +1668,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 now = datetime.now()
                 for row in rows:
                     row['suggested_accessories'] = get_accessories(row.get('name', ''))
-                    
+
                     # ---- 已上架天数计算 (Task: Days Listed) ----
                     st = row.get('start_time')
                     if st:
@@ -1720,12 +1697,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 cursor.execute("SELECT * FROM product_metrics WHERE is_core = 0 ORDER BY RANDOM() LIMIT 1")
                 potential = cursor.fetchone()
                 conn.close()
-                
+
                 if current and potential:
                     self.send_json({
                         "has_suggestion": True,
                         "suggestion": {
-                            "reason": "检测到该类目在墨西哥站搜索量上升 25%，且竞争程度较低。",
+                            "reason": "检测到该类目在墨西哥站搜索量上升 25%,且竞争程度较低。",
                             "current_item_name": current['name'],
                             "current_item_id": current['item_id'],
                             "new_item_name": potential['name'],
@@ -1768,7 +1745,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"status": "error", "message": str(e)})
         elif path == "/api/customer_service/list":
-            """返回有纠纷的订单列表（真实数据）"""
+            """返回有纠纷的订单列表(真实数据)"""
             try:
                 conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
                 cursor.execute("SELECT o.id, o.site_id, o.product_name, o.amount, o.order_date, o.status, o.mediations_count, o.cancel_detail_group, o.cancel_code, o.seller_sku, o.thumbnail, s.store_name, s.nickname FROM orders_v2 o LEFT JOIN stores s ON o.user_id = s.user_id AND o.site_id = s.site_id WHERE o.mediations_count > 0 ORDER BY o.order_date DESC LIMIT 50")
@@ -1828,9 +1805,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 name = query.get("name", [None])[0]
                 # site_id 已经在 do_GET 开头进行了标准化 (MX -> MLM 等)
                 my_price = float(query.get("price", [0])[0])
-                
+
                 if not name: raise Exception("Missing product name")
-                
+
                 # 站点与搜索 URL 映射
                 site_base_urls = {
                     'MLM': 'https://listado.mercadolibre.com.mx/',
@@ -1839,42 +1816,42 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     'MLA': 'https://listado.mercadolibre.com.ar/',
                     'MLC': 'https://listado.mercadolibre.com.cl/'
                 }
-                
+
                 search_url = f"{site_base_urls.get(site_id, site_base_urls['MLM'])}{name.replace(' ', '-')}"
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
-                
+
                 logger.info(f"Crawling real prices for: {name} at {search_url}")
                 resp = requests.get(search_url, headers=headers, timeout=10)
                 html = resp.text
-                
+
                 import re
-                # 增强的正则提取：寻找价格、标题和销量（如果存在）
-                # 价格通常在 andes-money-amount__fraction 中，或者在 meta tag 中
+                # 增强的正则提取:寻找价格、标题和销量(如果存在)
+                # 价格通常在 andes-money-amount__fraction 中,或者在 meta tag 中
                 prices = re.findall(r'andes-money-amount__fraction[^>]*>([\d,.]+)', html)
                 if not prices:
-                    # 尝试备选方案：寻找包含 $ 的价格字符串
+                    # 尝试备选方案:寻找包含 $ 的价格字符串
                     prices = re.findall(r'\$\s?([\d,.]+)', html)
-                
+
                 # 标题通常在 ui-search-item__title 或 poly-component__title 中
                 titles = re.findall(r'class="[^"]*(?:ui-search-item__title|poly-component__title)[^"]*"[^>]*>([^<]+)', html)
                 if not titles:
                     # 尝试从 a 标签的 title 或 alt 中提取
                     titles = re.findall(r'title="([^"]+)"\s+class="[^"]*ui-search-link', html)
-                
+
                 # 尝试提取销量信息 (例如 "500+ vendidos")
                 sales_info = re.findall(r'(\d+)\s+vendidos', html)
-                
+
                 competitors = []
                 for i in range(min(len(prices), len(titles), 10)):
                     try:
                         # 清理价格格式 (去除千分位)
                         p_str = prices[i].replace(',', '').replace('.', '')
-                        # 部分站点用 . 作为千分位，这里做一个简单的数值转换
+                        # 部分站点用 . 作为千分位,这里做一个简单的数值转换
                         p_val = float(p_str)
-                        
-                        # 简单的异常值过滤：如果价格明显不合理（如太小），可能是小数位误抓
+
+                        # 简单的异常值过滤:如果价格明显不合理(如太小),可能是小数位误抓
                         if p_val < 5 and len(p_str) < 3:
                             continue
 
@@ -1886,8 +1863,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         })
                     except:
                         continue
-                
-                # 如果没抓到真实数据，回退到智能模拟（防止页面崩溃）
+
+                # 如果没抓到真实数据,回退到智能模拟(防止页面崩溃)
                 if not competitors:
                     logger.warning("Crawl failed, using smart mock data")
                     competitors = [
@@ -1921,7 +1898,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         # 记录请求日志
         logger.info(f"POST {self.path} from {self.address_string()}")
 
-        # 先读取 body（部分接口不需要 body，容错处理）
+        # 先读取 body(部分接口不需要 body,容错处理)
         try:
             content_length = int(self.headers.get('Content-Length') or 0)
             post_data = self.rfile.read(content_length) if content_length > 0 else b''
@@ -1948,9 +1925,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 user_id = payload.get('user_id')
                 topic = payload.get('topic')
                 application_id = payload.get('application_id')
-                
+
                 logger.info(f"[Webhook] 收到通知: Topic={topic}, Resource={resource}, User={user_id}")
-                
+
                 conn = sqlite3.connect(DB_PATH)
                 cursor = conn.cursor()
                 cursor.execute(
@@ -1959,7 +1936,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 )
                 conn.commit()
                 conn.close()
-                
+
                 # 必须在 500ms 内返回 200 OK
                 self.send_json({"status": "received"})
                 return
@@ -1974,14 +1951,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 # Add a new store by Seller ID
                 sid = payload.get('seller_id')
                 token = self.get_ml_token()
-                
+
                 # Fetch basic info from ML API
                 res = requests.get(f"https://api.mercadolibre.com/users/{sid}", headers={"Authorization": f"Bearer {token}"}).json()
                 nickname = res.get('nickname', 'Unknown')
                 site_id = res.get('site_id', 'Unknown')
-                
+
                 conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
-                cursor.execute("INSERT INTO stores (seller_id, nickname, site_id, store_name) VALUES (?, ?, ?, ?)", 
+                cursor.execute("INSERT INTO stores (seller_id, nickname, site_id, store_name) VALUES (?, ?, ?, ?)",
                                (sid, nickname, site_id, nickname))
                 conn.commit(); conn.close()
                 self.send_json({"status": "success", "nickname": nickname})
@@ -1993,10 +1970,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 title = payload.get("title", "")
                 plan_key = payload.get("plan", "C")
                 prompt_template = payload.get("prompt", "")
-                
+
                 # 构建最终 Prompt
-                final_prompt = f"{prompt_template}\n\n原标题: {title}\n请直接返回5个优化后的标题，每行一个，不要包含序号、引号或其他修饰词。"
-                
+                final_prompt = f"{prompt_template}\n\n原标题: {title}\n请直接返回5个优化后的标题,每行一个,不要包含序号、引号或其他修饰词。"
+
                 headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {MINIMAX_CONFIG['api_key']}"
@@ -2004,15 +1981,15 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 body = {
                     "model": MINIMAX_CONFIG['model'],
                     "messages": [
-                        {"role": "system", "content": "你是一个美客多（Mercado Libre）拉美电商SEO专家。"},
+                        {"role": "system", "content": "你是一个美客多(Mercado Libre)拉美电商SEO专家。"},
                         {"role": "user", "content": final_prompt}
                     ],
                     "temperature": 0.7
                 }
-                
+
                 resp = requests.post(MINIMAX_CONFIG['url'], headers=headers, json=body)
                 resp_json = resp.json()
-                
+
                 if 'choices' in resp_json:
                     content = resp_json['choices'][0]['message']['content']
                     # 将返回的文本按行分割并清理
@@ -2023,7 +2000,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 else:
                     logger.error(f"MiniMax Error: {resp.text}")
                     raise Exception("AI 生成失败")
-                    
+
             except Exception as e:
                 logger.error(f"Optimize Error: {e}")
                 self.send_json({"suggestions": [f"{title} - Pro Edition", f"Nuevo {title}", f"Top {title}"]})
@@ -2089,7 +2066,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json({"suggestion": "Hola, muchas gracias por tu mensaje. Te atendemos a la brevedad posible."})
 
         elif path == "/api/translate":
-            """通用翻译：from_lang -> to_lang (默认 auto->zh 或 es->zh)"""
+            """通用翻译:from_lang -> to_lang (默认 auto->zh 或 es->zh)"""
             try:
                 from deep_translator import GoogleTranslator
                 text = payload.get("text", "")
@@ -2109,7 +2086,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 prompt = payload.get("prompt", "")
                 if not prompt:
                     raise Exception("Missing prompt")
-                
+
                 headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {MINIMAX_CONFIG['api_key']}"
@@ -2121,7 +2098,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     "response_format": "url",
                     "n": 1
                 }
-                
+
                 img_url = "https://api.minimax.chat/v1/image_generation"
                 resp = requests.post(img_url, headers=headers, json=body, timeout=30)
                 resp_json = resp.json()
@@ -2142,16 +2119,16 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/ai/keywords":
             try:
                 site_id = query.get("site", ["MLM"])[0]
-                
+
                 # Fetch real trending keywords from hot_keywords table
                 conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
                 cursor.execute("SELECT keyword, type FROM hot_keywords WHERE site_id = ? ORDER BY rank ASC LIMIT 10", (site_id,))
                 rows = cursor.fetchall()
                 conn.close()
-                
+
                 trending = []
                 gaps = []
-                
+
                 if rows:
                     for i, (kw, ktype) in enumerate(rows):
                         if i < 5:
@@ -2169,7 +2146,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         {"word": "Soporte Laptop", "competition": "低"},
                         {"word": "Lámpara Sunset", "competition": "极低"}
                     ]
-                
+
                 self.send_json({"trending": trending, "gaps": gaps})
             except Exception as e:
                 logger.error(f"Keywords API Error: {e}")
@@ -2187,13 +2164,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     data = json.loads(payload)
                     sid = data.get('seller_id')
                     token = self.get_ml_token()
-                    
+
                     # Fetch basic info from ML API
                     res = requests.get(f"https://api.mercadolibre.com/users/{sid}", headers={"Authorization": f"Bearer {token}"}).json()
                     nickname = res.get('nickname', 'Unknown')
                     site_id = res.get('site_id', 'Unknown')
-                    
-                    cursor.execute("INSERT INTO stores (seller_id, nickname, site_id, store_name) VALUES (?, ?, ?, ?)", 
+
+                    cursor.execute("INSERT INTO stores (seller_id, nickname, site_id, store_name) VALUES (?, ?, ?, ?)",
                                    (sid, nickname, site_id, nickname))
                     conn.commit()
                     self.wfile.write(json.dumps({"status": "success", "nickname": nickname}).encode())
@@ -2205,7 +2182,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 my_item = payload.get("my_item", {})
                 comp_item = payload.get("comp_item", {})
-                
+
                 prompt = (
                     "As a Mercado Libre operations expert, compare my product with the competitor bestseller and give optimization advice.\n"
                     "My product: title=" + my_item.get('title', '') + ", price=" + str(my_item.get('price', 0)) + "\n"
@@ -2253,8 +2230,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 user_msg = payload.get("message", "")
                 history = payload.get("history", [])
-                
-                system_prompt = "你是一个美客多金牌客服助手，擅长处理拉美电商售后、物流咨询和售前引导。请简洁、专业地回答，必要时使用西班牙语或葡萄牙语常用语。"
+
+                system_prompt = "你是一个美客多金牌客服助手,擅长处理拉美电商售后、物流咨询和售前引导。请简洁、专业地回答,必要时使用西班牙语或葡萄牙语常用语。"
                 messages = [{"role": "system", "content": system_prompt}]
                 for msg in history:
                     messages.append(msg)
@@ -2273,32 +2250,32 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"reply": ai_reply}).encode())
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
-        
+
         elif path == "/api/item/update":
             try:
                 item_id = payload.get('item_id')
                 title = payload.get('title')
                 pictures = payload.get('pictures')
                 description = payload.get('description')
-                
+
                 if not item_id:
                     self.wfile.write(json.dumps({"status": "error", "message": "item_id is required"}).encode())
                     return
-                
+
                 token = self.get_ml_token()
                 if not token:
                     self.wfile.write(json.dumps({"status": "error", "message": "ML token not found"}).encode())
                     return
-                
+
                 from ml_api_client import MercadoLibreClient
                 client = MercadoLibreClient(None, None, None)
-                
+
                 results = {}
                 # 1. 更新标题和主图
                 update_data = {}
                 if title: update_data['title'] = title
                 if pictures: update_data['pictures'] = [{"source": p} if isinstance(p, str) else p for p in pictures]
-                
+
                 if update_data:
                     status, res = client.update_item(token, item_id, update_data)
                     results['item'] = {"status": status, "data": res}
@@ -2308,12 +2285,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         if title: cursor.execute("UPDATE product_metrics SET name = ? WHERE item_id = ?", (title, item_id))
                         if pictures: cursor.execute("UPDATE product_metrics SET image_url = ? WHERE item_id = ?", (pictures[0], item_id))
                         conn.commit(); conn.close()
-                
+
                 # 2. 更新描述
                 if description:
                     status, res = client.update_description(token, item_id, description)
                     results['description'] = {"status": status, "data": res}
-                
+
                 self.wfile.write(json.dumps({"status": "success", "results": results}).encode())
             except Exception as e:
                 self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode())
@@ -2323,51 +2300,51 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 title = payload.get("title", "").lower()
                 price = float(payload.get("price", 0))
                 site = payload.get("site", "MLM")
-                
+
                 # --- HEURISTIC AI LOGIC (Simulating Real Analysis) ---
-                
+
                 # 1. Market Fit & Opportunity based on Keywords
                 fit_score = "High"
                 opp_msg = f"该产品在 {site} 站点的 Mercado Libre 处于爆发前期。"
-                
+
                 electronics_kw = ['camera', 'fan', 'buds', 'cable', 'watch', 'led', 'phone', 'rechargeable', 'power']
                 fashion_kw = ['dress', 'vestido', 'skirt', 'shirt', 'clothing', 'fashion', 'lace', 'shoe', 'zapato', 'sneaker', 'tenis', 'boot']
                 home_kw = ['kitchen', 'home', 'cup', 'organizer', 'mat', 'pillow']
-                
+
                 is_elec = any(kw in title for kw in electronics_kw)
                 is_fashion = any(kw in title for kw in fashion_kw)
                 is_home = any(kw in title for kw in home_kw)
-                
+
                 if is_elec:
                     fit_score = "High"
-                    opp_msg = "墨西哥/巴西市场对高性价比电子配件需求极大，且该品类在当地有溢价空间。"
+                    opp_msg = "墨西哥/巴西市场对高性价比电子配件需求极大,且该品类在当地有溢价空间。"
                 elif is_fashion:
                     fit_score = "Critical"
-                    opp_msg = "时尚类目正在迎来季节性增长，该款式在亚马逊已验证，具有极高的转场潜力。"
+                    opp_msg = "时尚类目正在迎来季节性增长,该款式在亚马逊已验证,具有极高的转场潜力。"
                 elif is_home:
                     fit_score = "Medium"
-                    opp_msg = "家居类目竞争适中，建议通过精美 Listing 建立差异化。"
-                
+                    opp_msg = "家居类目竞争适中,建议通过精美 Listing 建立差异化。"
+
                 # 2. Pros & Cons (Logical Extraction)
-                pros = ["亚马逊畅销爆款验证", "重量轻（降低物流成本）"]
+                pros = ["亚马逊畅销爆款验证", "重量轻(降低物流成本)"]
                 cons = ["竞争者入场门槛低"]
-                
+
                 if is_fashion:
                     pros.append("CBT 跨境核心利好类目")
                     pros.append("退货率低于同类平均水平")
                     cons.append("尺码表对齐需人工干预")
-                
+
                 if "rechargeable" in title or "battery" in title:
                     cons.append("带电产品需走特殊物流频道")
-                
+
                 # 3. Multi-Platform Price Mapping (Unified to CNY)
                 # Dynamic Exchange Rates (2026-04-29)
                 rates = {"MLM": 0.42, "MLB": 1.40, "MLA": 0.008, "MCO": 0.0018, "MLC": 0.0075, "MLU": 0.18}
                 rate = rates.get(site, 0.42)
-                
+
                 # --- NEW: REAL SOURCING LOGIC (Simulating Agent Feedback) ---
-                is_real_sourcing = True 
-                
+                is_real_sourcing = True
+
                 # Sourcing 1688 (Based on real market benchmarks)
                 if is_elec:
                     price_1688_cny = random.uniform(45.0, 85.0)
@@ -2376,20 +2353,20 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     price_1688_cny = random.uniform(32.0, 58.0)
                 else:
                     price_1688_cny = (price * rate) * random.uniform(0.3, 0.45)
-                
+
                 # Amazon Price converted to CNY
                 price_amazon_cny = price * rate
-                
+
                 # Mercado Libre Price converted to CNY (Typical 25-35% markup over Amazon)
                 price_ml_cny = (price * random.uniform(1.25, 1.35)) * rate
-                
+
                 # Margin calculation
                 logistics_cny = 38.0 if is_fashion else 35.0 # Average small packet
                 ml_fee_pct = 0.175
                 profit_cny = price_ml_cny - price_1688_cny - logistics_cny - (price_ml_cny * ml_fee_pct)
                 margin_pct = (profit_cny / price_ml_cny) * 100
-                
-                # 确保利润不为负（模拟选品成功）
+
+                # 确保利润不为负(模拟选品成功)
                 if profit_cny < 0:
                     profit_cny = price_ml_cny * 0.15
                     margin_pct = 15.0
@@ -2419,29 +2396,29 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 keyword = payload.get("keyword")
                 platform = payload.get("platform", "amazon")
                 site = payload.get("site", "MLM")
-                
+
                 if not keyword:
                     self.send_error(400, "Keyword is required")
                     return
-                
+
                 logger.info(f"Triggering Intelligence Sync for {keyword} on {platform} ({site})")
-                
+
                 # If Amazon, we rely on the synchronous JS fetch in the GET call
                 if platform == "amazon":
                     self.send_json({"status": "ready_for_js_sync", "message": "Jungle Scout Engine Ready"})
                     return
-                
+
                 # Default Shadow Scan for others
                 self.send_json({"status": "scanning", "message": "Shadow Collector initiated"})
             except Exception as e:
                 logger.error(f"Radar Search Error: {e}")
                 self.send_error(500, str(e))
-                
+
         elif path == "/api/price_check/add":
             try:
                 # Log the incoming payload for debugging
                 logger.info(f"Price Check Payload: {json.dumps(payload)}")
-                
+
                 # Map extension fields to DB fields
                 platform = payload.get('source_platform') or payload.get('platform', 'Unknown')
                 url = payload.get('source_url') or payload.get('url', '')
@@ -2451,7 +2428,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 weight = payload.get('weight_g') or payload.get('weight', 0)
                 target_site = payload.get('target_site', 'MLM')
                 price_tiers = json.dumps(payload.get('price_tiers', []))
-                
+
                 conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO price_check_queue (source_platform, source_url, source_id, title, image_url, price_cny, weight_g, target_site, price_tiers)
@@ -2500,33 +2477,33 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                             matched_price = tier.get('price', matched_price)
                             break
                     cost_cny = matched_price
-                
+
                 # Site normalization
                 if site == "MX": site = "MLM"
                 if site == "BR": site = "MLB"
                 if site == "CO": site = "MCO"
                 if site == "AR": site = "MLA"
-                
+
                 fx_rates = {"MLM": 0.42, "MLB": 1.4, "MLA": 0.008, "MCO": 0.0018}
                 fx = fx_rates.get(site, 0.4)
-                
+
                 # Comm & Shipping Logic
                 comm_rate = 0.175 if site == "MLM" else 0.12 # MLM default CBT comm
                 comm = target_price_local * comm_rate
-                
+
                 # Dynamic shipping estimation
                 shipping = 150 if site == "MLM" else 45 if site == "MLB" else 15000
                 if weight_g > 500: shipping *= (weight_g / 500.0)
-                
+
                 # Taxes (VAT/ISR)
                 tax_rate = 0.16 if site == "MLM" else 0.0
                 tax = target_price_local * tax_rate
-                
+
                 revenue_cny = target_price_local * fx
                 expenses_cny = (cost_cny) + (shipping + comm + tax) * fx
                 net_profit_cny = revenue_cny - expenses_cny
                 margin = (net_profit_cny / revenue_cny * 100) if revenue_cny > 0 else 0
-                
+
                 res = {
                     "revenue_cny": round(revenue_cny, 2),
                     "expenses_cny": round(expenses_cny, 2),
@@ -2552,7 +2529,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 codes = []
                 for _ in range(count):
                     code = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))
-                    cursor.execute("INSERT INTO invitation_codes (code, status, created_at) VALUES (?, 'active', ?)", 
+                    cursor.execute("INSERT INTO invitation_codes (code, status, created_at) VALUES (?, 'active', ?)",
                                  (code, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                     codes.append(code)
                 conn.commit(); conn.close()
@@ -2568,7 +2545,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json(rows)
             except Exception as e:
                 self.send_json({"error": str(e)}, status=500)
-                
+
         elif path == "/api/cms/articles":
             # Placeholder for news articles
             self.send_json([])
@@ -2644,7 +2621,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 if secret != expected:
                     self.send_json({"error": "unauthorized"}, status=401)
                     return
-                # 异步执行 git pull + pm2 restart（不阻塞）
+                # 异步执行 git pull + pm2 restart(不阻塞)
                 import subprocess, os
                 env = os.environ.copy()
                 env['GIT_TERMINAL_PROMPT'] = '0'
@@ -2654,7 +2631,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     stdin=subprocess.DEVNULL, env=env
                 )
-                self.send_json({"ok": True, "msg": "部署已触发，请稍后刷新页面"})
+                self.send_json({"ok": True, "msg": "部署已触发,请稍后刷新页面"})
             except Exception as e:
                 self.send_json({"error": str(e)}, status=500)
             return
@@ -2667,7 +2644,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
 if __name__ == "__main__":
-    # 启动时立即刷新一次 token（当前 token 已过期）
+    # 启动时立即刷新一次 token(当前 token 已过期)
     logger.info("[Init] 正在刷新 ML access_token...")
     refresh_access_token()
     # 启动后台刷新线程
