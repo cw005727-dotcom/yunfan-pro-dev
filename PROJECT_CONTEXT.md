@@ -90,6 +90,19 @@
 * [x] **脚本整理**:39个一次性脚本归档到 `scripts/archive/`，6个同步脚本入 `scripts/sync/`，4个worker入 `scripts/workers/`，4个工具入 `scripts/utils/`
 * [x] **FastAPI 骨架搭建**:创建 `fastapi_server/` 项目结构，含 main.py、config.py、db.py、16个路由模块
 * [x] **FastAPI 部署安全策略**:8506（旧）不动，8507（新）验证通过后再切换 Nginx
+* [x] **FastAPI 本地论证通过**:8507 启动成功，/health、/api/stats、/api/shops、/docs 均返回 200
+* [x] **修复导入错误**:添加 PROJECT_ROOT 到 config.py，删除未使用的 auth.py 引用
+
+### 多 AI 协作分工（2026-04-30 更新）
+- **架构 AI**：FastAPI 基础设施、Admin 接口、路由中间件、每批迁移的 QA 验证
+- **数据 AI**：业务路由迁移（orders、products、stats、reputation、logistics、smart_rotation、market_radar、price_check、customer_service、monitoring、ai、sync、webhook）
+
+### 当前进度
+| 批次 | 内容 | 状态 |
+|------|------|------|
+| 0 | 骨架搭建 + 本地论证 | ✅ 完成 |
+| 1 | 核心业务（店铺/认证、物流、商品） | ⏳ 待数据 AI 认领 |
+| 2-5 | 数据统计、智能运营、客服、订单同步 | ⏳ 待排期 |
 
 ---
 
@@ -367,3 +380,57 @@ scripts/
 *   **Data Side (用户)**: 承诺不直接修改 `src/views/` 和 `src/components/` 下的 UI 样式代码，仅负责数据逻辑层及 Hooks。
 *   **UI & Function AI (我)**: 承诺不随意修改 `api_server.py` 或核心数据库逻辑，仅负责前端交互及数据消费。
 *   **协作方式**: 如有数据结构变更需求，由 Data Side 提供 Hooks，UI Side 负责集成。
+
+---
+
+## 🚀 部署架构（2026-04-30 更新）
+
+### 服务器信息
+- **IP**: `47.76.179.242`（阿里云香港节点）
+- **SSH**: 通过阿里云控制台远程连接（外网SSH已封）
+- **Web目录**: `/home/admin/yunfan-pro-dev/`
+- **API端口**: 8506（PM2 管理，进程名 `yunfan-api`）
+- **域名**: `chensan.vip`（Cloudflare DNS A记录 → 47.76.179.242，灰色云）
+
+### SSL/HTTPS
+- Let's Encrypt 免费证书（有效期 2026-07-28）
+- nginx 处理 HTTPS 终止（端口443）
+- HTTP 80 → 重定向到 HTTPS 443
+
+### 生产环境
+- **前端**: `https://chensan.vip/` → nginx → `/home/admin/yunfan-pro-dev/dist/`
+- **后端**: `https://chensan.vip/api/` → nginx → `http://127.0.0.1:8506/api/`
+- **PM2**: 开机自启
+- **远程部署**: `POST https://chensan.vip/api/deploy?secret=心神`（触发 git pull + pm2 restart）
+
+### 代码更新流程
+本地 `git push` → 服务器 `git pull && pm2 restart yunfan-api`
+
+---
+
+## 🔑 ML 凭证（2026-04-30）
+
+### 当前使用
+- **App ID**: `8105299077213607`（旧 ID `2853782117476515` 已废弃）
+- **Client Secret**: `viZR1saM1FSpYXquulrmh8T1pKiRjcjN`
+- **Webhook URL**: `https://chensan.vip/api/ml/webhook/relay`
+
+### OAuth 状态
+- **refresh_token**: ❌ 为空（无法自动续期，需重新授权）
+- **access_token**: 约6小时过期
+
+---
+
+## 📊 数据状态
+
+- **订单**: 113条，GMV $2385.52
+- **商品**: 12,526条（MLB 占83.7%）
+- **曝光**: visits API 有效，数据准确
+- **clicks/carts**: ML API 无此端点，显示0是正常
+
+---
+
+## 🛠️ FastAPI 重构（待分工）
+- 当前 `api_server.py` 是自定义 TCP Server，计划改为 FastAPI
+- 等待架构 AI 出分工表后执行
+
