@@ -1,10 +1,11 @@
 """
 系统监控相关路由
-GET /api/health        - 健康检查
-GET /api/monitoring_logs
-GET /api/monitoring/stream
+GET /api/health           - 健康检查
+GET /api/monitoring_logs   - 历史日志
+GET /api/monitoring/stream - 实时事件流（供前端监控面板轮询）
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
+from datetime import datetime
 from ..db import get_db_connection
 
 router = APIRouter(prefix="/api", tags=["监控"])
@@ -19,10 +20,9 @@ async def health():
 @router.get("/monitoring_logs")
 async def monitoring_logs():
     """监控日志"""
-    from ..db import get_db_connection
     with get_db_connection() as conn:
         rows = conn.execute("""
-            SELECT timestamp, level, message, store_id
+            SELECT timestamp, level, message, store_id, site_id
             FROM monitoring_logs
             ORDER BY timestamp DESC
             LIMIT 100
@@ -32,9 +32,101 @@ async def monitoring_logs():
 
 @router.get("/monitoring/stream")
 async def monitoring_stream():
-    """监控流 - 返回最新日志统计"""
-    from ..db import get_db_connection
-    import time
+    """实时监控流 - 来自 monitoring_logs + orders_v2 当日事件"""
     with get_db_connection() as conn:
-        count = conn.execute("SELECT COUNT(*) as c FROM monitoring_logs").fetchone()
-        return {"connected": True, "total": count["c"] if count else 0, "timestamp": int(time.time())}
+        cursor = conn.cursor()
+
+        SITE_MAP = {
+            'MLM': '墨西哥', 'MLB': '巴西', 'MCO': '哥伦比亚',
+            'MLA': '阿根廷', 'MLC': '智利', 'MLU': '乌拉圭', 'CBT': '跨境'
+        }
+
+        events = []
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        # 1. 超期发货预警（来自 orders_v2）
+        now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        cursor.execute("""
+            SELECT o.id, o.last_ship_date, o.site_id
+            FROM orders_v2 o
+            WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ?
+            LIMIT 5
+        """, (now_str,))
+        for row in cursor.fetchall():
+            site = SITE_MAP.get(row['site_id'], row['site_id'])
+            events.append({
+                "id": f"overdue_{row['id']}",
+                "type": "logistics",
+                "label": "发货超时",
+                "desc": f"{site} 订单{row['id']}发货已超期",
+                "time": "紧急",
+                "urgent": True
+            })
+
+        # 2. 当日新增违规记录
+        cursor.execute("""
+            SELECT * FROM product_infringements
+            WHERE date(created_at) = ?
+            ORDER BY created_at DESC LIMIT 5
+        """, (today,))
+        for row in cursor.fetchall():
+            reason = row['reason'] or ""
+            if "trademark" in reason.lower(): reason_zh = "商标侵权"
+            elif "copyright" in reason.lower(): reason_zh = "著作权侵权"
+            elif "brand" in reason.lower(): reason_zh = "品牌授权违规"
+            else: reason_zh = reason
+            events.append({
+                "id": f"violation_{row['id']}",
+                "type": "violation",
+                "label": "违规",
+                "desc": f"大姐店 新增：{reason_zh}",
+                "time": row['created_at'][11:16] if row['created_at'] else "",
+                "urgent": row['severity'] == 'high'
+            })
+
+        # 3. 当日新订单（来自 monitoring_logs 的新订单事件）
+        cursor.execute("""
+            SELECT message, timestamp, details, site_id
+            FROM monitoring_logs
+            WHERE date(timestamp) = ? AND details LIKE '%order%'
+            ORDER BY timestamp DESC LIMIT 10
+        """, (today,))
+        for row in cursor.fetchall():
+            details_str = row['details'] or ''
+            try:
+                import json
+                details = json.loads(details_str)
+                order_id = details.get('order_id', '')
+                amount = details.get('amount', 0)
+            except:
+                order_id = ''
+                amount = 0
+            site = SITE_MAP.get(row['site_id'] or '', row['site_id'] or '')
+            events.append({
+                "id": f"order_{row['timestamp']}",
+                "type": "order",
+                "label": "新订单",
+                "desc": f"{site} 订单 {order_id} 成交 ${amount:.2f}",
+                "time": row['timestamp'][11:16] if row['timestamp'] else "",
+                "order_date": row['timestamp'] or "",
+                "urgent": False
+            })
+
+        # 4. 当日未读咨询
+        cursor.execute("""
+            SELECT m.*, m.status FROM customer_messages m
+            WHERE m.status = 'unread' AND date(m.updated_at) = ?
+            ORDER BY m.updated_at DESC LIMIT 5
+        """, (today,))
+        for row in cursor.fetchall():
+            msg_preview = (row['last_message'] or "")[:30]
+            events.append({
+                "id": f"msg_{row['id']}",
+                "type": "message",
+                "label": "咨询",
+                "desc": f" 站：{msg_preview}",
+                "time": row['updated_at'][11:16] if row['updated_at'] else "未读",
+                "urgent": False
+            })
+
+        return {"events": events[:20]}
