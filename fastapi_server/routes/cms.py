@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter(prefix="/api/cms", tags=["CMS"])
 
@@ -29,11 +30,11 @@ class BannerCreate(BaseModel):
 
 
 class BannerUpdate(BaseModel):
-    title: str | None = None
-    image_url: str | None = None
-    link_url: str | None = None
-    sort_order: int | None = None
-    is_active: bool | None = None
+    title: Optional[str] = None
+    image_url: Optional[str] = None
+    link_url: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
 
 
 # ============ Article 模型 ============
@@ -46,11 +47,11 @@ class ArticleCreate(BaseModel):
 
 
 class ArticleUpdate(BaseModel):
-    title: str | None = None
-    content: str | None = None
-    category: str | None = None
-    is_published: bool | None = None
-    sort_order: int | None = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    category: Optional[str] = None
+    is_published: Optional[bool] = None
+    sort_order: Optional[int] = None
 
 
 # ============ Setting 模型 ============
@@ -61,8 +62,8 @@ class SettingCreate(BaseModel):
 
 
 class SettingUpdate(BaseModel):
-    value: str | None = None
-    description: str | None = None
+    value: Optional[str] = None
+    description: Optional[str] = None
 
 
 # ============ Banner 接口 ============

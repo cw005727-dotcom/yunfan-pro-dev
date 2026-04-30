@@ -16,7 +16,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Query, HTTPException
 from pydantic import BaseModel
 
 from ..db import get_db_connection
@@ -63,15 +63,25 @@ class SystemStats(BaseModel):
     products_count: int
     stores_count: int
     last_sync: Optional[str] = None
+    # 扩充字段
+    today_orders: int = 0
+    today_revenue: float = 0.0
+    total_revenue: float = 0.0
+    pending_orders: int = 0
+    shipped_orders: int = 0
+    cancelled_orders: int = 0
+    total_users: int = 0
+    active_stores: int = 0
+    warning_stores: int = 0
+    critical_stores: int = 0
 
 
 # ==================== 路由实现 ====================
 
 @router.get("/admin/stats", response_model=SystemStats)
 async def get_admin_stats():
-    """系统统计概览"""
+    """系统统计概览（管理员数据看板）"""
     try:
-        # 数据库大小
         if os.path.exists(DB_PATH):
             size_mb = os.path.getsize(DB_PATH) / (1024 * 1024)
         else:
@@ -84,10 +94,43 @@ async def get_admin_stats():
             orders_count = cursor.execute("SELECT COUNT(*) FROM orders_v2").fetchone()[0]
             products_count = cursor.execute("SELECT COUNT(*) FROM product_metrics").fetchone()[0]
             stores_count = cursor.execute("SELECT COUNT(*) FROM stores").fetchone()[0]
+            last_sync = cursor.execute("SELECT MAX(last_updated) FROM stores").fetchone()[0]
 
-            # 最近同步时间（从 stores 表获取）
-            last_sync = cursor.execute(
-                "SELECT MAX(last_updated) FROM stores"
+            today = datetime.now().strftime('%Y-%m-%d')
+            today_orders = cursor.execute(
+                "SELECT COUNT(*) FROM orders_v2 WHERE order_date >= ?", (today,)
+            ).fetchone()[0]
+            today_revenue = cursor.execute(
+                "SELECT COALESCE(SUM(amount), 0) FROM orders_v2 WHERE order_date >= ?", (today,)
+            ).fetchone()[0]
+            total_revenue = cursor.execute(
+                "SELECT COALESCE(SUM(amount), 0) FROM orders_v2"
+            ).fetchone()[0]
+            pending_orders = cursor.execute(
+                "SELECT COUNT(*) FROM orders_v2 WHERE status IN ('pending', 'confirmed', 'processing')"
+            ).fetchone()[0]
+            shipped_orders = cursor.execute(
+                "SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('shipped', 'delivered', 'delivering')"
+            ).fetchone()[0]
+            cancelled_orders = cursor.execute(
+                "SELECT COUNT(*) FROM orders_v2 WHERE status IN ('cancelled', 'refunded', 'voided')"
+            ).fetchone()[0]
+
+            # 用户统计
+            try:
+                total_users = cursor.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            except sqlite3.OperationalError:
+                total_users = 0
+
+            # 店铺状态统计
+            active_stores = cursor.execute(
+                "SELECT COUNT(*) FROM stores WHERE status = 'active' OR status = 'green'"
+            ).fetchone()[0]
+            warning_stores = cursor.execute(
+                "SELECT COUNT(*) FROM stores WHERE status = 'yellow' OR status = 'warning'"
+            ).fetchone()[0]
+            critical_stores = cursor.execute(
+                "SELECT COUNT(*) FROM stores WHERE status = 'red' OR status = 'critical'"
             ).fetchone()[0]
 
         return SystemStats(
@@ -95,7 +138,17 @@ async def get_admin_stats():
             orders_count=orders_count,
             products_count=products_count,
             stores_count=stores_count,
-            last_sync=last_sync
+            last_sync=last_sync,
+            today_orders=today_orders,
+            today_revenue=round(float(today_revenue), 2),
+            total_revenue=round(float(total_revenue), 2),
+            pending_orders=pending_orders,
+            shipped_orders=shipped_orders,
+            cancelled_orders=cancelled_orders,
+            total_users=total_users,
+            active_stores=active_stores,
+            warning_stores=warning_stores,
+            critical_stores=critical_stores,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -322,3 +375,103 @@ async def delete_article(article_id: int):
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="文章不存在")
     return {"status": "deleted"}
+
+
+# ==================== 官网同步 & 数据看板（续）====================
+
+class OfficialNewsSyncResponse(BaseModel):
+    status: str
+    synced: int = 0
+    message: str
+
+
+@router.get("/admin/official-news")
+async def get_official_news(limit: int = Query(10, ge=1, le=50)):
+    """
+    获取 ML 官方动态（从 cms_articles 的 official_news category 获取）
+    """
+    try:
+        with get_db_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT id, title, content, created_at FROM cms_articles
+                   WHERE category = 'official_news'
+                   ORDER BY created_at DESC LIMIT ?""",
+                (limit,)
+            )
+            rows = [dict(r) for r in cursor.fetchall()]
+        return {"news": rows, "count": len(rows)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/admin/official-news/sync", response_model=OfficialNewsSyncResponse)
+async def sync_official_news(background_tasks: BackgroundTasks):
+    """
+    同步 ML 官方动态到 cms_articles（official_news category）
+    后台执行，避免阻塞
+    """
+    async def _do_sync():
+        import requests
+        from bs4 import BeautifulSoup
+        try:
+            # 抓取 ML 官方公告页面
+            resp = requests.get(
+                "https://www.mercadolibre.com.ar/notificaciones/",
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=10
+            )
+            if resp.status_code != 200:
+                return {"status": "error", "synced": 0, "message": f"HTTP {resp.status_code}"}
+
+            soup = BeautifulSoup(resp.text, "html.parser")
+            # 提取公告标题和链接（根据 ML 页面结构调整选择器）
+            items = []
+            for item in soup.select("NotificationItem_notification__2hJuP, .notification-item")[:10]:
+                title = item.get_text(strip=True)[:200]
+                link = item.a["href"] if item.a else ""
+                if title:
+                    items.append({"title": title, "link": link})
+
+            # 写入 cms_articles
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                synced = 0
+                now = datetime.now().isoformat()
+                for item in items:
+                    # 去重（根据标题）
+                    cursor.execute(
+                        "SELECT id FROM cms_articles WHERE title = ? AND category = 'official_news'",
+                        (item["title"],)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute(
+                            """INSERT INTO cms_articles (title, content, category, status, created_at, updated_at)
+                               VALUES (?, ?, 'official_news', 'published', ?, ?)""",
+                            (item["title"], item.get("link", ""), now, now)
+                        )
+                        synced += 1
+                conn.commit()
+                return {"status": "success", "synced": synced, "message": f"同步 {synced} 条官方公告"}
+        except Exception as e:
+            return {"status": "error", "synced": 0, "message": str(e)}
+
+    background_tasks.add_task(_do_sync)
+    return OfficialNewsSyncResponse(status="running", synced=0, message="同步任务已触发")
+
+
+# ==================== 公众号同步（占位）====================
+
+@router.post("/admin/wechat-sync/sync", response_model=OfficialNewsSyncResponse)
+async def sync_wechat_news():
+    """
+    同步美客多公众号内容（占位接口）
+    实际需要微信爬虫或官方API，此处记录同步意向
+    """
+    # TODO: 微信公众号内容抓取（需单独爬虫或官方API）
+    return OfficialNewsSyncResponse(
+        status="pending",
+        synced=0,
+        message="公众号同步待实现，需配置微信爬虫或官方API"
+    )

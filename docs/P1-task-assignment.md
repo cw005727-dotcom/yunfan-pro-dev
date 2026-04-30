@@ -18,7 +18,7 @@
 |---|---|---|---|
 | P1 | 2天 | P1-① 新订单创建 → monitoring_logs 打通 | ✅ 完成 |
 | P1 | 2天 | P1-④ 取消/退款 → monitoring_logs 写入 | ✅ 完成 |
-| P1 | 2天 | P2-1~4 多租户后端（users/invite_codes/store_auths表 + auth API） | 进行中 |
+| P1 | 2天 | P2-1~4 多租户后端（users/invite_codes/store_auths表 + auth API） | ✅ 完成 |
 | P2 | 2天 | P2-9~12 官网/公众号同步 + 数据看板 | 待开始 |
 | P3 | 2天 | Deploy1~5 国内服务器部署 | 待开始 |
 

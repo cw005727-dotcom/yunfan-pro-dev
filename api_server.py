@@ -130,46 +130,72 @@ def background_notification_worker():
                 logger.info(f"[Worker] Processing: {topic} {resource}")
 
                 try:
+                    target_order_id = None
+                    
                     if topic == 'orders_v2':
-                        # 获取订单详情
-                        resp = requests.get(f"https://api.mercadolibre.com{resource}", headers={"Authorization": f"Bearer {token}"})
+                        # 直接从资源路径提取 order_id
+                        target_order_id = resource.split('/')[-1]
+                    elif topic == 'orders_shipments':
+                        # 物流推送，resource 为 /shipments/{id}
+                        shipping_id = resource.split('/')[-1]
+                        # 尝试通过数据库反查关联订单
+                        cursor.execute("SELECT id FROM orders_v2 WHERE tracking_id = ? OR id IN (SELECT id FROM orders_v2 WHERE id LIKE ?) LIMIT 1", (shipping_id, f"%{shipping_id}%"))
+                        order_row = cursor.fetchone()
+                        if order_row:
+                            target_order_id = order_row['id']
+                            logger.info(f"[Worker] Found order {target_order_id} for shipment {shipping_id}")
+                        else:
+                            # 如果库里没记过这个物流号，尝试直接用 shipments ID 作为资源去请求（虽然可能 401，但这是最后的希望）
+                            # 或者我们可以尝试解析 webhook 里的其他信息，但这里我们先跳过
+                            logger.warning(f"[Worker] Shipment {shipping_id} has no associated order, skip detail fetch.")
+                    
+                    if target_order_id:
+                        # 统一通过 /orders/{id} 获取最新状态 (符合 CBT 协议)
+                        resp = requests.get(f"https://api.mercadolibre.com/orders/{target_order_id}", headers={"Authorization": f"Bearer {token}"}, timeout=10)
                         if resp.status_code == 200:
                             order_data = resp.json()
-                            order_id = str(order_data['id'])
-                            shipping_id = order_data.get('shipping', {}).get('id')
-
-                            # 获取物流详情
+                            
+                            shipping_obj = order_data.get('shipping', {})
+                            shipping_id = shipping_obj.get('id')
+                            
+                            # 获取基础物流字段
+                            shipping_status = shipping_obj.get('status', 'pending')
+                            shipping_substatus = shipping_obj.get('substatus')
+                            tracking_id = shipping_obj.get('tracking_number')
+                            last_ship_date = order_data.get('expiration_date')
+                            
+                            # 尝试获取重量等详细信息
                             ship_data = {}
                             if shipping_id:
-                                ship_resp = requests.get(f"https://api.mercadolibre.com/shipments/{shipping_id}", headers={"Authorization": f"Bearer {token}"})
-                                if ship_resp.status_code == 200:
-                                    ship_data = ship_resp.json()
+                                try:
+                                    ship_resp = requests.get(f"https://api.mercadolibre.com/shipments/{shipping_id}", headers={"Authorization": f"Bearer {token}"}, timeout=5)
+                                    if ship_resp.status_code == 200:
+                                        ship_data = ship_resp.json()
+                                        shipping_status = ship_data.get('status', shipping_status)
+                                        shipping_substatus = ship_data.get('substatus', shipping_substatus)
+                                        tracking_id = ship_data.get('tracking_number', tracking_id)
+                                except: pass
 
-                            shipping_status = ship_data.get('status', 'pending')
-                            shipping_substatus = ship_data.get('substatus')
-                            tracking_id = ship_data.get('tracking_number')
-                            last_ship_date = order_data.get('expiration_date')
-
-                            # Extract weight from ship_data
                             weight = 0
                             if ship_data.get('base_cost_detail'):
                                 weight = ship_data['base_cost_detail'].get('weight', 0)
                             elif ship_data.get('dimensions'):
                                 weight = ship_data['dimensions'].get('weight', 0)
-
-                            # Normalize to KG if likely in grams
-                            if weight > 50:
-                                weight = round(weight / 1000.0, 3)
+                            if weight > 50: weight = round(weight / 1000.0, 3)
 
                             cursor.execute("""
                                 UPDATE orders_v2
                                 SET shipping_status = ?, shipping_substatus = ?, tracking_id = ?, last_ship_date = ?, weight = ?
                                 WHERE id = ?
-                            """, (shipping_status, shipping_substatus, tracking_id, last_ship_date, weight, order_id))
-
-                            logger.info(f"[Worker] Updated order {order_id}")
+                            """, (shipping_status, shipping_substatus, tracking_id, last_ship_date, weight, str(target_order_id)))
+                            
+                            logger.info(f"[Worker] Success: Order {target_order_id} updated to {shipping_status}")
 
                     cursor.execute("UPDATE ml_notifications SET status = 'completed', processed_at = ? WHERE id = ?", (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), notify_id))
+
+                except Exception as e:
+                    logger.error(f"[Worker] Error notification {notify_id}: {e}")
+                    cursor.execute("UPDATE ml_notifications SET status = 'failed' WHERE id = ?", (notify_id,))
 
                 except Exception as e:
                     logger.error(f"[Worker] Error processing notification {notify_id}: {e}")
@@ -691,12 +717,21 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                 now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
-                # Base status mappings
+                # Base status mappings (According to ML CBT Protocol)
                 STATUS_MAP = {
-                    'pending': '待入库', 'ready_to_ship': '待发货', 'shipped': '已发货',
-                    'in_transit': '在途中', 'delivered': '已妥投', 'cancelled': '已取消',
-                    'returned': '已退货', 'at_customs': '海关清关', 'printed': '已打单',
-                    'ready_to_print': '待打单'
+                    'pending': '待入库', 
+                    'ready_to_ship': '待发货', 
+                    'shipped': '已发货',
+                    'in_transit': '在途中', 
+                    'delivered': '已妥投', 
+                    'cancelled': '已取消',
+                    'returned': '已退货', 
+                    'at_customs': '海关清关', 
+                    'printed': '已打单',
+                    'ready_to_print': '待打单',
+                    'handling': '处理中',
+                    'not_delivered': '投递失败',
+                    'not_shipped': '未发货'
                 }
 
                 where_clauses = []
