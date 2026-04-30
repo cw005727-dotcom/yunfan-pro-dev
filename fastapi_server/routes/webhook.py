@@ -1,22 +1,119 @@
 """
 Webhook 相关路由
-POST /api/ml/notifications
-POST /api/ml/webhook/relay
+POST /api/ml/webhook/relay - ML webhook 接收转发
 """
-from fastapi import APIRouter, Request
+import logging
+from typing import Optional, Dict, Any
 
-router = APIRouter(prefix="/api", tags=["Webhook"])
+from fastapi import APIRouter, Request, HTTPException
+from pydantic import BaseModel
+
+from ..db import get_db_connection
+
+router = APIRouter(prefix="/api/ml/webhook", tags=["Webhook"])
+logger = logging.getLogger(__name__)
 
 
-@router.post("/ml/notifications")
-async def ml_notifications(request: Request):
-    """Mercado Libre 通知"""
-    # TODO: 实现
-    return {}
+class WebhookRelayPayload(BaseModel):
+    id: Optional[int] = None
+    user_id: Optional[str] = None
+    site_id: Optional[str] = None
+    order_date: Optional[str] = None
+    product_name: Optional[str] = None
+    quantity: Optional[int] = None
+    amount: Optional[float] = None
+    platform_fee: Optional[float] = None
+    tax: Optional[float] = None
+    net_profit: Optional[float] = None
+    last_ship_date: Optional[str] = None
+    status: Optional[str] = None
+    shipping_status: Optional[str] = None
+    shipping_substatus: Optional[str] = None
+    tracking_id: Optional[str] = None
+    logistic_type: Optional[str] = None
+    seller_sku: Optional[str] = None
+    thumbnail: Optional[str] = None
+    cancel_detail_group: Optional[str] = None
+    mediations_count: Optional[int] = None
+    paid_amount: Optional[float] = None
+    cancel_code: Optional[str] = None
+    logistic_company: Optional[str] = None
+    tracking_status: Optional[str] = None
+    receiver_city: Optional[str] = None
+    receiver_state: Optional[str] = None
+    estimated_delivery_date: Optional[str] = None
+
+    class Config:
+        extra = "allow"
 
 
-@router.post("/ml/webhook/relay")
-async def ml_webhook_relay(request: Request):
-    """Mercado Libre Webhook 转发"""
-    # TODO: 实现
-    return {}
+@router.post("/relay")
+async def relay(payload: WebhookRelayPayload):
+    """
+    接收 ML webhook 通知，转发并保存到 orders_v2 表。
+    对应旧端点：GET /api/ml/webhook/relay
+    """
+    try:
+        order_data = payload.model_dump(exclude_none=True)
+        if not order_data:
+            raise HTTPException(status_code=400, detail="Empty payload")
+
+        order_id = order_data.get('id')
+        if not order_id:
+            raise HTTPException(status_code=400, detail="Missing order id")
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT 1 FROM orders_v2 WHERE id = ?", (str(order_id),))
+            exists = cursor.fetchone() is not None
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO orders_v2
+                (id, user_id, site_id, order_date, product_name, quantity, amount,
+                 platform_fee, tax, net_profit, last_ship_date, status, shipping_status,
+                 shipping_substatus, tracking_id, logistic_type, seller_sku, thumbnail,
+                 cancel_detail_group, mediations_count, paid_amount, cancel_code,
+                 logistic_company, tracking_status, receiver_city, receiver_state,
+                 estimated_delivery_date)
+                VALUES
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order_data.get('id'),
+                order_data.get('user_id'),
+                order_data.get('site_id'),
+                order_data.get('order_date'),
+                order_data.get('product_name'),
+                order_data.get('quantity'),
+                order_data.get('amount'),
+                order_data.get('platform_fee'),
+                order_data.get('tax'),
+                order_data.get('net_profit'),
+                order_data.get('last_ship_date'),
+                order_data.get('status'),
+                order_data.get('shipping_status'),
+                order_data.get('shipping_substatus'),
+                order_data.get('tracking_id'),
+                order_data.get('logistic_type'),
+                order_data.get('seller_sku'),
+                order_data.get('thumbnail'),
+                order_data.get('cancel_detail_group'),
+                order_data.get('mediations_count'),
+                order_data.get('paid_amount'),
+                order_data.get('cancel_code'),
+                order_data.get('logistic_company'),
+                order_data.get('tracking_status'),
+                order_data.get('receiver_city'),
+                order_data.get('receiver_state'),
+                order_data.get('estimated_delivery_date'),
+            ))
+            conn.commit()
+
+        logger.info(f"[Webhook Relay] order {order_id} saved (updated={exists})")
+        return {"ok": True, "id": order_id, "updated": exists}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Webhook Relay] error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
