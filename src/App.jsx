@@ -205,7 +205,7 @@ const App = () => {
                     <span className="text-[14px] font-black text-white tracking-tight uppercase">
                         {Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '云帆 PRO'}
                     </span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-0.5">Mobile Command</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-0.5">Version 1.1</span>
                 </div>
                 <button onClick={() => setMobileLogsOpen(true)} className="text-white/60 hover:text-white p-2 relative transition-colors">
                     <Icon name="activity" className="w-6 h-6" />
@@ -278,13 +278,14 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Backdrop for Mobile Nav */}
-                {mobileNavOpen && (
-                    <div 
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
-                        onClick={() => setMobileNavOpen(false)}
-                    />
-                )}
+                {/* Column 2: Monitoring (Moved back to Left-Middle) */}
+                <div className={`
+                    fixed inset-y-0 right-0 z-[60] lg:static lg:z-0
+                    w-[300px] lg:w-[220px] transition-transform duration-300 ease-in-out bg-[#0F172A] border-r border-white/5
+                    ${mobileLogsOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}
+                `}>
+                    <MonitoringSidebar mobile={mobileLogsOpen} onClose={() => setMobileLogsOpen(false)} />
+                </div>
 
                 {/* Column 3: Main View */}
                 <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
@@ -294,6 +295,7 @@ const App = () => {
                             <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase truncate">
                                 指挥空间：{Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '监控中心'}
                             </h2>
+                            <span className="ml-auto text-[10px] font-black text-slate-300 uppercase tracking-widest">Version 1.1</span>
                         </div>
                     </div>
                     <div className="flex-1 m-0 lg:m-4 bg-white border-0 lg:border lg:border-slate-200 overflow-hidden lg:shadow-sm relative">
@@ -323,14 +325,13 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Column 2: Monitoring */}
-                <div className={`
-                    fixed inset-y-0 right-0 z-[60] lg:static lg:z-0
-                    w-[300px] lg:w-[220px] transition-transform duration-300 ease-in-out bg-[#0F172A]
-                    ${mobileLogsOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}
-                `}>
-                    <MonitoringSidebar mobile={mobileLogsOpen} onClose={() => setMobileLogsOpen(false)} />
-                </div>
+                {/* Backdrop for Mobile Nav */}
+                {mobileNavOpen && (
+                    <div 
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
+                        onClick={() => setMobileNavOpen(false)}
+                    />
+                )}
 
                 {/* Backdrop for Mobile Logs */}
                 {mobileLogsOpen && (

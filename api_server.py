@@ -67,7 +67,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 from urllib.parse import urlparse, parse_qs
-from token_manager import load_tokens, save_tokens
+# from token_manager import load_tokens, save_tokens
+
+def load_tokens(file_path='ml_tokens.enc'):
+    import json
+    if not os.path.exists(file_path): return None
+    try:
+        with open(file_path, 'r') as f: return json.load(f)
+    except: return None
+
+def save_tokens(tokens, file_path='ml_tokens.enc'):
+    import json
+    try:
+        with open(file_path, 'w') as f: json.dump(tokens, f); return True
+    except: return False
+
 
 # 配置 MiniMax
 MINIMAX_CONFIG = {
