@@ -73,7 +73,7 @@ from .routes import (
     stats, product_data, reputation,
     smart_rotation, market_radar, price_check,
     customer_service, monitoring, ai,
-    sync, webhook, admin
+    sync, webhook, admin, holidays
 )
 
 app.include_router(stores.router)
@@ -91,7 +91,7 @@ app.include_router(monitoring.router)
 app.include_router(ai.router)
 app.include_router(sync.router)
 app.include_router(webhook.router)
-app.include_router(admin.router)
+app.include_router(holidays.router)
 
 
 @app.get("/health")
