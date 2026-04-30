@@ -2617,7 +2617,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 import hashlib, time
                 secret = query.get("secret", [""])[0]
-                expected = "心神"
+                expected = "chensan2026"
                 if secret != expected:
                     self.send_json({"error": "unauthorized"}, status=401)
                     return
