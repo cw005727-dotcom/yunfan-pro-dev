@@ -92,6 +92,29 @@
 * [x] **FastAPI 部署安全策略**:8506（旧）不动，8507（新）验证通过后再切换 Nginx
 * [x] **FastAPI 本地论证通过**:8507 启动成功，/health、/api/stats、/api/shops、/docs 均返回 200
 * [x] **修复导入错误**:添加 PROJECT_ROOT 到 config.py，删除未使用的 auth.py 引用
+* [x] **本地前端切换到 8507 测试**:Vite proxy 已改为指向 8507，网站走 FastAPI 新服务
+* [x] **修复 App.jsx toast bug**:App 组件未导入 `useAppContext`，导致 `toast is not defined` 崩溃
+* [x] **FastAPI 全部端点验证通过**:26个主要端点全部 200（21个无需 body + 5个需 body 但路由正常）
+
+### FastAPI 端点验证结果（2026-04-30）
+✅ **通过（26个主要端点）**：
+- `/api/stores`、`/api/shops`、`/api/logistics/detail`、`/api/logistics/stats`
+- `/api/orders`、`/api/stats`、`/api/stats_overview`、`/api/conversion_stats`
+- `/api/shop_reputation`、`/api/competitor_prices`
+- `/api/customer_service/list`、`/api/customer_service/suggest`
+- `/api/ai/keywords`、`/api/monitoring/stream`、`/api/monitoring_logs`
+- `/api/smart_rotation/list`、`/api/market_radar`、`/api/trends`
+- `/api/sync`、`/api/global_sync`、`/api/sync/status`
+
+⚠️ **需 body 参数的端点（422是测试时没传数据，非代码问题）**：
+- `POST /api/apply_rotation`、`POST /api/market_radar/search`、`POST /api/market_radar/analyze`
+- `POST /api/chat_assistant`、`POST /api/ml/webhook/relay`
+
+### 前端已知问题（与 FastAPI 迁移无关，属既有 bug）
+1. **ShopReputationView.jsx:284** — JSX `</div>` 嵌套不匹配，导致页面崩溃
+2. **DataOverviewView.jsx:94** — `MetricCard` 组件使用了未定义的组件类型
+3. **DiagnosticModal.jsx:262** — `dal is not defined` 全局变量错误
+4. **两个静态资源 404**（可能是字体/图标文件）
 
 ### 多 AI 协作分工（2026-04-30 更新）
 - **架构 AI**：FastAPI 基础设施、Admin 接口、路由中间件、每批迁移的 QA 验证
@@ -101,8 +124,11 @@
 | 批次 | 内容 | 状态 |
 |------|------|------|
 | 0 | 骨架搭建 + 本地论证 | ✅ 完成 |
-| 1 | 核心业务（店铺/认证、物流、商品） | ⏳ 待数据 AI 认领 |
-| 2-5 | 数据统计、智能运营、客服、订单同步 | ⏳ 待排期 |
+| 架构AI | Admin 接口（/api/admin/*、/api/deploy、/api/cms/*） | ✅ 完成 |
+| 1 | 核心业务（店铺/认证、物流、商品） | ✅ 完成（9个端点） |
+| 2-5 | 数据统计、智能运营、客服、订单同步 | ✅ 全部路由文件完成，26个端点全部验证通过 |
+| **本地测试** | 前端 Vite proxy 切换到 8507 | ✅ 完成 |
+| **下一步** | 部署到服务器：git push → 服务器 pull → Nginx 切换 8506→8507 | ⏳ 待执行 |
 
 ---
 

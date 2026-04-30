@@ -360,8 +360,7 @@ const ShopReputationView = () => {
                         })}
                     </div>
                 </div>
-                </div>
-            </div>
+        </div>
 
         {hoveredCell && createPortal((
             <Tooltip

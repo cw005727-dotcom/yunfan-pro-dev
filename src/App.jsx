@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Icon from './components/Icon';
 import Brand from './components/Brand';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useAppContext } from './context/AppContext';
 
 // Lazy Load Views
 const NewsView = lazy(() => import('./views/NewsView'));
@@ -139,6 +140,7 @@ const MonitoringSidebar = ({ mobile, onClose }) => {
 };
 
 const App = () => {
+    const { toast, showToast } = useAppContext();
     const [isLoggedIn, setIsLoggedIn] = useState(true);
     const [topTab, setTopTab] = useState('home');
     const [sidebarItem, setSidebarItem] = useState('news');
@@ -200,8 +202,10 @@ const App = () => {
                     <Icon name="menu" className="w-6 h-6" />
                 </button>
                 <div className="flex flex-col items-center">
-                    <span className="text-[12px] font-black text-white tracking-[0.2em] uppercase">云帆 PRO</span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Mobile Ops</span>
+                    <span className="text-[14px] font-black text-white tracking-tight uppercase">
+                        {Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '云帆 PRO'}
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-0.5">Mobile Command</span>
                 </div>
                 <button onClick={() => setMobileLogsOpen(true)} className="text-white/60 hover:text-white p-2 relative transition-colors">
                     <Icon name="activity" className="w-6 h-6" />
@@ -300,7 +304,7 @@ const App = () => {
 
             {/* Column 3: Main View */}
             <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
-                <div className="h-[64px] border-b border-slate-200 flex items-center px-6 lg:px-10 bg-white shrink-0">
+                <div className="hidden lg:flex h-[64px] border-b border-slate-200 items-center px-10 bg-white shrink-0">
                     <div className="flex items-center gap-3 truncate">
                         <div className={`w-2 h-2 rounded-full ${sidebarItem === 'logistics' ? 'bg-cyan-500' : 'bg-blue-500'} animate-pulse shrink-0`}></div>
                         <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase truncate">
@@ -308,7 +312,7 @@ const App = () => {
                         </h2>
                     </div>
                 </div>
-                <div className="flex-1 m-2 lg:m-4 bg-white border border-slate-200 overflow-hidden shadow-sm relative">
+                <div className="flex-1 m-0 lg:m-4 bg-white border-0 lg:border lg:border-slate-200 overflow-hidden lg:shadow-sm relative">
                     <ErrorBoundary key={sidebarItem}>
                         <Suspense fallback={<div className="h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div></div>}>
                             <div className="h-full overflow-hidden">

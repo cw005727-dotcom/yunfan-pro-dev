@@ -85,4 +85,4 @@ const DiagnosticModal = ({ isOpen, onClose, data, isDiagnosing }) => {
     );
 };
 
-export default DiagnosticModal;dal;
+export default DiagnosticModal;

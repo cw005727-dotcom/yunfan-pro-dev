@@ -26,14 +26,14 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8506',
+        target: 'http://localhost:8507',
         changeOrigin: true,
         headers: {
           'X-Admin-Token': 'YUNFAN_ADMIN_2026',
         },
       },
       '/admin_api': {
-        target: 'http://localhost:8506',
+        target: 'http://localhost:8507',
         changeOrigin: true,
         headers: {
           'X-Admin-Token': 'YUNFAN_ADMIN_2026',

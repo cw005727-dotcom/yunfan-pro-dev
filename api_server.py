@@ -1893,6 +1893,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
+        query = parse_qs(parsed_path.query)
         
         # 记录请求日志
         logger.info(f"POST {self.path} from {self.address_string()}")

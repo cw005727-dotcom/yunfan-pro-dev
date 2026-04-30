@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Icon from '../components/Icon.jsx';
+import { DollarSign, ShoppingCart, Box, Wallet } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -244,10 +245,10 @@ export default function DataOverviewView() {
         <>
           {/* 1. Metrics Ribbon */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard label="总成交额 (GMV)" value={gmv.toLocaleString()} trend={metrics.gmv_trend} icon={Icon.DollarSign} color="indigo" prefix="$" />
-            <MetricCard label="总订单量 (Orders)" value={orders.toLocaleString()} trend={metrics.orders_trend} icon={Icon.ShoppingCart} color="blue" />
-            <MetricCard label="总销量 (Units)" value={units.toLocaleString()} trend={metrics.units_trend} icon={Icon.Box} color="emerald" />
-            <MetricCard label="预计实收 (Net)" value={payout.toLocaleString()} trend={null} icon={Icon.Wallet} color="amber" prefix="$" />
+            <MetricCard label="总成交额 (GMV)" value={gmv.toLocaleString()} trend={metrics.gmv_trend} icon={DollarSign} color="indigo" prefix="$" />
+            <MetricCard label="总订单量 (Orders)" value={orders.toLocaleString()} trend={metrics.orders_trend} icon={ShoppingCart} color="blue" />
+            <MetricCard label="总销量 (Units)" value={units.toLocaleString()} trend={metrics.units_trend} icon={Box} color="emerald" />
+            <MetricCard label="预计实收 (Net)" value={payout.toLocaleString()} trend={null} icon={Wallet} color="amber" prefix="$" />
           </div>
 
           {/* 2. Main Intelligence Center */}
