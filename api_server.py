@@ -2749,20 +2749,108 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 import hashlib, time
                 secret = query.get("secret", [""])[0]
                 expected = "chensan2026"
+                action = query.get("action", ["git"])[0]
                 if secret != expected:
                     self.send_json({"error": "unauthorized"}, status=401)
                     return
-                # 异步执行 git pull + pm2 restart(不阻塞)
                 import subprocess, os
                 env = os.environ.copy()
                 env['GIT_TERMINAL_PROMPT'] = '0'
-                subprocess.Popen(
-                    ["sh", "-c", "git pull --no-edit && pm2 restart yunfan-api"],
-                    cwd="/home/admin/yunfan-pro-dev",
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    stdin=subprocess.DEVNULL, env=env
-                )
-                self.send_json({"ok": True, "msg": "部署已触发,请稍后刷新页面"})
+                if action == "fix_logistics":
+                    # 直接写入修复代码到 api_server.py，不依赖 git pull
+                    server_file = os.path.abspath(__file__)
+                    fixed_code = '''
+                # 真实物流：从 orders_v2 读取 webhook 推送的数据
+                conn2 = sqlite3.connect(DB_PATH); conn2.row_factory = sqlite3.Row; cur2 = conn2.cursor()
+                cur2.execute("""
+                    SELECT shipping_status, shipping_substatus, tracking_id, logistic_type,
+                           tracking_status, receiver_city, receiver_state, logistic_company,
+                           order_date
+                    FROM orders_v2 WHERE id = ?
+                """, (order_id,))
+                row2 = cur2.fetchone()
+                conn2.close()
+
+                events = []
+                if row2:
+                    shipping_status = row2['shipping_status'] or ''
+                    tracking_status = row2['tracking_status'] or ''
+                    logistic_type = row2['logistic_type'] or ''
+                    receiver_city = row2['receiver_city'] or ''
+                    receiver_state = row2['receiver_state'] or ''
+                    logistic_company = row2['logistic_company'] or ''
+                    order_date = row2['order_date'] or ''
+                    ref_time = order_date if order_date else datetime.now().strftime('%Y-%m-%d %H:%M')
+
+                    if shipping_status or tracking_status:
+                        status_map = {
+                            'shipped': ('shipped', '已发货'),
+                            'delivered': ('delivered', '已送达'),
+                            'in_transit': ('in_transit', '运输中'),
+                            'at_customs': ('at_customs', '清关中'),
+                            'cancelled': ('cancelled', '已取消'),
+                            'returned': ('returned', '退回中'),
+                        }
+                        s_key, s_desc = status_map.get(shipping_status, ('unknown', shipping_status))
+                        location = f"{receiver_city}, {receiver_state}" if receiver_city else logistic_company or '未知'
+                        events.append({
+                            "time": ref_time,
+                            "status": s_key,
+                            "desc": f"[{site_id}] {s_desc} - {logistic_type or '标准物流'}",
+                            "location": location
+                        })
+                        if tracking_status == 'in_transit':
+                            events.append({
+                                "time": ref_time,
+                                "status": "in_transit",
+                                "desc": "包裹处理中",
+                                "location": location
+                            })
+                else:
+                    events.append({
+                        "time": datetime.now().strftime('%Y-%m-%d %H:%M'),
+                        "status": "pending",
+                        "desc": "暂无物流轨迹，请等待 ML 推送",
+                        "location": ""
+                    })
+
+                self.send_json({"id": order_id, "lp": lp_number, "events": events, "risk": None})
+'''
+                    marker_start = "                # 真实物流：从 orders_v2 读取 webhook 推送的数据"
+                    marker_end = "                self.send_json({\"id\": order_id, \"lp\": lp_number, \"events\": events, \"risk\": None})"
+                    try:
+                        with open(server_file, 'r', encoding='utf-8') as f:
+                            lines = f.readlines()
+                        # 找到并替换
+                        new_lines = []
+                        skip = False
+                        for line in lines:
+                            if marker_start in line:
+                                skip = True
+                                new_lines.append(marker_start + '\n')
+                            elif marker_end in line and skip:
+                                skip = False
+                                new_lines.append(fixed_code.strip() + '\n')
+                            elif not skip:
+                                new_lines.append(line)
+                        with open(server_file, 'w', encoding='utf-8') as f:
+                            f.writelines(new_lines)
+                        restart_out = subprocess.check_output(
+                            ["sh", "-c", "pm2 restart yunfan-api && pm2 info yunfan-api | grep status"],
+                            stderr=subprocess.STDOUT, timeout=15
+                        )
+                        self.send_json({"ok": True, "msg": "修复已写入并重启PM2", "log": restart_out.decode()[:200]})
+                    except Exception as patch_err:
+                        self.send_json({"ok": False, "error": str(patch_err)}, status=500)
+                    return
+                else:
+                    subprocess.Popen(
+                        ["sh", "-c", "git pull --no-edit && pm2 restart yunfan-api"],
+                        cwd="/home/admin/yunfan-pro-dev",
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                        stdin=subprocess.DEVNULL, env=env
+                    )
+                    self.send_json({"ok": True, "msg": "部署已触发,请稍后刷新页面"})
             except Exception as e:
                 self.send_json({"error": str(e)}, status=500)
             return
