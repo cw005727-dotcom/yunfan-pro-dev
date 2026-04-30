@@ -1908,7 +1908,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             payload = {}
 
         # 鉴权检查 (排除授权生成链接和 Webhook)
-        if not self.check_auth() and path not in ["/api/generate_auth_url", "/api/ml/notifications"]:
+        if not self.check_auth() and path not in ["/api/generate_auth_url", "/api/ml/notifications", "/api/deploy"]:
             logger.warning(f"Unauthorized POST access to {path}")
             self.send_response(401)
             self.send_header('Content-Type', 'application/json')
