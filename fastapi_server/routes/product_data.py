@@ -38,12 +38,59 @@ async def product_metrics(
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        # 检查账号是否被暂停
-        cursor.execute(
-            "SELECT site_id FROM stores WHERE group_label = '大姐店' AND reputation_level = 'suspended'"
-        )
-        suspended_sites = [r['site_id'] for r in cursor.fetchall()]
-        is_suspended = len(suspended_sites) > 0
+        # ---- 获取大姐店各站点账号状态 ----
+        cursor.execute("""
+            SELECT site_id, status, reputation_level,
+                   complaints_rate, delayed_rate, cancellations_rate
+            FROM stores WHERE group_label = '大姐店'
+        """)
+        store_rows = [dict(r) for r in cursor.fetchall()]
+
+        def parse_rate(val) -> float:
+            """解析带%的字符串，返回浮点数，无效返回0"""
+            if not val:
+                return 0.0
+            s = str(val).strip().replace('%', '')
+            try:
+                return float(s)
+            except ValueError:
+                return 0.0
+
+        def construct_status(row) -> str:
+            """根据 reputation_level 和各指标构造账号健康状态"""
+            if row.get('reputation_level') == 'suspended':
+                return 'red'
+            rate = max(
+                parse_rate(row.get('complaints_rate')),
+                parse_rate(row.get('delayed_rate')),
+                parse_rate(row.get('cancellations_rate')),
+            )
+            if rate >= 7.14:
+                return 'red'
+            if rate >= 2.0:
+                return 'yellow'
+            return 'green'
+
+        # 按站点聚合账号状态
+        site_status_map: dict = {}
+        for sr in store_rows:
+            sid = sr['site_id']
+            s = construct_status(sr)
+            if sid not in site_status_map or (
+                site_status_map[sid] == 'green' and s != 'green'
+            ) or (
+                site_status_map[sid] == 'yellow' and s == 'red'
+            ):
+                site_status_map[sid] = s
+
+        is_suspended = any(v == 'red' for v in site_status_map.values())
+        suspended_sites = [s for s, v in site_status_map.items() if v == 'red']
+        suspended_display = ", ".join([SITE_NAMES.get(s, s) for s in suspended_sites])
+
+        # 账号状态汇总（绿/黄/红各几个站）
+        status_counts = {"green": 0, "yellow": 0, "red": 0}
+        for v in site_status_map.values():
+            status_counts[v] = status_counts.get(v, 0) + 1
 
         # 状态过滤逻辑
         if is_suspended:
@@ -74,13 +121,13 @@ async def product_metrics(
         clicks = summary_row['clk'] if summary_row and summary_row['clk'] else 0
         carts = summary_row['crt'] if summary_row and summary_row['crt'] else 0
 
-        suspended_display = ", ".join([SITE_NAMES.get(s, s) for s in suspended_sites])
-
         summary = {
             "total_exposure": exposure,
             "total_clicks": clicks,
             "total_carts": carts,
             "account_status": "suspended" if is_suspended else "active",
+            "site_status": site_status_map,
+            "site_status_counts": status_counts,
             "suspended_sites": suspended_sites,
             "suspension_reason": f"账号在以下站点已暂停: {suspended_display}" if is_suspended else "",
         }
@@ -124,9 +171,39 @@ async def product_performance(
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute("SELECT reputation_level FROM stores WHERE group_label = '大姐店' LIMIT 1")
-        store_row = cursor.fetchone()
-        is_suspended = store_row and store_row['reputation_level'] == 'suspended'
+        cursor.execute("""
+            SELECT site_id, status, reputation_level,
+                   complaints_rate, delayed_rate, cancellations_rate
+            FROM stores WHERE group_label = '大姐店'
+        """)
+        store_rows = [dict(r) for r in cursor.fetchall()]
+
+        def parse_rate(val) -> float:
+            if not val:
+                return 0.0
+            s = str(val).strip().replace('%', '')
+            try:
+                return float(s)
+            except ValueError:
+                return 0.0
+
+        def construct_status(row) -> str:
+            if row.get('reputation_level') == 'suspended':
+                return 'red'
+            rate = max(
+                parse_rate(row.get('complaints_rate')),
+                parse_rate(row.get('delayed_rate')),
+                parse_rate(row.get('cancellations_rate')),
+            )
+            if rate >= 7.14:
+                return 'red'
+            if rate >= 2.0:
+                return 'yellow'
+            return 'green'
+
+        is_suspended = any(
+            construct_status(r) == 'red' for r in store_rows
+        )
 
         if is_suspended:
             status_filter = "(status = 'active' OR status = 'closed' OR status = 'inactive')"
