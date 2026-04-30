@@ -2623,7 +2623,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     return
                 # 执行 git pull + pm2 restart
                 import subprocess
-                r1 = subprocess.run(["git", "pull"], cwd="/home/admin/yunfan-pro-dev", capture_output=True, text=True, timeout=30)
+                r1 = subprocess.run(["git", "pull"], cwd="/home/admin/yunfan-pro-dev", capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
                 r2 = subprocess.run(["pm2", "restart", "yunfan-api"], capture_output=True, text=True, timeout=15)
                 self.send_json({"ok": True, "git": r1.stdout + r1.stderr, "pm2": r2.stdout + r2.stderr})
             except Exception as e:
