@@ -2622,12 +2622,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.send_json({"error": "unauthorized"}, status=401)
                     return
                 # 异步执行 git pull + pm2 restart（不阻塞）
-                import subprocess
+                import subprocess, os
+                env = os.environ.copy()
+                env['GIT_TERMINAL_PROMPT'] = '0'
                 subprocess.Popen(
-                    ["sh", "-c", "git pull && pm2 restart yunfan-api"],
+                    ["sh", "-c", "git pull --no-edit && pm2 restart yunfan-api"],
                     cwd="/home/admin/yunfan-pro-dev",
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    stdin=subprocess.DEVNULL
+                    stdin=subprocess.DEVNULL, env=env
                 )
                 self.send_json({"ok": True, "msg": "部署已触发，请稍后刷新页面"})
             except Exception as e:
