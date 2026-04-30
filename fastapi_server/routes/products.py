@@ -12,12 +12,13 @@ import requests
 from pathlib import Path
 from typing import Optional, List
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # → yunfan-pro-dev/
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "utils"))
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Any, Dict
 
 from ..config import MINIMAX_API_KEY, MINIMAX_API_URL, MINIMAX_MODEL
 
@@ -72,8 +73,8 @@ async def optimize_title(body: OptimizeTitleRequest):
 
 
 class ListingDoctorRequest(BaseModel):
-    my_item: dict
-    comp_item: dict
+    my_item: Dict[str, Any]
+    comp_item: Dict[str, Any]
 
 
 @router.post("/listing_doctor")
@@ -119,8 +120,8 @@ class ItemUpdateResponse(BaseModel):
 @router.post("/item/update", response_model=ItemUpdateResponse)
 async def update_item(body: ItemUpdateRequest, token: str = None):
     """更新商品（标题/主图/描述）"""
-    from .db import get_db_connection
-    from token_manager import load_tokens
+    from ..db import get_db_connection
+    from scripts.utils.token_manager import load_tokens
 
     if not body.item_id:
         raise HTTPException(status_code=400, detail="item_id is required")

@@ -7,6 +7,7 @@ from pathlib import Path
 
 # 项目根目录
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR
 
 # 数据库路径
 # 开发环境: 本地目录
@@ -22,7 +23,7 @@ TOKEN_FILE_ENC = os.environ.get("TOKEN_FILE_ENC", str(Path.home() / ".ml_token_e
 TOKEN_FILE_JSON = os.environ.get("TOKEN_FILE_JSON", str(Path.home() / ".ml_token_json"))
 
 # MiniMax API 配置
-MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
+MINIMAX_API_KEY = "sk-cp-b3SjCUfROLbWo2kMeEu-pjfofmcG8S-NuB-QQn0kk7neiQwS4kg5a2-8RtkBWwKSheV1oz4AeKNH__frdJIQi-S_lC6Sat7M1v_yXCYWHq5_7gSwHxU6FRA"
 MINIMAX_API_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2"
 MINIMAX_MODEL = "MiniMax-M2.7-highspeed"
 
