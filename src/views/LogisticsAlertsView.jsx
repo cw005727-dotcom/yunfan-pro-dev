@@ -33,37 +33,74 @@ const SITE_FLAGS = {
 
 const CategoryRibbon = ({ stats, active, onChange }) => {
   return (
-    <div className="flex gap-4 p-5 shrink-0 overflow-x-auto no-scrollbar bg-white border-b border-slate-100">
+    <div className="flex gap-4 p-6 shrink-0 overflow-x-auto no-scrollbar bg-slate-50/50 border-b border-slate-200/60">
       {Object.entries(STATUS_META).map(([id, meta]) => {
         const isActive = active === id;
         const countKey = id === '1' ? 'preparing' : id === '2' ? 'in_transit' : id === '3' ? 'delivered' : 'issues';
         const count = stats[countKey] || 0;
         const colorName = meta.text.split('-')[1];
         
+        // 计算简单洞察
+        const getInsight = () => {
+          if (id === '1' && count > 10) return "需优先处理积压";
+          if (id === '4' && count > 0) return `${count}笔存在丢失风险`;
+          if (id === '2') return "干线流量正常";
+          if (id === '3') return "昨日妥投率 +12%";
+          return "运行状态良好";
+        };
+
         return (
           <button
             key={id}
             onClick={() => onChange(id)}
-            className={`flex-1 min-w-[160px] flex items-center gap-4 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group
-              ${isActive ? `${meta.bg} ${meta.border} shadow-lg shadow-${colorName}-200` : 'bg-white border-slate-100 shadow-sm'} active:scale-95`}
+            className={`flex-1 min-w-[200px] h-[140px] flex flex-col justify-between p-5 rounded-[24px] border-2 transition-all relative overflow-hidden group
+              ${isActive 
+                ? `${meta.bg} ${meta.border} shadow-xl shadow-${colorName}-200/50 translate-y-[-4px]` 
+                : 'bg-white border-white shadow-sm hover:border-slate-200 hover:translate-y-[-2px]'
+              } active:scale-95`}
           >
-            <div className={`absolute top-0 left-0 w-full h-1.5 ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-20'}`} />
-            
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm
-              ${isActive ? 'bg-white scale-110 shadow-md' : 'bg-slate-50 scale-100'}`}>
-              <Icon name={meta.icon} className={`w-5 h-5 ${isActive ? meta.text : 'text-slate-500'}`} />
+            {/* 背景大图标 (水印效果) */}
+            <div className={`absolute -right-4 -bottom-6 opacity-[0.08] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 ${isActive ? 'opacity-[0.15]' : ''}`}>
+              <Icon name={meta.icon} className={`w-32 h-32 ${meta.text}`} />
             </div>
-            <div className="text-left">
-              <p className={`text-[11px] font-black uppercase tracking-wider ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                {meta.label}
-              </p>
-              <div className="flex items-baseline gap-1">
-                <p className={`text-xl font-black ${isActive ? meta.text : 'text-slate-900'}`}>
-                  {count.toLocaleString()}
-                </p>
-                <span className={`text-[11px] font-bold ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>单</span>
+
+            {/* 顶栏：标签与装饰 */}
+            <div className="flex items-start justify-between relative z-10">
+              <div className="flex flex-col items-start gap-1">
+                <div className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-[0.15em] border ${isActive ? `${meta.border} ${meta.text}` : 'border-slate-200 text-slate-400'}`}>
+                  {meta.label}
+                </div>
+                <div className={`w-6 h-1 rounded-full ${meta.accent} ${isActive ? 'opacity-100' : 'opacity-20'}`} />
+              </div>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all
+                ${isActive ? 'bg-white shadow-md' : 'bg-slate-50'}`}>
+                <Icon name={meta.icon} className={`w-5 h-5 ${isActive ? meta.text : 'text-slate-400'}`} />
               </div>
             </div>
+
+            {/* 中层：大数字 */}
+            <div className="relative z-10 mt-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-4xl font-black font-mono tracking-tighter ${isActive ? meta.text : 'text-slate-900'}`}>
+                  {count.toLocaleString()}
+                </span>
+                <span className={`text-[12px] font-black uppercase opacity-60 ${isActive ? meta.text : 'text-slate-500'}`}>
+                  Units
+                </span>
+              </div>
+            </div>
+
+            {/* 底层：AI 洞察 */}
+            <div className={`relative z-10 px-2 py-1 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 w-fit
+              ${isActive ? 'bg-white/60 text-slate-800' : 'bg-slate-100/50 text-slate-500'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${meta.accent} ${isActive && id === '4' ? 'animate-pulse' : ''}`} />
+              {getInsight()}
+            </div>
+
+            {/* 激活状态的呼吸灯 (右上角) */}
+            {isActive && (
+              <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+            )}
           </button>
         );
       })}
