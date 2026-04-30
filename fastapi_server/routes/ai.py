@@ -160,7 +160,7 @@ class TranslateResponse(BaseModel):
     target: str
 
 
-LANGS = {"zh": "中文", "en": "英文", "es": "西班牙语", "pt": "葡萄牙语"}
+LANGS = {"zh": "中文", "zh-CN": "中文", "en": "英文", "es": "西班牙语", "pt": "葡萄牙语"}
 
 
 @router.post("/translate", response_model=TranslateResponse)
