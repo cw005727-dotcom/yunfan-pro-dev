@@ -497,6 +497,29 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"status": "error", "detail": str(e)}, status=500)
 
+        elif path == "/callback":
+            # OAuth callback - ML redirects here with code
+            try:
+                code = query.get("code", [None])[0]
+                if code:
+                    payload = {
+                        "grant_type": "authorization_code",
+                        "client_id": ML_APP_ID,
+                        "client_secret": ML_CLIENT_SECRET,
+                        "code": code,
+                        "redirect_uri": "https://chensan.vip/callback"
+                    }
+                    resp = requests.post(ML_TOKEN_URL, data=payload).json()
+                    if 'access_token' in resp:
+                        save_tokens(resp)
+                        self.send_json({"status": "success", "user_id": resp.get('user_id')})
+                    else:
+                        self.send_json({"status": "error", "detail": resp}, status=400)
+                else:
+                    self.send_json({"status": "error", "detail": "No code provided"}, status=400)
+            except Exception as e:
+                self.send_json({"status": "error", "detail": str(e)}, status=500)
+
         # 1.1 /api/monitoring/stream
         elif path == "/api/monitoring/stream":
             try:
