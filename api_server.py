@@ -2736,6 +2736,30 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     order.get('estimated_delivery_date'),
                 ))
                 conn.commit()
+
+                # ── 同时写 monitoring_logs ──────────────────────────
+                try:
+                    from datetime import datetime as dt
+                    site_map = {'MLM':'墨西哥','MLB':'巴西','MLA':'阿根廷','MCO':'哥伦比亚','MLC':'智利','MLU':'乌拉圭'}
+                    site = site_map.get(order.get('site_id',''), order.get('site_id',''))
+                    amount = float(order.get('amount') or 0)
+                    order_id = str(order.get('id', ''))
+                    monitor_msg = f"{site} 订单 {order_id} 成交 ${amount:.2f}"
+                    cursor.execute("""
+                        INSERT INTO monitoring_logs (timestamp, level, store_id, site_id, message, details)
+                        VALUES (?, 'info', ?, ?, ?, ?)
+                    """, (
+                        dt.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        order.get('user_id'),
+                        order.get('site_id'),
+                        monitor_msg,
+                        json.dumps({"type":"order","order_id":order_id,"amount":amount,"site_id":order.get('site_id')}, ensure_ascii=False)
+                    ))
+                    conn.commit()
+                    logger.info(f"[Webhook Relay] monitoring_logs written for order {order_id}")
+                except Exception as log_err:
+                    logger.error(f"[Webhook Relay] monitoring_logs write error: {log_err}")
+
                 conn.close()
                 logger.info(f"[Webhook Relay] order {order.get('id')} saved (updated={exists})")
                 self.send_json({"ok": True, "id": order.get('id'), "updated": exists})
