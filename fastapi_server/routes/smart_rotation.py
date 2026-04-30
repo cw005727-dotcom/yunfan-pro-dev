@@ -16,16 +16,87 @@ class ApplyRotationRequest(BaseModel):
     add_id: str
 
 
+def _build_status(row) -> str:
+    """
+    根据投诉/延迟/取消率自构造状态标识。
+    - complaints_rate / delayed_rate / cancellations_rate 都是带 % 的字符串
+    - 无数据时默认 green
+    """
+    def pct(val: str) -> float:
+        try:
+            return float(val.replace("%", "").strip())
+        except (AttributeError, ValueError):
+            return 0.0
+
+    complaints = pct(row.get("complaints_rate", "0%"))
+    delayed = pct(row.get("delayed_rate", "0%"))
+    cancels = pct(row.get("cancellations_rate", "0%"))
+
+    if complaints >= 5.0 or delayed >= 10.0 or cancels >= 5.0:
+        return "red"
+    elif complaints >= 2.0 or delayed >= 5.0 or cancels >= 2.0:
+        return "yellow"
+    return "green"
+
+
 @router.get("/smart_rotation/list")
 async def smart_rotation_list():
-    """获取智能轮转产品列表（is_core=1 的核心产品）"""
+    """
+    获取智能轮转产品列表。
+    店铺字段：没有 nickname 时用 store_name；status 自构造（默认 green）。
+    """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT * FROM product_metrics WHERE is_core = 1 ORDER BY created_at DESC"
-        )
-        rows = cursor.fetchall()
-        return [dict(r) for r in rows]
+        cursor.execute("""
+            SELECT
+                user_id, site_id,
+                COALESCE(NULLIF(nickname, ''), NULLIF(store_name, ''), '未命名店铺') AS name,
+                group_label,
+                reputation_level,
+                complaints_rate,
+                delayed_rate,
+                cancellations_rate,
+                claims_history,
+                new_violations, new_claims, new_delayed, new_cancel,
+                alert_date, claims_period_days,
+                total_violations, total_complaints, total_messages,
+                total_cancellations, new_messages,
+                has_token
+            FROM stores
+            ORDER BY user_id, site_id
+        """)
+        rows = [dict(r) for r in cursor.fetchall()]
+
+    result = []
+    for row in rows:
+        status = _build_status(row)
+        result.append({
+            "user_id": row["user_id"],
+            "site_id": row["site_id"],
+            "name": row["name"],
+            "group_label": row.get("group_label") or "",
+            "reputation_level": row.get("reputation_level") or "",
+            # 表原生字段（带 % 字符串）
+            "complaints_rate": row.get("complaints_rate") or "0%",
+            "delayed_rate": row.get("delayed_rate") or "0%",
+            "cancellations_rate": row.get("cancellations_rate") or "0%",
+            # 自构造 status
+            "status": status,
+            "claims_history": row.get("claims_history") or "Healthy",
+            "new_violations": row.get("new_violations") or 0,
+            "new_claims": row.get("new_claims") or 0,
+            "new_delayed": row.get("new_delayed") or 0,
+            "new_cancel": row.get("new_cancel") or 0,
+            "new_messages": row.get("new_messages") or 0,
+            "alert_date": row.get("alert_date") or "",
+            "claims_period": row.get("claims_period_days") or "",
+            "total_violations": row.get("total_violations") or 0,
+            "total_claims": row.get("total_complaints") or 0,
+            "total_messages": row.get("total_messages") or 0,
+            "has_token": row.get("has_token", False),
+        })
+
+    return {"stores": result, "total": len(result)}
 
 
 @router.post("/apply_rotation")
