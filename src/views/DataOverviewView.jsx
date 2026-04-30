@@ -165,6 +165,23 @@ export default function DataOverviewView() {
       .catch(() => setLoading(false));
   }, [dateRange, filter]);
 
+  // 自动刷新：每30秒拉一次新数据
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const params = new URLSearchParams();
+      if (filter !== 'ALL') params.append('group', filter);
+      params.append('days', dateRange);
+      params.append('_t', Date.now());
+      fetch(`${API_BASE}/stats_overview?${params.toString()}`, {
+        headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' }
+      })
+        .then(r => r.json())
+        .then(d => setData(d))
+        .catch(() => {});
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [dateRange, filter]);
+
   const metrics = data?.metrics || {};
   const gmv = metrics.total_gmv || 0;
   const units = metrics.total_units || 0;
