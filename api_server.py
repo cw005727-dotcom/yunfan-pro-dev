@@ -789,28 +789,61 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 site_id = row['site_id'] if row else "MLM"
                 conn.close()
 
-                # Simulate Cainiao (global.cainiao.com) bridge fetch logic
-                # Real implementation would use requests to scrape or an API
-                events = [
-                    {"time": "2026-04-25 09:00", "status": "shipped", "desc": "[中国] 包裹已从菜鸟大件仓发出", "location": "东莞, 中国"},
-                    {"time": "2026-04-26 14:20", "status": "in_transit", "desc": "[中国] 到达菜鸟国际分拨中心,准备装机", "location": "香港, 中国"},
-                    {"time": "2026-04-27 10:30", "status": "in_transit", "desc": "航空干线启运", "location": "国际枢纽"},
-                    {"time": "2026-04-28 22:15", "status": "at_customs", "desc": f"[{site_id}] 到达目的地清关中心,进入清关流程", "location": "目的地海关"},
-                ]
+                # 真实物流：从 orders_v2 读取 webhook 推送的数据
+                conn2 = sqlite3.connect(DB_PATH); conn2.row_factory = sqlite3.Row; cur2 = conn2.cursor()
+                cur2.execute("""
+                    SELECT shipping_status, shipping_substatus, tracking_id, logistic_type,
+                           tracking_status, receiver_city, receiver_state, logistic_company,
+                           order_date
+                    FROM orders_v2 WHERE id = ?
+                """, (order_id,))
+                row2 = cur2.fetchone()
+                conn2.close()
 
-                # Add a "Real-time" node if it's the latest
-                events.insert(0, {
-                    "time": datetime.now().strftime('%Y-%m-%d %H:%M'),
-                    "status": "in_transit",
-                    "desc": "菜鸟裹裹:实时轨迹同步成功,包裹处理中",
-                    "location": "目的地分拨中心"
-                })
+                events = []
+                if row2:
+                    shipping_status = row2['shipping_status'] or ''
+                    tracking_status = row2['tracking_status'] or ''
+                    logistic_type = row2['logistic_type'] or ''
+                    receiver_city = row2['receiver_city'] or ''
+                    receiver_state = row2['receiver_state'] or ''
+                    logistic_company = row2['logistic_company'] or ''
+                    order_date = row2['order_date'] or ''
+                    ref_time = order_date if order_date else datetime.now().strftime('%Y-%m-%d %H:%M')
 
-                risk = None
-                if "清关" in events[1]['desc']:
-                    risk = {"level": "warning", "message": "目的地海关政策性抽检,预计延误 24 小时"}
+                    if shipping_status or tracking_status:
+                        status_map = {
+                            'shipped': ('shipped', '已发货'),
+                            'delivered': ('delivered', '已送达'),
+                            'in_transit': ('in_transit', '运输中'),
+                            'at_customs': ('at_customs', '清关中'),
+                            'cancelled': ('cancelled', '已取消'),
+                            'returned': ('returned', '退回中'),
+                        }
+                        s_key, s_desc = status_map.get(shipping_status, ('unknown', shipping_status))
+                        location = f"{receiver_city}, {receiver_state}" if receiver_city else logistic_company or '未知'
+                        events.append({
+                            "time": ref_time,
+                            "status": s_key,
+                            "desc": f"[{site_id}] {s_desc} - {logistic_type or '标准物流'}",
+                            "location": location
+                        })
+                        if tracking_status == 'in_transit':
+                            events.append({
+                                "time": ref_time,
+                                "status": "in_transit",
+                                "desc": "包裹处理中",
+                                "location": location
+                            })
+                else:
+                    events.append({
+                        "time": datetime.now().strftime('%Y-%m-%d %H:%M'),
+                        "status": "pending",
+                        "desc": "暂无物流轨迹，请等待 ML 推送",
+                        "location": ""
+                    })
 
-                self.send_json({"id": order_id, "lp": lp_number, "events": events, "risk": risk})
+                self.send_json({"id": order_id, "lp": lp_number, "events": events, "risk": None})
             except Exception as e:
                 self.send_error(500, str(e))
             return
