@@ -2546,10 +2546,29 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"error": str(e)}, status=500)
 
+        elif path == "/api/admin/upsert_order":
+            # 写入或更新单个ML订单
+            try:
+                payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])).decode())
+                o = payload
+                conn = sqlite3.connect(DB_PATH); cur = conn.cursor()
+                cur.execute("""
+                    INSERT OR REPLACE INTO orders_v2 (id, user_id, site_id, order_date, status, amount, platform_fee, tax, net_profit, product_name, quantity, seller_sku)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (o['id'], o.get('user_id'), o.get('site_id','MLB'), o.get('order_date',''),
+                      o.get('status',''), float(o.get('amount',0)), float(o.get('platform_fee',0)),
+                      float(o.get('tax',0)), float(o.get('net_profit',0)),
+                      o.get('product_name',''), int(o.get('quantity',1)), o.get('seller_sku','')))
+                conn.commit(); conn.close()
+                self.send_json({'ok': True})
+            except Exception as e:
+                self.send_json({'error': str(e)}, status=500)
+
         elif path == "/api/admin/insert_ml_orders":
             # 批量写入ML订单（从 marketplace/orders/search 拉取）
             try:
-                token = load_tokens().get('access_token') if load_tokens() else None
+                token_obj = load_tokens()
+                token = token_obj.get('access_token') if token_obj else None
                 if not token:
                     self.send_json({'error': 'no token'}, status=401); return
 
