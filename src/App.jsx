@@ -195,8 +195,8 @@ const App = () => {
     if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
 
     return (
-        <div className="h-screen w-full bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
-            {/* Mobile Header */}
+        <div className="h-screen w-full bg-white flex flex-col overflow-hidden text-slate-900 font-sans selection:bg-blue-100">
+            {/* Mobile Header (Hidden on Desktop) */}
             <div className="lg:hidden h-[64px] bg-[#0F172A] border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-50">
                 <button onClick={() => setMobileNavOpen(true)} className="text-white/60 hover:text-white p-2 transition-colors">
                     <Icon name="menu" className="w-6 h-6" />
@@ -213,130 +213,132 @@ const App = () => {
                 </button>
             </div>
 
-            {/* Column 1: Functional Navigation */}
-            <div className={`
-                fixed inset-y-0 left-0 z-[60] lg:static lg:z-0
-                w-[280px] lg:w-[170px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full shrink-0 
-                transition-transform duration-300 ease-in-out lg:translate-x-0
-                ${mobileNavOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
-            `}>
-                <div className="absolute left-0 top-0 w-[4px] h-full bg-emerald-500 shadow-[2px_0_12px_rgba(16,185,129,0.3)]"></div>
-                <div className="h-[64px] flex items-center justify-between px-6 border-b border-white/5 bg-white/[0.02] shrink-0">
-                    <span className="text-[11px] whitespace-nowrap font-black text-white tracking-[0.2em] uppercase">功能导航</span>
-                    <button onClick={() => setMobileNavOpen(false)} className="lg:hidden text-white/40 hover:text-white">
-                        <Icon name="x" className="w-5 h-5" />
-                    </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-7 pt-6 no-scrollbar">
-                    {[
-                        { id: 'home', label: '首页', icon: 'home', color: 'text-slate-600', active: 'bg-slate-500', shadow: 'shadow-slate-500/20' },
-                        { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-blue-400', active: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
-                        { id: 'ops', label: '运营中心', icon: 'zap', color: 'text-emerald-500', active: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
-                        { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-purple-400', active: 'bg-purple-500', shadow: 'shadow-purple-500/20' }
-                    ].map(group => (
-                        <div key={group.id} className="space-y-3">
-                            {/* Group Header */}
-                            <div 
-                                onClick={() => {
-                                    setTopTab(group.id);
-                                    const firstItem = menuConfig[group.id][0];
-                                    if (firstItem) {
-                                        setSidebarItem(firstItem.id);
-                                        window.location.hash = `#/${firstItem.id}`;
-                                        setMobileNavOpen(false);
-                                    }
-                                }}
-                                className={`px-3 py-2 flex items-center gap-2 transition-all cursor-pointer ${topTab === group.id ? `${group.active} text-white shadow-lg rounded-xl` : 'border-l-2 border-transparent opacity-60 hover:opacity-100'}`}
-                            >
-                                <Icon name={group.icon} className={`w-5 h-5 ${topTab === group.id ? 'text-white' : group.color}`} />
-                                <span className={`text-[16px] font-black tracking-tight ${topTab === group.id ? 'text-white' : group.color}`}>{group.label}</span>
+            <div className="flex-1 flex flex-row overflow-hidden relative">
+                {/* Column 1: Functional Navigation */}
+                <div className={`
+                    fixed inset-y-0 left-0 z-[60] lg:static lg:z-0
+                    w-[280px] lg:w-[170px] bg-[#0F172A] border-r border-white/5 flex flex-col h-full shrink-0 
+                    transition-transform duration-300 ease-in-out lg:translate-x-0
+                    ${mobileNavOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
+                `}>
+                    <div className="absolute left-0 top-0 w-[4px] h-full bg-emerald-500 shadow-[2px_0_12px_rgba(16,185,129,0.3)]"></div>
+                    <div className="h-[64px] flex items-center justify-between px-6 border-b border-white/5 bg-white/[0.02] shrink-0">
+                        <span className="text-[11px] whitespace-nowrap font-black text-white tracking-[0.2em] uppercase">功能导航</span>
+                        <button onClick={() => setMobileNavOpen(false)} className="lg:hidden text-white/40 hover:text-white">
+                            <Icon name="x" className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-7 pt-6 no-scrollbar">
+                        {[
+                            { id: 'home', label: '首页', icon: 'home', color: 'text-slate-600', active: 'bg-slate-500', shadow: 'shadow-slate-500/20' },
+                            { id: 'data', label: '数据中心', icon: 'pie-chart', color: 'text-blue-400', active: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
+                            { id: 'ops', label: '运营中心', icon: 'zap', color: 'text-emerald-500', active: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
+                            { id: 'optimize', label: '优化中心', icon: 'wand-2', color: 'text-purple-400', active: 'bg-purple-500', shadow: 'shadow-purple-500/20' }
+                        ].map(group => (
+                            <div key={group.id} className="space-y-3">
+                                {/* Group Header */}
+                                <div 
+                                    onClick={() => {
+                                        setTopTab(group.id);
+                                        const firstItem = menuConfig[group.id][0];
+                                        if (firstItem) {
+                                            setSidebarItem(firstItem.id);
+                                            window.location.hash = `#/${firstItem.id}`;
+                                            setMobileNavOpen(false);
+                                        }
+                                    }}
+                                    className={`px-3 py-2 flex items-center gap-2 transition-all cursor-pointer ${topTab === group.id ? `${group.active} text-white shadow-lg rounded-xl` : 'border-l-2 border-transparent opacity-60 hover:opacity-100'}`}
+                                >
+                                    <Icon name={group.icon} className={`w-5 h-5 ${topTab === group.id ? 'text-white' : group.color}`} />
+                                    <span className={`text-[16px] font-black tracking-tight ${topTab === group.id ? 'text-white' : group.color}`}>{group.label}</span>
+                                </div>
+                                
+                                {/* Sub Items */}
+                                <div className="space-y-1.5 px-1">
+                                    {menuConfig[group.id].map(item => {
+                                        const isActive = sidebarItem === item.id;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => {
+                                                    setTopTab(group.id);
+                                                    setSidebarItem(item.id);
+                                                    window.location.hash = `#/${item.id}`;
+                                                    setMobileNavOpen(false);
+                                                }}
+                                                className={`w-full text-left pl-8 pr-1 py-1.5 rounded-sm text-[12px] font-bold transition-all ${isActive ? `bg-white/10 text-white border-l-2 ${group.color.replace('text-', 'border-')}` : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                                            >
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                            
-                            {/* Sub Items */}
-                            <div className="space-y-1.5 px-1">
-                                {menuConfig[group.id].map(item => {
-                                    const isActive = sidebarItem === item.id;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => {
-                                                setTopTab(group.id);
-                                                setSidebarItem(item.id);
-                                                window.location.hash = `#/${item.id}`;
-                                                setMobileNavOpen(false);
-                                            }}
-                                            className={`w-full text-left pl-8 pr-1 py-1.5 rounded-sm text-[12px] font-bold transition-all ${isActive ? `bg-white/10 text-white border-l-2 ${group.color.replace('text-', 'border-')}` : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                                        >
-                                            {item.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Backdrop for Mobile Nav */}
-            {mobileNavOpen && (
-                <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
-                    onClick={() => setMobileNavOpen(false)}
-                />
-            )}
-
-            {/* Column 2: Monitoring */}
-            <div className={`
-                fixed inset-y-0 right-0 z-[60] lg:static lg:z-0
-                w-[300px] lg:w-[220px] transition-transform duration-300 ease-in-out bg-[#0F172A]
-                ${mobileLogsOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}
-            `}>
-                <MonitoringSidebar mobile onClose={() => setMobileLogsOpen(false)} />
-            </div>
-
-            {/* Backdrop for Mobile Logs */}
-            {mobileLogsOpen && (
-                <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
-                    onClick={() => setMobileLogsOpen(false)}
-                />
-            )}
-
-            {/* Column 3: Main View */}
-            <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
-                <div className="hidden lg:flex h-[64px] border-b border-slate-200 items-center px-10 bg-white shrink-0">
-                    <div className="flex items-center gap-3 truncate">
-                        <div className={`w-2 h-2 rounded-full ${sidebarItem === 'logistics' ? 'bg-cyan-500' : 'bg-blue-500'} animate-pulse shrink-0`}></div>
-                        <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase truncate">
-                            指挥空间：{Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '监控中心'}
-                        </h2>
+                        ))}
                     </div>
                 </div>
-                <div className="flex-1 m-0 lg:m-4 bg-white border-0 lg:border lg:border-slate-200 overflow-hidden lg:shadow-sm relative">
-                    <ErrorBoundary key={sidebarItem}>
-                        <Suspense fallback={<div className="h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div></div>}>
-                            <div className="h-full overflow-hidden">
-                                {sidebarItem === 'news' && <NewsView />}
-                                {sidebarItem === 'reputation' && <ShopReputationView />}
-                                {sidebarItem === 'radar' && <MarketRadarView />}
-                                {sidebarItem === 'data-overview' && <DataOverviewView />}
-                                {sidebarItem === 'intro' && <BusinessIntroView />}
-                                {sidebarItem === 'activity' && <ActivityCenterView />}
-                                {sidebarItem === 'infringement' && <ProductPerformanceView />}
-                                {sidebarItem === 'logistics' && <LogisticsAlertsView />}
-                                {sidebarItem === 'auth' && <AuthPrepareView />}
-                                {sidebarItem === 'collect' && <ProductCollectView />}
-                                {sidebarItem === 'maintain' && <ProductMaintainView />}
-                                {sidebarItem === 'service' && <AfterSalesView />}
-                                {sidebarItem === 'title' && <OptimizeTitleView />}
-                                {sidebarItem === 'image' && <ImageLabView />}
-                                {sidebarItem === 'keyword' && <KeywordIntelView />}
-                                {sidebarItem === 'price-check' && <SmartPriceCheckView />}
-                            </div>
-                            {toast && <Toast {...toast} onClose={() => showToast(null)} />}
-                        </Suspense>
-                    </ErrorBoundary>
+
+                {/* Backdrop for Mobile Nav */}
+                {mobileNavOpen && (
+                    <div 
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
+                        onClick={() => setMobileNavOpen(false)}
+                    />
+                )}
+
+                {/* Column 3: Main View */}
+                <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
+                    <div className="hidden lg:flex h-[64px] border-b border-slate-200 items-center px-10 bg-white shrink-0">
+                        <div className="flex items-center gap-3 truncate">
+                            <div className={`w-2 h-2 rounded-full ${sidebarItem === 'logistics' ? 'bg-cyan-500' : 'bg-blue-500'} animate-pulse shrink-0`}></div>
+                            <h2 className="text-[13px] font-black text-slate-900 tracking-tight uppercase truncate">
+                                指挥空间：{Object.values(menuConfig).flat().find(i => i.id === sidebarItem)?.label || '监控中心'}
+                            </h2>
+                        </div>
+                    </div>
+                    <div className="flex-1 m-0 lg:m-4 bg-white border-0 lg:border lg:border-slate-200 overflow-hidden lg:shadow-sm relative">
+                        <ErrorBoundary key={sidebarItem}>
+                            <Suspense fallback={<div className="h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div></div>}>
+                                <div className="h-full overflow-hidden">
+                                    {sidebarItem === 'news' && <NewsView />}
+                                    {sidebarItem === 'reputation' && <ShopReputationView />}
+                                    {sidebarItem === 'radar' && <MarketRadarView />}
+                                    {sidebarItem === 'data-overview' && <DataOverviewView />}
+                                    {sidebarItem === 'intro' && <BusinessIntroView />}
+                                    {sidebarItem === 'activity' && <ActivityCenterView />}
+                                    {sidebarItem === 'infringement' && <ProductPerformanceView />}
+                                    {sidebarItem === 'logistics' && <LogisticsAlertsView />}
+                                    {sidebarItem === 'auth' && <AuthPrepareView />}
+                                    {sidebarItem === 'collect' && <ProductCollectView />}
+                                    {sidebarItem === 'maintain' && <ProductMaintainView />}
+                                    {sidebarItem === 'service' && <AfterSalesView />}
+                                    {sidebarItem === 'title' && <OptimizeTitleView />}
+                                    {sidebarItem === 'image' && <ImageLabView />}
+                                    {sidebarItem === 'keyword' && <KeywordIntelView />}
+                                    {sidebarItem === 'price-check' && <SmartPriceCheckView />}
+                                </div>
+                                {toast && <Toast {...toast} onClose={() => showToast(null)} />}
+                            </Suspense>
+                        </ErrorBoundary>
+                    </div>
                 </div>
+
+                {/* Column 2: Monitoring */}
+                <div className={`
+                    fixed inset-y-0 right-0 z-[60] lg:static lg:z-0
+                    w-[300px] lg:w-[220px] transition-transform duration-300 ease-in-out bg-[#0F172A]
+                    ${mobileLogsOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full lg:translate-x-0'}
+                `}>
+                    <MonitoringSidebar mobile={mobileLogsOpen} onClose={() => setMobileLogsOpen(false)} />
+                </div>
+
+                {/* Backdrop for Mobile Logs */}
+                {mobileLogsOpen && (
+                    <div 
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden animate-in fade-in duration-300"
+                        onClick={() => setMobileLogsOpen(false)}
+                    />
+                )}
             </div>
         </div>
     );
