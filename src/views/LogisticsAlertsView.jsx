@@ -611,15 +611,5 @@ const LogisticsAlertsView = () => {
 };
 
 export default LogisticsAlertsView;
-;
-
-
-
-  );
-};
-
-export default LogisticsAlertsView;
-;
-
 
 
