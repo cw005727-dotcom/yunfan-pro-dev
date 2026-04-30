@@ -58,28 +58,55 @@ def process_notification(notif):
             
         data = resp.json()
         
-        # 2. Logic based on Topic
-        if topic == "marketplace claims":
-            claim_type = data.get('type', 'Unknown')
-            claim_status = data.get('status', 'Unknown')
-            log_to_monitoring('error', f"实时警报：检测到新纠纷 ({claim_type})", store_id=user_id, details=data)
-            
-            # 💡 实时刷新声誉指标
-            logger.info("Triggering immediate reputation refresh due to claim...")
-            pull_reputation()
-            
-        elif topic == "marketplace questions":
-            q_text = data.get('text', '')[:50]
-            log_to_monitoring('info', f"实时提醒：收到新咨询 - \"{q_text}...\"", store_id=user_id, details=data)
-            
-        elif topic == "marketplace orders":
+        # 2. Logic based on Topic (ML 实际发来的 topic 名称)
+        if topic == "orders_v2":
             order_id = data.get('id')
             total = data.get('total_amount')
-            log_to_monitoring('info', f"订单速递：新订单 {order_id} (金额: {total})", store_id=user_id, details=data)
-            
-        elif topic == "marketplace messages":
-            log_to_monitoring('info', f"新消息：买家发送了新消息", store_id=user_id, details=data)
-            
+            status = data.get('status')
+            # 判断是否为取消/退款
+            if status in ('cancelled', 'refunded', 'voided'):
+                log_to_monitoring('warning', f"🚫 订单取消/退款：{order_id} (状态: {status})", store_id=user_id, details=data)
+            else:
+                log_to_monitoring('info', f"📦 新订单：{order_id} (金额: {total})", store_id=user_id, details=data)
+
+        elif topic == "shipments":
+            shipment_id = data.get('id')
+            status = data.get('status')
+            logistic_type = data.get('logistic_type', '')
+            # 发货/到货提示
+            if status in ('shipped', 'delivered', 'delivering'):
+                log_to_monitoring('info', f"🚚 物流更新：shipment {shipment_id} (状态: {status})", store_id=user_id, details=data)
+            else:
+                log_to_monitoring('info', f"📦 物流变动：shipment {shipment_id} (状态: {status})", store_id=user_id, details=data)
+
+        elif topic == "questions":
+            question_id = data.get('id')
+            question_text = data.get('text', '')[:50]
+            log_to_monitoring('info', f"💬 新咨询：\"{question_text}...\" (ID: {question_id})", store_id=user_id, details=data)
+
+        elif topic in ("marketplace claims", "claims"):
+            claim_type = data.get('type', 'Unknown')
+            claim_status = data.get('status', 'Unknown')
+            log_to_monitoring('error', f"⚠️ 实时警报：检测到新纠纷 ({claim_type}, 状态: {claim_status})", store_id=user_id, details=data)
+            # 触发声誉刷新
+            logger.info("Triggering immediate reputation refresh due to claim...")
+            try:
+                pull_reputation()
+            except Exception as e:
+                logger.error(f"pull_reputation error: {e}")
+
+        elif topic in ("marketplace questions",):
+            q_text = data.get('text', '')[:50]
+            log_to_monitoring('info', f"💬 实时提醒：收到新咨询 - \"{q_text}...\"", store_id=user_id, details=data)
+
+        elif topic in ("marketplace orders",):
+            order_id = data.get('id')
+            total = data.get('total_amount')
+            log_to_monitoring('info', f"📦 订单速递：新订单 {order_id} (金额: {total})", store_id=user_id, details=data)
+
+        elif topic in ("marketplace messages",):
+            log_to_monitoring('info', f"💬 新消息：买家发送了新消息", store_id=user_id, details=data)
+
         else:
             logger.info(f"Topic {topic} received, no specific action mapped yet.")
 

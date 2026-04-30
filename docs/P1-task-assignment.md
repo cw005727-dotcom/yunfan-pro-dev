@@ -13,8 +13,8 @@
 ## P1 完整任务清单（2天）
 
 ### 架构AI（Hermes）— Day 1~2
-- [ ] P1-① 新订单创建 → monitoring_logs 打通
-- [ ] P1-④ 取消/退款 → monitoring_logs 写入
+- [x] ~~P1-① 新订单创建 → monitoring_logs 打通~~ ✅ 完成
+- [x] ~~P1-④ 取消/退款 → monitoring_logs 写入~~ ✅ 完成
 - [ ] P2-1~4 多租户后端（users/invite_codes/store_auths表 + auth API）
 - [ ] P2-9~12 官网/公众号同步 + 数据看板
 - [ ] Deploy1~5 国内服务器部署

@@ -3,6 +3,7 @@ Webhook 相关路由
 POST /api/ml/webhook/relay - ML webhook 接收转发
 """
 import logging
+import json
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Request, HTTPException
@@ -14,10 +15,23 @@ router = APIRouter(prefix="/api/ml/webhook", tags=["Webhook"])
 logger = logging.getLogger(__name__)
 
 
+def log_to_monitoring(level: str, message: str, store_id=None, site_id=None, details: dict = None):
+    """写入 monitoring_logs，供前端 monitoring stream 轮询显示"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO monitoring_logs (level, message, store_id, site_id, details) VALUES (?, ?, ?, ?, ?)",
+            (level, message, store_id, site_id, json.dumps(details) if details else None)
+        )
+        conn.commit()
+
+
 class WebhookRelayPayload(BaseModel):
     id: Optional[int] = None
     user_id: Optional[str] = None
     site_id: Optional[str] = None
+    topic: Optional[str] = "orders_v2"  # ML 发来的 topic，如 orders_v2/shipments/questions
+    resource: Optional[str] = None      # ML API 路径，如 /orders/{id}
     order_date: Optional[str] = None
     product_name: Optional[str] = None
     quantity: Optional[int] = None
@@ -108,6 +122,29 @@ async def relay(payload: WebhookRelayPayload):
                 order_data.get('estimated_delivery_date'),
             ))
             conn.commit()
+
+            # 写入 ml_notifications 队列，供 notification_processor 处理
+            cursor.execute(
+                "INSERT INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+                (
+                    str(order_id),
+                    order_data.get('resource', f"/orders/{order_id}"),
+                    order_data.get('user_id'),
+                    order_data.get('topic', 'orders_v2'),
+                    order_data.get('application_id'),
+                )
+            )
+            conn.commit()
+
+        # 同时写入 monitoring_logs，供前端 monitoring stream 实时显示
+        order_id_str = str(order_id)
+        log_to_monitoring(
+            'info',
+            f"📦 新订单：{order_id_str} (金额: {order_data.get('amount', 'N/A')})",
+            store_id=order_data.get('user_id'),
+            site_id=order_data.get('site_id'),
+            details={"order_id": order_id_str, "status": order_data.get('status'), "shipping_status": order_data.get('shipping_status')}
+        )
 
         logger.info(f"[Webhook Relay] order {order_id} saved (updated={exists})")
         return {"ok": True, "id": order_id, "updated": exists}
