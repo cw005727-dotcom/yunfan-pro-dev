@@ -171,7 +171,7 @@ def background_notification_worker():
 # MercadoLibre OAuth Config
 ML_APP_ID = "8105299077213607"
 ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
-ML_REDIRECT_URI = "http://localhost:8506/api/meli-auth"
+ML_REDIRECT_URI = "https://chensan.vip/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
 # Token 自动刷新
