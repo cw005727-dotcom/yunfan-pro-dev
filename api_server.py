@@ -1894,15 +1894,20 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
         query = parse_qs(parsed_path.query)
-        
+
         # 记录请求日志
         logger.info(f"POST {self.path} from {self.address_string()}")
 
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        payload = json.loads(post_data)
+        # 先读取 body（部分接口不需要 body，容错处理）
+        try:
+            content_length = int(self.headers.get('Content-Length') or 0)
+            post_data = self.rfile.read(content_length) if content_length > 0 else b''
+            payload = json.loads(post_data) if post_data else {}
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.warning(f"Invalid POST body: {e}")
+            payload = {}
 
-        # 鉴权检查 (排除授权生成链接和 Webhook，因为 Webhook 是由美客多服务器调用的)
+        # 鉴权检查 (排除授权生成链接和 Webhook)
         if not self.check_auth() and path not in ["/api/generate_auth_url", "/api/ml/notifications"]:
             logger.warning(f"Unauthorized POST access to {path}")
             self.send_response(401)
@@ -1911,11 +1916,6 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Unauthorized"}).encode())
             return
-
-        # self.send_response(200) # Removed global 200
-        # self.send_header('Access-Control-Allow-Origin', '*')
-        # self.send_header('Content-Type', 'application/json')
-        # self.end_headers()
 
         if path == "/api/ml/notifications":
             try:
