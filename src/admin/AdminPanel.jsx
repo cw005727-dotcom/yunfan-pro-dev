@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import AdminSidebar from './components/AdminSidebar';
 import StatsCards from './components/StatsCards';
 import InvitationTable from './components/InvitationTable';
+import CMSPanel from './components/CMSPanel';
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -49,6 +50,8 @@ const AdminPanel = () => {
             <p className="text-slate-600">功能开发中，敬请期待</p>
           </div>
         );
+      case 'cms':
+        return <CMSPanel />;
       case 'settings':
         return (
           <div className="glass-effect rounded-2xl p-12 text-center">

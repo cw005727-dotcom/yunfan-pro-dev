@@ -3,6 +3,7 @@ import React from 'react';
 const AdminSidebar = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'overview', label: '数据概览', icon: '📊' },
+    { id: 'cms', label: '内容管理', icon: '📝' },
     { id: 'invitations', label: '邀请码管理', icon: '🔑' },
     { id: 'users', label: '用户管理', icon: '👥' },
     { id: 'settings', label: '系统设置', icon: '⚙️' },
