@@ -2621,11 +2621,15 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 if secret != expected:
                     self.send_json({"error": "unauthorized"}, status=401)
                     return
-                # 执行 git pull + pm2 restart
+                # 异步执行 git pull + pm2 restart（不阻塞）
                 import subprocess
-                r1 = subprocess.run(["git", "pull"], cwd="/home/admin/yunfan-pro-dev", capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
-                r2 = subprocess.run(["pm2", "restart", "yunfan-api"], capture_output=True, text=True, timeout=15)
-                self.send_json({"ok": True, "git": r1.stdout + r1.stderr, "pm2": r2.stdout + r2.stderr})
+                subprocess.Popen(
+                    ["git", "pull"],
+                    cwd="/home/admin/yunfan-pro-dev",
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    stdin=subprocess.DEVNULL
+                )
+                self.send_json({"ok": True, "msg": "部署已触发，请稍后刷新页面"})
             except Exception as e:
                 self.send_json({"error": str(e)}, status=500)
             return
