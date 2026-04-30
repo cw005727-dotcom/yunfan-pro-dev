@@ -20,7 +20,7 @@ def log_to_monitoring(level: str, message: str, store_id=None, site_id=None, det
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO monitoring_logs (level, message, store_id, site_id, details) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO monitoring_logs (timestamp, level, message, store_id, site_id, details) VALUES (datetime('now', 'localtime'), ?, ?, ?, ?, ?)",
             (level, message, store_id, site_id, json.dumps(details) if details else None)
         )
         conn.commit()
