@@ -27,7 +27,7 @@ def log_to_monitoring(level: str, message: str, store_id=None, site_id=None, det
 
 
 class WebhookRelayPayload(BaseModel):
-    id: Optional[int] = None
+    id: Optional[str] = None
     user_id: Optional[str] = None
     site_id: Optional[str] = None
     topic: Optional[str] = "orders_v2"  # ML 发来的 topic，如 orders_v2/shipments/questions

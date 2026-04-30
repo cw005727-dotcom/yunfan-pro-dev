@@ -27,6 +27,10 @@ MINIMAX_API_KEY = "sk-cp-b3SjCUfROLbWo2kMeEu-pjfofmcG8S-NuB-QQn0kk7neiQwS4kg5a2-
 MINIMAX_API_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2"
 MINIMAX_MODEL = "MiniMax-M2.7-highspeed"
 
+# MiniMax 画图 API（用于 AI 商品图生成）
+MINIMAX_IMAGE_API_KEY = MINIMAX_API_KEY  # 同用一个 key
+MINIMAX_IMAGE_URL = "https://api.minimax.chat/v1/image_generation"
+
 # ML API 配置
 ML_API_BASE = "https://api.mercadolibre.com"
 ML_APP_ID = os.environ.get("ML_APP_ID", "8105299077213607")

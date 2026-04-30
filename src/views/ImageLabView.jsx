@@ -116,23 +116,33 @@ const ImageLabView = () => {
     const isAnyGenerating = cards.some(c => c.status === 'generating');
 
     return (
-        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div>
-                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight whitespace-nowrap">视觉图生图</h3>
-                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1 whitespace-nowrap">Visual Product Intelligence</p>
+        <div className="h-full overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-8 zoom-in-95 duration-700">
+            {/* Header with Visual Status */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-200 pb-10">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center shadow-2xl shadow-slate-900/20">
+                            <Icon name="image" className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase">视觉图生图</h3>
+                    </div>
+                    <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.2em]">High-Fidelity Visual Product Intelligence</p>
                 </div>
-                <div className="flex items-center gap-2 mt-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                    <span className="text-[11px] text-slate-500 font-medium">MiniMax 图生图 3:4</span>
+
+                <div className="flex items-center gap-4">
+                    <div className="text-right">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">引擎状态</p>
+                        <p className="text-[14px] font-black text-emerald-600 uppercase">MiniMax AI 已连接</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-emerald-500 shadow-sm animate-pulse">
+                        <Icon name="zap" className="w-6 h-6" />
+                    </div>
                 </div>
             </div>
 
-            {/* Reference Image Upload */}
+            {/* Reference Image Upload (V1.1 Elite Style) */}
             <div
-                className="solid-card rounded-2xl border-2 border-dashed border-slate-200 p-5 text-center hover:border-slate-300 transition-all cursor-pointer group"
+                className="bg-white rounded-[40px] border-4 border-dashed border-slate-100 p-10 text-center hover:border-blue-500/20 transition-all cursor-pointer group relative overflow-hidden"
                 onClick={() => document.getElementById('ref-image-input').click()}
             >
                 <input
@@ -151,134 +161,118 @@ const ImageLabView = () => {
                     }}
                 />
                 {referenceImage ? (
-                    <div className="flex items-center gap-4">
-                        <img src={referenceImage.base64} alt="参考图" className="w-16 h-16 rounded-2xl object-cover border border-slate-100" />
+                    <div className="flex items-center gap-6 max-w-2xl mx-auto">
+                        <div className="relative">
+                            <img src={referenceImage.base64} alt="参考图" className="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-2xl" />
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                                <Icon name="check" className="w-3 h-3 text-white" />
+                            </div>
+                        </div>
                         <div className="flex-1 text-left">
-                            <p className="text-[12px] font-black text-slate-700">{referenceImage.name}</p>
-                            <p className="text-[11px] text-emerald-500 font-medium mt-0.5">✅ 参考图已就绪，将用于生成</p>
+                            <h5 className="text-[16px] font-black text-slate-900 uppercase tracking-tight">{referenceImage.name}</h5>
+                            <p className="text-[11px] text-emerald-600 font-black uppercase mt-1 tracking-widest">✅ 风格特征已提取 · 将应用于全量生成</p>
                         </div>
                         <button
                             onClick={e => { e.stopPropagation(); setReferenceImage(null); }}
-                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-50 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
+                            className="w-12 h-12 rounded-2xl bg-slate-50 hover:bg-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all border border-slate-100"
                         >
-                            <Icon name="x" className="w-4 h-4" />
+                            <Icon name="trash-2" className="w-5 h-5" />
                         </button>
                     </div>
                 ) : (
-                    <>
-                        <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-slate-100 transition-colors">
-                            <Icon name="upload-cloud" className="w-7 h-7 text-slate-500 group-hover:text-slate-500" />
+                    <div className="space-y-6">
+                        <div className="w-20 h-20 rounded-[32px] bg-slate-50 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-sm">
+                            <Icon name="upload-cloud" className="w-10 h-10 text-slate-300" />
                         </div>
-                        <p className="text-[12px] font-black text-slate-500">上传商品原图作为风格参考</p>
-                        <p className="text-[11px] text-slate-500 font-medium mt-1">点击选择 · JPG/PNG · 仅本地处理，不上传</p>
-                    </>
+                        <div className="space-y-2">
+                            <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter">上传商品原图</h4>
+                            <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]">作为生成时的构图与风格参考 (JPG/PNG)</p>
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* Cards */}
-            <div className="space-y-2.5">
-                <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest px-1">生成结果 · 5张图</p>
+            {/* Cards Matrix */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 {IMAGE_TYPES.map((type, idx) => {
                     const card = cards.find(c => c.key === type.key) || { prompt: '', url: '', status: 'idle', error: '' };
                     const isDone = card.status === 'done';
                     const isGen = card.status === 'generating';
 
                     return (
-                        <div key={type.key} className="solid-card rounded-2xl p-4 border border-slate-100 flex items-start gap-4">
-
-                            {/* Left: index + label */}
-                            <div className={`w-12 h-12 rounded-2xl ${type.color} ${type.textColor} flex flex-col items-center justify-center shrink-0`}>
-                                <span className="text-[11px] font-black opacity-70">0{idx + 1}</span>
-                                <span className="text-[11px] font-black leading-tight text-center">{type.label}</span>
+                        <div key={type.key} className="bg-white rounded-[40px] border border-slate-100 p-6 flex flex-col gap-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
+                            {/* Card Header */}
+                            <div className="flex items-center justify-between">
+                                <div className={`px-3 py-1 rounded-xl ${type.color} ${type.textColor} text-[10px] font-black uppercase tracking-widest`}>
+                                    {type.label}
+                                </div>
+                                <span className="text-[12px] font-black text-slate-200 group-hover:text-slate-900 transition-colors italic">0{idx + 1}</span>
                             </div>
 
-                            {/* Center */}
-                            <div className="flex-1 min-w-0 space-y-3">
-                                {/* Prompt textarea */}
+                            {/* Preview Area */}
+                            <div className="aspect-[3/4] rounded-[32px] overflow-hidden bg-slate-50 border border-slate-50 relative flex items-center justify-center">
+                                {card.url ? (
+                                    <>
+                                        <img src={card.url} alt={type.label} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                            <button
+                                                onClick={() => downloadOne(card.url, type.label)}
+                                                className="w-12 h-12 rounded-2xl bg-white text-slate-900 flex items-center justify-center hover:scale-110 transition-transform shadow-2xl"
+                                            >
+                                                <Icon name="download" className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : isGen ? (
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AI 计算中...</span>
+                                    </div>
+                                ) : (
+                                    <Icon name="image" className="w-12 h-12 text-slate-200" />
+                                )}
+                            </div>
+
+                            {/* Prompt Input */}
+                            <div className="space-y-4">
                                 <textarea
                                     value={card.prompt}
                                     onChange={e => updateCard(type.key, 'prompt', e.target.value)}
-                                    placeholder={`输入 ${type.label} 指令...`}
-                                    rows={2}
-                                    maxLength={300}
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-[11px] font-medium text-slate-600 placeholder:text-slate-500 focus:outline-none focus:border-slate-300 resize-none leading-relaxed"
+                                    placeholder="输入 AI 绘图指令..."
+                                    rows={3}
+                                    className="w-full bg-slate-50 border border-transparent rounded-2xl px-4 py-3 text-[11px] font-bold text-slate-600 focus:outline-none focus:bg-white focus:border-blue-500/20 transition-all resize-none leading-relaxed"
                                 />
-
-                                {/* Preview */}
-                                <div className="rounded-xl overflow-hidden bg-slate-50 h-36 flex items-center justify-center relative">
-                                    {card.url ? (
-                                        <>
-                                            <img src={card.url} alt={type.label} className="w-full h-full object-contain" />
-                                            <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
-                                                <button
-                                                    onClick={() => downloadOne(card.url, type.label)}
-                                                    className="bg-white/90 backdrop-blur text-slate-700 rounded-xl px-3 py-1.5 text-[11px] font-black flex items-center gap-1.5"
-                                                >
-                                                    <Icon name="download" className="w-3.5 h-3.5" />
-                                                    下载
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : isGen ? (
-                                        <div className="h-full flex items-center justify-center gap-3">
-                                            <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-slate-500 animate-spin"></div>
-                                            <span className="text-[11px] text-slate-500 font-medium">生成中 ({referenceImage ? '含参考图' : '无参考'})...</span>
-                                        </div>
-                                    ) : card.error ? (
-                                        <div className="px-4 text-center">
-                                            <p className="text-[11px] text-red-400 font-medium">❌ {card.error}</p>
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center gap-1.5">
-                                            <Icon name="image" className="w-7 h-7 text-slate-500" />
-                                            <span className="text-[11px] text-slate-500 font-medium">{type.desc}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Right: generate button */}
-                            <div className="shrink-0 flex flex-col items-end gap-2">
                                 <button
                                     onClick={() => generateOne(type.key, card.prompt, referenceImage?.base64 || '')}
                                     disabled={isGen || !card.prompt.trim()}
-                                    className="bg-slate-800 hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 font-black text-[11px] flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
+                                    className="w-full py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 disabled:opacity-20 transition-all shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2"
                                 >
                                     <Icon name={isGen ? 'loader' : 'sparkles'} className={`w-3.5 h-3.5 ${isGen ? 'animate-spin' : ''}`} />
-                                    {isGen ? '生成中' : '生成'}
+                                    {isGen ? '正在生成' : '立即生成'}
                                 </button>
-                                {isDone && (
-                                    <button
-                                        onClick={() => downloadOne(card.url, type.label)}
-                                        className="text-[11px] text-slate-500 hover:text-slate-600 font-medium flex items-center gap-1 transition-colors"
-                                    >
-                                        <Icon name="download" className="w-3.5 h-3.5" />
-                                        下载
-                                    </button>
-                                )}
                             </div>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3">
+            {/* Bottom Global Actions */}
+            <div className="flex flex-col md:flex-row items-center gap-6 pt-6">
                 <button
                     onClick={generateAll}
                     disabled={globalGenerating || isAnyGenerating}
-                    className="flex-1 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl py-4 font-black text-[12px] flex items-center justify-center gap-2 transition-all active:scale-95"
+                    className="w-full md:flex-1 py-6 bg-blue-600 text-white rounded-[32px] font-black text-[14px] uppercase tracking-[0.3em] hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/30 active:scale-95 flex items-center justify-center gap-3"
                 >
-                    <Icon name={globalGenerating ? 'loader' : 'sparkles'} className={`w-4 h-4 ${globalGenerating ? 'animate-spin' : ''}`} />
-                    {globalGenerating ? '生成中...' : '全部生成（5张）'}
+                    <Icon name={globalGenerating ? 'loader' : 'zap'} className={`w-5 h-5 ${globalGenerating ? 'animate-spin' : ''}`} />
+                    {globalGenerating ? '全矩阵生成中...' : '启动全链路图生图矩阵'}
                 </button>
                 {isAllDone && (
                     <button
                         onClick={downloadAll}
-                        className="bg-white border border-slate-200 hover:border-slate-300 text-slate-600 rounded-2xl px-6 py-4 font-black text-[12px] flex items-center gap-2 transition-all active:scale-95"
+                        className="w-full md:w-auto px-10 py-6 bg-white text-slate-900 border border-slate-200 rounded-[32px] font-black text-[14px] uppercase tracking-widest hover:border-slate-400 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"
                     >
-                        <Icon name="download" className="w-4 h-4" />
-                        下载全部
+                        <Icon name="download" className="w-5 h-5" />
+                        批量导出
                     </button>
                 )}
             </div>
