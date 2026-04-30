@@ -2624,7 +2624,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 # 异步执行 git pull + pm2 restart（不阻塞）
                 import subprocess
                 subprocess.Popen(
-                    ["git", "pull"],
+                    ["sh", "-c", "git pull && pm2 restart yunfan-api"],
                     cwd="/home/admin/yunfan-pro-dev",
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     stdin=subprocess.DEVNULL
