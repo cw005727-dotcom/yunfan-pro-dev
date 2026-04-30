@@ -27,7 +27,7 @@
 | 任务等级 | 失时效 | 任务 | 状态 |
 |---|---|---|---|
 | P1 | 2天 | P1-1 ai.py 5个端点（analyze/keywords/generate_images/translate/chat_assistant） | ✅ Accio V1.1 完成（已commit） |
-| P1 | 2天 | P1-2 customer_service.py 2个端点（list/suggest） | 待开始 |
+| P1 | 2天 | P1-2 customer_service.py 2个端点（list/suggest） | ✅ OpenCLAW 完成并推送 |
 | P2 | 2天 | P2-9~12 官网/公众号同步 + 数据看板 | 待开始 |
 
 ### 功能AI（Accio）— Day 1~2
