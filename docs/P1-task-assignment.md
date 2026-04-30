@@ -34,11 +34,10 @@
 
 | 任务等级 | 失时效 | 任务 | 状态 |
 |---|---|---|---|
-| P1 | 2天 | P1-3 填满8个空壳页面（ActivityCenter/AfterSales/BusinessIntro/ImageLab/LogisticsAlerts/Login/OptimizingTitle/ProductCollect） | 待开始 |
-| P1 | 2天 | P1-4 DataOverviewView 修复（useStatsOverview 未接入） | 待开始 |
-| P1 | 2天 | P1-5 NewsView 接入 CMS 文章数据 | 待开始 |
-| P2 | 2天 | P2-5~6 LoginView 注册登录 + Admin 用户管理后台 | 待开始 |
-| P2 | 2天 | P2-7~8 文章管理前台 + 活动管理 | 待开始 |
+| P1 | 2天 | P1-3 填满8个空壳页面（ActivityCenter/AfterSales/BusinessIntro/ImageLab/LogisticsAlerts/Login/OptimizingTitle/ProductCollect） | ✅ Accio V1.1 完成 |
+| P1 | 2天 | P1-4 DataOverviewView 修复（useStatsOverview 未接入） | ✅ Accio V1.1 完成 |
+| P1 | 2天 | P1-5 NewsView 接入 CMS 文章数据 | ✅ Accio V1.1 完成 |
+| P2 | 2天 | P2-5~6 LoginView 注册登录 + Admin 用户管理后台 | ✅ Accio V1.1 完成 |
 
 ---
 
