@@ -333,7 +333,7 @@ async def competitor_prices(
             cursor = conn.cursor()
             if keyword and site:
                 cursor.execute("""
-                    SELECT name, price, price_usd, weight_g, sales, exposure,
+                    SELECT name, price, sales, exposure,
                            health_score, site_id, image_url
                     FROM product_metrics
                     WHERE (name LIKE ? OR title LIKE ?) AND site_id = ?
@@ -342,7 +342,7 @@ async def competitor_prices(
                 """, (f"%{keyword}%", f"%{keyword}%", site))
             elif keyword:
                 cursor.execute("""
-                    SELECT name, price, price_usd, weight_g, sales, exposure,
+                    SELECT name, price, sales, exposure,
                            health_score, site_id, image_url
                     FROM product_metrics
                     WHERE name LIKE ? OR title LIKE ?
@@ -351,7 +351,7 @@ async def competitor_prices(
                 """, (f"%{keyword}%", f"%{keyword}%"))
             elif site:
                 cursor.execute("""
-                    SELECT name, price, price_usd, weight_g, sales, exposure,
+                    SELECT name, price, sales, exposure,
                            health_score, site_id, image_url
                     FROM product_metrics
                     WHERE site_id = ?
@@ -360,7 +360,7 @@ async def competitor_prices(
                 """, (site,))
             else:
                 cursor.execute("""
-                    SELECT name, price, price_usd, weight_g, sales, exposure,
+                    SELECT name, price, sales, exposure,
                            health_score, site_id, image_url
                     FROM product_metrics
                     ORDER BY exposure DESC

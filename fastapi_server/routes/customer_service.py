@@ -78,7 +78,7 @@ async def chat_assistant(body: ChatAssistantRequest):
 # ---- 以下为 TODO，待后续实现 ----
 
 @router.get("/customer_service/list")
-async def customer_service_list(db=Depends(get_db_connection)):
+async def customer_service_list():
     """客服消息列表"""
     # TODO: 实现
     return []

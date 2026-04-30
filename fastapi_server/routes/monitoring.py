@@ -17,14 +17,14 @@ async def health():
 
 
 @router.get("/monitoring_logs")
-async def monitoring_logs(db=Depends(get_db_connection)):
+async def monitoring_logs():
     """监控日志"""
     # TODO: 实现
     return []
 
 
 @router.get("/monitoring/stream")
-async def monitoring_stream(db=Depends(get_db_connection)):
+async def monitoring_stream():
     """监控流"""
     # TODO: 实现
     return {}

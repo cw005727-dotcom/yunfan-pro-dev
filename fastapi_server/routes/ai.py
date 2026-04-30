@@ -78,7 +78,7 @@ async def ai_analyze(body: AIAnalyzeRequest):
 
 @router.get("/ai/keywords")
 @router.get("/keyword_intelligence")
-async def ai_keywords(db=Depends(get_db_connection)):
+async def ai_keywords():
     """AI 关键词"""
     # TODO: 实现
     return {}
