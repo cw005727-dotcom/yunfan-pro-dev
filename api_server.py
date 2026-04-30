@@ -2546,6 +2546,71 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"error": str(e)}, status=500)
 
+        elif path == "/api/admin/insert_ml_orders":
+            # 批量写入ML订单（从 marketplace/orders/search 拉取）
+            try:
+                token = load_tokens().get('access_token') if load_tokens() else None
+                if not token:
+                    self.send_json({'error': 'no token'}, status=401); return
+
+                # 拉取所有卖家的订单
+                search_resp = requests.get(
+                    'https://api.mercadolibre.com/marketplace/orders/search',
+                    headers={'Authorization': f'Bearer {token}'},
+                    params={'seller_id': 3164139599, 'limit': 30, 'sort': 'date_desc'}, timeout=15)
+                results = search_resp.json().get('results', [])
+
+                conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cur = conn.cursor()
+                inserted = 0
+
+                for r in results:
+                    nested = r.get('orders', [{}])[0]
+                    order_id = str(nested.get('id', ''))
+                    seller_id = nested.get('seller', {}).get('id')
+                    if not order_id or not seller_id:
+                        continue
+
+                    cur.execute('SELECT id FROM orders_v2 WHERE id = ?', (order_id,))
+                    if cur.fetchone():
+                        continue
+
+                    # 获取完整详情
+                    resp = requests.get(
+                        f'https://api.mercadolibre.com/marketplace/orders/{order_id}',
+                        headers={'Authorization': f'Bearer {token}'}, timeout=10)
+                    if resp.status_code != 200:
+                        continue
+
+                    d = resp.json()
+                    paid = float(d.get('paid_amount', 0) or 0)
+                    tv = d.get('taxes', {})
+                    tax = float(tv.get('amount', 0) if isinstance(tv, dict) else (tv or 0))
+                    items = d.get('order_items', [])
+                    fee = sum(float(i.get('sale_fee', 0)) for i in items)
+                    prod = items[0].get('item', {}).get('title', '') if items else ''
+                    qty = int(items[0].get('quantity', 1)) if items else 1
+                    sku = items[0].get('item', {}).get('seller_sku', '') if items else ''
+                    dt = d.get('date_created', '')[:19].replace('T', ' ')
+                    st = d.get('status', '')
+                    net = round(paid - fee - tax, 2)
+
+                    # 判断站点
+                    order_str = str(order_id)
+                    site_id = 'MLB'
+                    if order_str.startswith('20'):
+                        site_id = 'MLB'
+
+                    cur.execute("""
+                        INSERT INTO orders_v2 (id, user_id, site_id, order_date, status, amount, platform_fee, tax, net_profit, product_name, quantity, seller_sku)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (order_id, seller_id, site_id, dt, st, paid, fee, tax, net, prod, qty, sku))
+                    inserted += 1
+
+                conn.commit(); conn.close()
+                self.send_json({'inserted': inserted, 'total': len(results)})
+            except Exception as e:
+                self.send_json({'error': str(e)}, status=500)
+
         elif path == "/api/cms/articles":
             # Placeholder for news articles
             self.send_json([])
