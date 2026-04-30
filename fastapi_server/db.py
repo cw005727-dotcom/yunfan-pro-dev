@@ -5,7 +5,6 @@ FastAPI 数据库连接封装
 import sqlite3
 from contextlib import contextmanager
 from functools import lru_cache
-from fastapi import Depends
 
 from .config import DB_PATH
 
