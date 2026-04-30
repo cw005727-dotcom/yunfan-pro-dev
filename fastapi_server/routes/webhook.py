@@ -143,7 +143,7 @@ async def relay(payload: WebhookRelayPayload):
             f"📦 新订单：{order_id_str} (金额: {order_data.get('amount', 'N/A')})",
             store_id=order_data.get('user_id'),
             site_id=order_data.get('site_id'),
-            details={"order_id": order_id_str, "status": order_data.get('status'), "shipping_status": order_data.get('shipping_status'), "amount": order_data.get('amount', 0)}
+            details={"order_id": order_id_str, "status": order_data.get('status'), "shipping_status": order_data.get('shipping_status'), "amount": order_data.get('amount')}
         )
 
         logger.info(f"[Webhook Relay] order {order_id} saved (updated={exists})")
