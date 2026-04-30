@@ -36,7 +36,7 @@ async def market_radar():
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM product_metrics WHERE is_core = 1 ORDER BY created_at DESC LIMIT 50"
+            "SELECT * FROM product_metrics WHERE is_core = 1 ORDER BY last_updated DESC LIMIT 50"
         )
         rows = cursor.fetchall()
         return [dict(r) for r in rows]

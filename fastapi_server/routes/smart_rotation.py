@@ -60,8 +60,7 @@ async def smart_rotation_list():
                 new_violations, new_claims, new_delayed, new_cancel,
                 alert_date, claims_period_days,
                 total_violations, total_complaints, total_messages,
-                total_cancellations, new_messages,
-                has_token
+                total_cancellations, new_messages
             FROM stores
             ORDER BY user_id, site_id
         """)
@@ -73,7 +72,7 @@ async def smart_rotation_list():
         result.append({
             "user_id": row["user_id"],
             "site_id": row["site_id"],
-            "name": row["name"],
+            "name": row.get("nickname") or row.get("store_name") or "未命名店铺",
             "group_label": row.get("group_label") or "",
             "reputation_level": row.get("reputation_level") or "",
             # 表原生字段（带 % 字符串）
@@ -93,7 +92,7 @@ async def smart_rotation_list():
             "total_violations": row.get("total_violations") or 0,
             "total_claims": row.get("total_complaints") or 0,
             "total_messages": row.get("total_messages") or 0,
-            "has_token": row.get("has_token", False),
+            "has_token": bool(row.get("access_token")),
         })
 
     return {"stores": result, "total": len(result)}
