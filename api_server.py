@@ -610,7 +610,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "type": "order",
                         "label": "新订单",
                         "desc": f"{site} 订单 {row['id']} 成交 ${row['amount']}",
-                        "time": row['order_date'][11:16] if row['order_date'] else "",
+                        "time": row['order_date'][:16] if row['order_date'] else "",
+                        "order_date": row['order_date'] if row['order_date'] else "",
                         "urgent": False
                     })
 
