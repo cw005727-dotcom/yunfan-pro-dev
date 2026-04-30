@@ -169,8 +169,8 @@ def background_notification_worker():
             time.sleep(30)
 
 # MercadoLibre OAuth Config
-ML_APP_ID = "5218246022330174"
-ML_CLIENT_SECRET = "Y3T6kn0hmnxBzEfZiliW1bxMekuAJE7c"
+ML_APP_ID = "8105299077213607"
+ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
 ML_REDIRECT_URI = "http://localhost:8506/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
