@@ -16,21 +16,33 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "utils"))
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Body
+from fastapi.responses import HTMLResponse
 from scripts.utils.token_manager import load_tokens, save_tokens
 
 # ML OAuth 配置（与 api_server.py 保持一致）
 ML_APP_ID = "8105299077213607"
 ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
-ML_REDIRECT_URI = "http://localhost:8506/api/meli-auth"
+ML_REDIRECT_URI = "https://chensan.vip/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
 router = APIRouter(prefix="/api", tags=["店铺认证"])
 
 
+@router.get("/meli-auth")
+async def meli_auth_get(code: str = Query(None)):
+    """Mercado Libre OAuth 认证回调（GET，浏览器跳转）"""
+    return await _do_auth(code)
+
+
 @router.post("/meli-auth")
-async def meli_auth(code: str = Query(None)):
-    """Mercado Libre OAuth 认证回调"""
+async def meli_auth_post(code: str = Body(None)):
+    """Mercado Libre OAuth 回调（POST，兼容旧方式）"""
+    return await _do_auth(code)
+
+
+async def _do_auth(code: str):
+    """统一授权处理"""
     if not code:
         raise HTTPException(status_code=400, detail="No code provided")
 
@@ -47,7 +59,7 @@ async def meli_auth(code: str = Query(None)):
 
         if 'access_token' in data:
             save_tokens(data)
-            return {"status": "success", "user_id": data.get('user_id')}
+            return HTMLResponse(content='<html><body><h2>授权成功 ✅</h2><p>可以关闭此窗口。</p></body></html>')
         else:
             return {"status": "error", "detail": str(data)}
     except Exception as e:
