@@ -20,8 +20,8 @@ ML_APP_ID = "8105299077213607"
 ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
-# 提前刷新：token 剩余有效期 < 30 分钟时主动刷新
-REFRESH_THRESHOLD_SECONDS = 1800
+# 提前刷新：access_token 剩余 < 24 小时时主动刷新
+REFRESH_THRESHOLD_SECONDS = 86400
 
 
 def get_key():
@@ -114,14 +114,14 @@ def load_tokens():
 
 
 def is_token_expired(tokens, threshold=REFRESH_THRESHOLD_SECONDS):
-    """检查 token 是否即将过期（距过期 < threshold 秒）"""
+    """检查 access_token 是否即将过期（距过期 < threshold 秒）"""
     if not tokens:
         return True
     created_at = tokens.get("created_at", 0)
     expires_in = tokens.get("expires_in", 21600)
     expires_at = created_at + expires_in
     remaining = expires_at - time.time()
-    print(f"[token_manager] Token remaining: {remaining:.0f}s ({remaining/3600:.1f}h)")
+    print(f"[token_manager] access_token 剩余: {remaining:.0f}s ({remaining/3600:.1f}h)")
     return remaining < threshold
 
 
