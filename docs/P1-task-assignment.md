@@ -30,8 +30,11 @@
 | P1 | 2天 | P1-2 customer_service.py 2个端点（list/suggest） | ✅ OpenCLAW 完成并推送 |
 | P1 | 2天 | P1-① 新订单创建 → monitoring_logs 打通 | ✅ 完成并验证（远程 FastAPI 已上线） |
 | P1 | 2天 | P1-④ 取消/退款 → monitoring_logs 写入 | ✅ 完成 |
-| P2 | 2天 | P2-9~12 官网/公众号同步 + 数据看板 | 待开始 |
-
+| P1 | 2天 | P2-9~12 官网/公众号同步 + 数据看板 | 待开始 |
+| P1 | 2天 | ProductMaintainView 数据接口 | 待开始（数据AI） |
+| P1 | 2天 | ProductCollectView 后端爬虫 | 待开始（数据AI） |
+| P1 | 2天 | LoginView 接 auth.py | 待开始（功能AI） |
+| P1 | 2天 | ActivityCenterView CMS接入 | 待开始（功能AI） |
 ### 功能AI（Accio）— Day 1~2
 
 | 任务等级 | 失时效 | 任务 | 状态 |
