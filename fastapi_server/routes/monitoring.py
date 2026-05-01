@@ -5,8 +5,11 @@ GET /api/monitoring_logs   - 历史日志
 GET /api/monitoring/stream - 实时事件流（供前端监控面板轮询）
 """
 from fastapi import APIRouter
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from ..db import get_db_connection
+
+# 北京时间（UTC+8）转巴西时间（UTC-3），差11小时
+# "今天"以北京时区为标准，BRT = 北京时间 - 11小时
 
 router = APIRouter(prefix="/api", tags=["监控"])
 
@@ -41,17 +44,20 @@ async def monitoring_stream():
             'MLA': '阿根廷', 'MLC': '智利', 'MLU': '乌拉圭', 'CBT': '跨境'
         }
 
+        # 以北京时区为基准，取"今天"的 BRT 日期（北京时间 - 11小时 = BRT）
+        beijing_now = datetime.now()  # 北京时间
+        brt_now = beijing_now - timedelta(hours=11)  # 巴西时间
+        today_brt = brt_now.strftime('%Y-%m-%d')  # BRT "今天"日期，用于过滤
+        now_brt_str = brt_now.strftime('%Y-%m-%dT%H:%M:%S')  # BRT 当前时间字符串，用于比较发货截止
         events = []
-        today = datetime.now().strftime('%Y-%m-%d')
 
-        # 1. 超期发货预警（来自 orders_v2）
-        now_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        # 1. 超期发货预警（last_ship_date 存在 BRT，需要用 BRT 当前时间比较）
         cursor.execute("""
             SELECT o.id, o.last_ship_date, o.site_id
             FROM orders_v2 o
             WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ?
             LIMIT 5
-        """, (now_str,))
+        """, (now_brt_str,))
         for row in cursor.fetchall():
             site = SITE_MAP.get(row['site_id'], row['site_id'])
             events.append({
@@ -63,12 +69,12 @@ async def monitoring_stream():
                 "urgent": True
             })
 
-        # 2. 当日新增违规记录
+        # 2. 当日新增违规记录（created_at 存北京时间，直接用北京日期过滤）
         cursor.execute("""
             SELECT * FROM product_infringements
             WHERE date(created_at) = ?
             ORDER BY created_at DESC LIMIT 5
-        """, (today,))
+        """, (beijing_now.strftime('%Y-%m-%d'),))
         for row in cursor.fetchall():
             reason = row['reason'] or ""
             if "trademark" in reason.lower(): reason_zh = "商标侵权"
@@ -84,13 +90,13 @@ async def monitoring_stream():
                 "urgent": row['severity'] == 'high'
             })
 
-        # 3. 当日新订单（来自 monitoring_logs 的新订单事件）
+        # 3. 当日新订单（monitoring_logs timestamp 是北京时间，用北京日期过滤）
         cursor.execute("""
             SELECT message, timestamp, details, site_id
             FROM monitoring_logs
             WHERE date(timestamp) = ? AND details LIKE '%order%'
             ORDER BY timestamp DESC LIMIT 10
-        """, (today,))
+        """, (beijing_now.strftime('%Y-%m-%d'),))
         for row in cursor.fetchall():
             details_str = row['details'] or ''
             try:
@@ -112,12 +118,12 @@ async def monitoring_stream():
                 "urgent": False
             })
 
-        # 4. 当日未读咨询
+        # 4. 当日未读咨询（updated_at 是北京时间，用北京日期过滤）
         cursor.execute("""
             SELECT m.*, m.status FROM customer_messages m
             WHERE m.status = 'unread' AND date(m.updated_at) = ?
             ORDER BY m.updated_at DESC LIMIT 5
-        """, (today,))
+        """, (beijing_now.strftime('%Y-%m-%d'),))
         for row in cursor.fetchall():
             msg_preview = (row['last_message'] or "")[:30]
             events.append({
