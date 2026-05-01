@@ -4,7 +4,7 @@ import os
 import json
 import time
 from datetime import datetime
-from token_manager import load_tokens
+from token_manager import get_valid_token
 
 DB_PATH = "/Users/chensan/yunfan-pro-dev/mercadolibre.db"
 
@@ -62,12 +62,8 @@ def sync_all():
     print(f"Starting full platform sync at {datetime.now()}")
     clean_old_logs() # Start by cleaning "fake" data
     
-    tokens = load_tokens()
-    if not tokens: 
-        print("No tokens found")
-        return
-    
-    headers = {'Authorization': f'Bearer {tokens["access_token"]}'}
+    access_token = get_valid_token()
+    headers = {'Authorization': f'Bearer {access_token}'}
     user_id = tokens.get('user_id') or '3164139599'
     
     # 1. Sync Reputation
