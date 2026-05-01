@@ -1,5 +1,21 @@
 
+## v4.30.1 (2026-05-01 11:50)
+### OAuth + Token Auto-Refresh
+- **Auth URL fixed**: changed from `http://localhost:8506` to `https://chensan.vip/api/meli-auth`
+- **stores.py GET route**: added `@router.get("/meli-auth")` to fix browser OAuth callback 405
+- **get_valid_token()**: auto-refresh wrapper, renews token 30min before expiry via refresh_token
+- **All sync scripts**: migrated to `get_valid_token()` instead of `load_tokens()["access_token"]`
+- **DATA_WRITE_RULES.md**: written to project manual, covers OAuth spec + Token refresh + stores schema
+
+### ML API Restored
+- **API fully working**: `/marketplace/orders/search` returns 153 orders, `/marketplace/orders/{id}` works
+- **Historical orders**: can be bulk-pulled via API (Feature AI working on it)
+- **Webhook**: relay confirmed working, ML pushes new orders to DB in real-time
+
+---
+
 ## v4.29.0033 (2026-04-29 00:33)
+
 ### 市场雷达视图重构 (Market Radar Overhaul)
 - **Viewport-First 布局**：实现单屏视口锁定，禁用全局滚动，内部区域独立滚动，提升监控效率。
 - **5-Site 实时矩阵**：重构 MX, BR, CL, CO, AR 五大站点热力卡片，采用站点专属配色，实时展示 Top 3 类目热度。
