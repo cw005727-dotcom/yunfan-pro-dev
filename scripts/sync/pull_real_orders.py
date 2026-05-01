@@ -3,7 +3,21 @@ import json
 import sqlite3
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+BJ_TZ = timezone(timedelta(hours=8))
+UTC_NEG_4 = timezone(timedelta(hours=-4))
+
+def to_beijing(dt_str):
+    """UTC-4 ISO string → 北京时间 naive string"""
+    if not dt_str or dt_str == 'N/A':
+        return dt_str
+    try:
+        dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+        dt = dt.replace(tzinfo=UTC_NEG_4)
+        return dt.astimezone(BJ_TZ).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return dt_str
 from token_manager import load_tokens
 
 # 生产环境配置
@@ -59,7 +73,7 @@ def pull_real_data():
                         order = requests.get(detail_url, headers=headers).json()
                         
                         order_id = str(order['id'])
-                        date_created = order.get('date_created', 'N/A')
+                        date_created = to_beijing(order.get('date_created', 'N/A'))
                         status = order.get('status', 'N/A')
                         
                         # 提取真实金额
