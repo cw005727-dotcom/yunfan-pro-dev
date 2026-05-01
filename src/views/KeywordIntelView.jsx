@@ -52,19 +52,21 @@ const KeywordIntelView = (props) => {
                                 <Icon name="loader" className="w-8 h-8 animate-spin text-slate-200" />
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">同步热度数据中...</span>
                             </div>
-                        ) : (trending || [
-                            { word: 'Audífonos Inalámbricos', growth: '+240%', rank: 1 },
-                            { word: 'Smartwatch Serie 9', growth: '+180%', rank: 2 },
-                            { word: 'Tenis Hombre', growth: '+156%', rank: 3 },
-                            { word: 'Cargador Tipo C', growth: '+120%', rank: 4 }
-                        ]).map((item, i) => (
+                        ) : (trending || []).map((item, i) => (
                             <div key={i} className="flex items-center justify-between p-5 rounded-3xl bg-slate-50 border border-transparent hover:border-emerald-500/20 hover:bg-white transition-all cursor-pointer group/item">
                                 <div className="flex items-center gap-4">
                                     <span className="w-6 text-[11px] font-black text-slate-300 group-hover/item:text-emerald-500 transition-colors">#{i+1}</span>
-                                    <span className="text-slate-900 font-black text-[15px] tracking-tight">{item.word}</span>
+                                    <div>
+                                        <span className="text-slate-900 font-black text-[15px] tracking-tight">{item.word}</span>
+                                        {item.source && (
+                                            <span className="ml-2 px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 text-[8px] font-black uppercase tracking-tighter">
+                                                {item.source === 'ML_OFFICIAL' ? 'ML官方数据' : '本地数据'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-emerald-600 font-black font-mono text-[13px]">{item.growth}</span>
+                                    <span className="text-emerald-600 font-black font-mono text-[13px]">{item.growth || '--'}</span>
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                 </div>
                             </div>
@@ -90,24 +92,22 @@ const KeywordIntelView = (props) => {
                                 <Icon name="loader" className="w-8 h-8 animate-spin text-slate-200" />
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">嗅探市场缺口中...</span>
                             </div>
-                        ) : (gaps || [
-                            { word: 'Organizador de Escritorio', competition: '低', volume: '12k', score: 92 },
-                            { word: 'Funda Silicona Pro', competition: '极低', volume: '8.5k', score: 88 },
-                            { word: 'Kit de Limpieza Teclado', competition: '中低', volume: '15k', score: 85 },
-                            { word: 'Luz LED Monitor', competition: '低', volume: '10k', score: 82 }
-                        ]).map((item, i) => (
+                        ) : (gaps || []).map((item, i) => (
                             <div key={i} className="flex items-center justify-between p-5 rounded-3xl bg-slate-50 border border-transparent hover:border-amber-500/20 hover:bg-white transition-all cursor-pointer group/item">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
                                         <Icon name="search" className="w-4 h-4 text-slate-400" />
                                     </div>
                                     <div>
-                                        <p className="text-slate-900 font-black text-[15px] tracking-tight">{item.word}</p>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase mt-0.5 tracking-wider">搜索量: {item.volume} · 竞争: {item.competition}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-slate-900 font-black text-[15px] tracking-tight">{item.word}</p>
+                                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 text-[8px] font-black uppercase tracking-tighter">云帆算法</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase mt-0.5 tracking-wider">搜索量: {item.volume || '嗅探中'} · 竞争: {item.competition || '计算中'}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="px-3 py-1 rounded-xl bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest">推荐商机 {item.score}</span>
+                                    <span className="px-3 py-1 rounded-xl bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest">推荐商机</span>
                                 </div>
                             </div>
                         ))}

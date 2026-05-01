@@ -56,7 +56,10 @@ const ProductMaintainView = () => {
                 ].map((s, i) => (
                     <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-between h-[120px] group hover:border-blue-500/20 transition-all">
                         <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</span>
+                                <span className="text-[7px] px-1 bg-slate-50 text-slate-300 rounded font-black uppercase tracking-tighter">[ML官方]</span>
+                            </div>
                             <Icon name={s.icon} className={`w-4 h-4 text-${s.color}-500 opacity-20 group-hover:opacity-100 transition-opacity`} />
                         </div>
                         <div className="flex items-baseline gap-1.5">
@@ -120,9 +123,12 @@ const ProductMaintainView = () => {
                                     <td className="px-8 py-6">
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center px-1">
-                                                <span className={`text-[9px] font-black uppercase ${p.health_score > 80 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                    Score: {p.health_score}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[9px] font-black uppercase ${p.health_score > 80 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                        Score: {p.health_score}
+                                                    </span>
+                                                    <span className="text-[7px] px-1 bg-slate-100 text-slate-400 rounded font-black uppercase tracking-tighter">[云帆算法]</span>
+                                                </div>
                                             </div>
                                             <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                 <div className={`h-full rounded-full transition-all duration-1000 ${p.health_score > 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-amber-500'}`} 

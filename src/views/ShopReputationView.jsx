@@ -333,6 +333,7 @@ const ShopReputationView = () => {
                                                 <div className="flex flex-col items-center">
                                                     <div className="flex items-center gap-1">
                                                         <span className="text-[11px] font-black text-indigo-500/80 uppercase tracking-tight">官方信用</span>
+                                                        <span className="text-[7px] px-1 bg-indigo-50 text-indigo-400 rounded font-black uppercase tracking-tighter">[ML官方]</span>
                                                         {siteData.status === 'red' && siteData.claims_history === 'Healthy' && (
                                                             <span className="text-[11px] whitespace-nowrap bg-amber-100 text-amber-600 px-0.5 rounded-sm font-black animate-pulse">Lag</span>
                                                         )}

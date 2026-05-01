@@ -2,6 +2,7 @@
 Webhook 相关路由
 POST /api/ml/webhook/relay - ML webhook 接收转发
 """
+from datetime import datetime, timezone, timedelta
 import logging
 import json
 from typing import Optional, Dict, Any
@@ -11,17 +12,21 @@ from pydantic import BaseModel
 
 from ..db import get_db_connection
 
+# 北京时间（UTC+8）
+BJ_TZ = timezone(timedelta(hours=8))
+
 router = APIRouter(prefix="/api/ml/webhook", tags=["Webhook"])
 logger = logging.getLogger(__name__)
 
 
 def log_to_monitoring(level: str, message: str, store_id=None, site_id=None, details: dict = None):
-    """写入 monitoring_logs，供前端 monitoring stream 轮询显示"""
+    """写入 monitoring_logs，供前端 monitoring stream 轮询显示（北京时区）"""
+    beijing_now = datetime.now(BJ_TZ).strftime('%Y-%m-%d %H:%M:%S')
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO monitoring_logs (timestamp, level, message, store_id, site_id, details) VALUES (datetime('now', 'localtime'), ?, ?, ?, ?, ?)",
-            (level, message, store_id, site_id, json.dumps(details) if details else None)
+            "INSERT INTO monitoring_logs (timestamp, level, message, store_id, site_id, details) VALUES (?, ?, ?, ?, ?, ?)",
+            (beijing_now, level, message, store_id, site_id, json.dumps(details) if details else None)
         )
         conn.commit()
 

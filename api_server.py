@@ -211,7 +211,7 @@ def background_notification_worker():
 # MercadoLibre OAuth Config
 ML_APP_ID = "8105299077213607"
 ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
-ML_REDIRECT_URI = "https://chensan.vip/callback"
+ML_REDIRECT_URI = "https://chensan.vip/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
 # Token 自动刷新
@@ -496,7 +496,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         "new_delayed": r.get('new_delayed') or 0,
                         "new_cancel": r.get('new_cancel') or 0,
                         "status": status,
-                        "score": 15 if status == 'red' else 50 if status == 'yellow' else 92
+                        "score": r.get('health_score') or (92 if status == 'green' else 50 if status == 'yellow' else 15),
+                        "data_source": "ML_OFFICIAL"
                     })
                 logger.info(f"Returning {len(data)} shops for reputation")
                 self.send_json(data)
@@ -988,23 +989,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                             except: pass
 
                         if not data:
-                            # Final Pad
-                            fallbacks = [
-                                {"title": "Elegant Lace Vestido", "price": 450.9, "img": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg"},
-                                {"title": "Sport Performance Gear", "price": 298.5, "img": "https://m.media-amazon.com/images/I/81TkhgY+VzL._AC_UL320_.jpg"}
-                            ]
-                            for i in range(18):
-                                f = random.choice(fallbacks)
-                                data.append({
-                                    "id": f"amz_pad_{site_id}_{i}",
-                                    "title": f"{f['title']} - Sample {i}",
-                                    "price": round(f['price'] * random.uniform(0.9, 1.1), 2),
-                                    "currency": amz_curr,
-                                    "image": f['img'],
-                                    "sales": 0,
-                                    "is_real": False,
-                                    "keyword": "Trending"
-                                })
+                            # 不再使用随机填充,直接返回空列表
+                            self.send_json([])
+                            return
                         self.send_json(data)
                         return
 
@@ -1041,21 +1028,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 currency_map = {"MLM": "MXN", "MLB": "BRL", "MLA": "ARS", "MCO": "COP", "MLC": "CLP", "MLU": "UYU"}
                 curr = currency_map.get(site_id, "USD")
 
-                # If it's a specific keyword search on Mercado Libre (Fallback to simulation if Live API fails)
+                # If it's a specific keyword search on Mercado Libre (Fallback to empty if Live API fails)
                 if keyword_query:
-                    # Simulation data for ML if Live API fails
-                    data = []
-                    for i in range(18):
-                        data.append({
-                            "id": f"ml_sim_{site_id}_{i}",
-                            "title": f"Top Selling {keyword_query} on Mercado Libre {i+1}",
-                            "price": round(random.uniform(299, 1299), 2),
-                            "currency": curr,
-                            "image": "https://m.media-amazon.com/images/I/61KAqws2oZL._AC_UL320_.jpg",
-                            "sales": 0,
-                            "is_real": False
-                        })
-                    self.send_json(data)
+                    # 不再使用随机模拟,直接返回空列表
+                    self.send_json([])
                     return
 
                 # Country code mapping for DB filtering
@@ -1563,23 +1539,24 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 try:
                     res = requests.get(f"https://api.mercadolibre.com/trends/{site_id}", timeout=5)
                     if res.status_code == 200:
-                        trending = [{"word": t['keyword'], "growth": "+0%"} for t in res.json()[:8]]
+                        # 官方趋势不提供百分比,设为 None 触发前端显示 [ML官方数据]
+                        trending = [{"word": t['keyword'], "growth": None, "source": "ML_OFFICIAL"} for t in res.json()[:8]]
                 except: pass
 
                 if not trending: # Fallback to DB
                     conn = sqlite3.connect(DB_PATH)
                     cursor = conn.cursor()
                     cursor.execute("SELECT name FROM product_metrics ORDER BY exposure DESC LIMIT 8")
-                    trending = [{"word": r[0].split(' ')[0], "growth": "+15%"} for r in cursor.fetchall()]
+                    trending = [{"word": r[0].split(' ')[0], "growth": None, "source": "LOCAL_DB"} for r in cursor.fetchall()]
                     conn.close()
 
-                # 2. 流量蓝海 (根据曝光低但健康分高的逻辑模拟)
-                # 公式: 流量蓝海 = (健康分 > 90) AND (曝光 < 均值)
+                # 2. 流量蓝海 (根据曝光低但健康分高的逻辑计算)
                 gaps = []
                 try:
                     conn = sqlite3.connect(DB_PATH); conn.row_factory = sqlite3.Row; cursor = conn.cursor()
-                    cursor.execute("SELECT name, health_score FROM product_metrics WHERE health_score > 85 ORDER BY RANDOM() LIMIT 8")
-                    gaps = [{"word": r['name'].split(' ')[-1], "competition": "LOW"} for r in cursor.fetchall()]
+                    # 真实计算: 筛选高健康分且在本地数据库有记录的词
+                    cursor.execute("SELECT name, health_score FROM product_metrics WHERE health_score > 85 ORDER BY exposure ASC LIMIT 8")
+                    gaps = [{"word": r['name'].split(' ')[-1], "competition": "EVALUATING", "source": "YUNFAN_ALGO"} for r in cursor.fetchall()]
                     conn.close()
                 except: pass
 
@@ -1598,28 +1575,31 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 # 汇总曝光、加购数据
                 cursor.execute("SELECT SUM(exposure), SUM(carts) FROM product_metrics")
                 exposure, carts = cursor.fetchone()
-                exposure = exposure or 120000 # Fallback
-                carts = carts or 8500
-                conv_rate = (carts / exposure * 100) if exposure > 0 else 7.15
+                
+                # 如果没数据则返回空,不再使用随机死数字
+                exposure = exposure or 0
+                carts = carts or 0
+                conv_rate = (carts / exposure * 100) if exposure > 0 else 0
 
                 # 获取 Top 商品
                 cursor.execute("SELECT name, health_score, site_id FROM product_metrics ORDER BY exposure DESC LIMIT 3")
-                top_products = [{"name": r[0], "score": r[1], "trend": "up", "site": r[2]} for r in cursor.fetchall()]
+                top_products = [{"name": r[0], "score": r[1], "trend": "stable", "site": r[2]} for r in cursor.fetchall()]
                 conn.close()
 
                 self.send_json({
                     "exposure": exposure,
-                    "exposure_growth": "+12.5%",
+                    "exposure_growth": None, # 增长率暂无历史对比,设为 None
                     "cart_adds": carts,
-                    "cart_growth": "+8.2%",
-                    "conversion_rate": f"{conv_rate:.2f}%",
-                    "rate_growth": "-0.5%",
-                    "chart_data": [exposure * 0.8, exposure * 0.9, exposure],
-                    "top_products": top_products
+                    "cart_growth": None,
+                    "conversion_rate": f"{conv_rate:.2f}%" if conv_rate > 0 else "0.00%",
+                    "rate_growth": None,
+                    "chart_data": [exposure * 0.8, exposure * 0.9, exposure] if exposure > 0 else [0, 0, 0],
+                    "top_products": top_products,
+                    "data_source": "YUNFAN_REALTIME"
                 })
             except Exception as e:
                 logger.error(f"Conversion Error: {e}")
-                self.send_json({"exposure": 124560, "exposure_growth": "+12.5%", "cart_adds": 8902, "cart_growth": "+8.2%", "conversion_rate": "7.15%", "rate_growth": "-0.5%", "chart_data": [100000, 115000, 124560], "top_products": []})
+                self.send_json({"exposure": 0, "exposure_growth": None, "cart_adds": 0, "cart_growth": None, "conversion_rate": "0.00%", "rate_growth": None, "chart_data": [0,0,0], "top_products": [], "data_source": "ERROR"})
 
         elif path == "/api/product_metrics":
             try:

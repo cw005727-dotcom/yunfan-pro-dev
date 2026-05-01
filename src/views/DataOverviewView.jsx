@@ -59,12 +59,17 @@ function useCountUp(target, duration = 1000) {
 
 // ─── 仪表盘组件 ────────────────────────────────────────────────────────────
 
-const MetricCard = ({ label, value, trend, icon: IconComponent, color, prefix = "" }) => (
+const MetricCard = ({ label, value, trend, icon: IconComponent, color, prefix = "", source = "[ML官方数据]" }) => (
   <div className="glass-effect rounded-[24px] p-6 border border-white/20 shadow-lg relative overflow-hidden group">
     <div className={`absolute inset-0 bg-gradient-to-br from-${color}-50 to-transparent opacity-60 group-hover:opacity-80 transition-opacity`} />
     <div className="relative flex justify-between items-start">
       <div>
-        <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mb-1.5 whitespace-nowrap">{label}</p>
+        <div className="flex items-center gap-2 mb-1.5">
+          <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest whitespace-nowrap">{label}</p>
+          <span className="text-[8px] px-1.5 py-0.5 bg-slate-900/5 text-slate-400 font-black rounded uppercase tracking-tighter">
+            {source}
+          </span>
+        </div>
         <div className="flex items-baseline gap-1 overflow-hidden">
           <span className="text-2xl font-black tnum text-slate-900 truncate">{prefix}{value}</span>
         </div>
@@ -292,6 +297,7 @@ export default function DataOverviewView() {
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded bg-indigo-500" />
                   <span className="text-[11px] font-black text-slate-500 uppercase">GMV Flow</span>
+                  <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white text-[8px] font-black uppercase tracking-tighter ml-2">[云帆算法聚合]</span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-bold italic truncate">基于系统实时订单流聚合计算，同步频率：5.0Hz</p>
               </div>

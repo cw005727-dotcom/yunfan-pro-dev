@@ -90,31 +90,24 @@ async def monitoring_stream():
                 "urgent": row['severity'] == 'high'
             })
 
-        # 3. 当日新订单（monitoring_logs timestamp 是北京时间，用北京日期过滤）
+        # 3. 当日新订单（直接查 orders_v2，以北京时间日期过滤）
+        # orders_v2.order_date 存的是北京时间（+11小时 = BRT 订单时间）
+        today_bj = beijing_now.strftime('%Y-%m-%d')
         cursor.execute("""
-            SELECT message, timestamp, details, site_id
-            FROM monitoring_logs
-            WHERE date(timestamp) = ? AND details LIKE '%order%'
-            ORDER BY timestamp DESC LIMIT 10
-        """, (beijing_now.strftime('%Y-%m-%d'),))
+            SELECT id, order_date, site_id, amount, status
+            FROM orders_v2
+            WHERE date(order_date) = ?
+            ORDER BY order_date DESC LIMIT 10
+        """, (today_bj,))
         for row in cursor.fetchall():
-            details_str = row['details'] or ''
-            try:
-                import json
-                details = json.loads(details_str)
-                order_id = details.get('order_id', '')
-                amount = details.get('amount', 0)
-            except:
-                order_id = ''
-                amount = 0
             site = SITE_MAP.get(row['site_id'] or '', row['site_id'] or '')
             events.append({
-                "id": f"order_{row['timestamp']}",
+                "id": f"order_{row['id']}",
                 "type": "order",
                 "label": "新订单",
-                "desc": f"{site} 订单 {order_id} 成交 ${amount:.2f}",
-                "time": row['timestamp'][11:16] if row['timestamp'] else "",
-                "order_date": row['timestamp'] or "",
+                "desc": f"{site} 订单 {row['id']} 成交 ${row['amount']:.2f}",
+                "time": row['order_date'][11:16] if row['order_date'] else "",
+                "order_date": row['order_date'] or "",
                 "urgent": False
             })
 
