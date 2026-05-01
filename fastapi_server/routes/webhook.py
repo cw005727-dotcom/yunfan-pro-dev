@@ -94,10 +94,10 @@ async def relay(payload: WebhookRelayPayload):
                  shipping_substatus, tracking_id, logistic_type, seller_sku, thumbnail,
                  cancel_detail_group, mediations_count, paid_amount, cancel_code,
                  logistic_company, tracking_status, receiver_city, receiver_state,
-                 estimated_delivery_date)
+                 estimated_delivery_date, source)
                 VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'webhook')
+            """", (
                 order_data.get('id'),
                 order_data.get('user_id'),
                 order_data.get('site_id'),
@@ -148,7 +148,7 @@ async def relay(payload: WebhookRelayPayload):
             f"📦 新订单：{order_id_str} (金额: {order_data.get('amount', 'N/A')})",
             store_id=order_data.get('user_id'),
             site_id=order_data.get('site_id'),
-            details={"order_id": order_id_str, "status": order_data.get('status'), "shipping_status": order_data.get('shipping_status'), "amount": order_data.get('amount')}
+            details={"order_id": order_id_str, "source": "webhook", "status": order_data.get('status'), "amount": order_data.get('amount')}
         )
 
         logger.info(f"[Webhook Relay] order {order_id} saved (updated={exists})")
