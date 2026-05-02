@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 import socket
 DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else '/home/admin/yunfan-pro-dev'
 SERVER_DB = os.path.join(DATA_DIR, 'mercadolibre.db')
-LOG_FILE  = '/home/admin/yunfan-pro-dev/notification_processor.log'
+LOG_FILE  = os.path.join(DATA_DIR, 'notification_processor.log')
 
 logging.basicConfig(
     level=logging.INFO,

@@ -134,13 +134,16 @@ def handle_shipments(conn, data: dict):
     raw_lc = data.get('logistic_company') or data.get('tracking_method')
     # tracking_status: ML API substatus
     raw_ts = data.get('tracking_status') or data.get('substatus')
-    # receiver_city / receiver_state: ML API 嵌套 destination.shipping_address.city.name
-    addr = (data.get('destination') or {}).get('shipping_address') or data.get('shipping_address', {})
-    raw_city = (addr.get('city') or {}).get('name') if isinstance(addr.get('city'), dict) else addr.get('city')
-    raw_state = (addr.get('state') or {}).get('name') if isinstance(addr.get('state'), dict) else addr.get('state')
-    # estimated_delivery_date: ML API 嵌套 lead_time.estimated_delivery_time.date
+    # receiver_city / receiver_state: 支持 webhook 直发字段 或 ML API 嵌套格式
+    addr = (data.get('destination') or {}).get('shipping_address') or {}
+    ml_city = (addr.get('city') or {}).get('name') if isinstance(addr.get('city'), dict) else addr.get('city')
+    raw_city = data.get('receiver_city') or ml_city or ''
+    ml_state = (addr.get('state') or {}).get('name') if isinstance(addr.get('state'), dict) else addr.get('state')
+    raw_state = data.get('receiver_state') or ml_state or ''
+    # estimated_delivery_date: 支持 webhook 直发字段 或 ML API 嵌套格式
     lt = data.get('lead_time') or {}
-    raw_est = (lt.get('estimated_delivery_time') or {}).get('date') if isinstance(lt, dict) else data.get('estimated_delivery_date')
+    ml_est = (lt.get('estimated_delivery_time') or {}).get('date') if isinstance(lt, dict) else ''
+    raw_est = data.get('estimated_delivery_date') or ml_est or ''
 
     logger.info(f"[handle_shipments] oid={order_id} ss={raw} lc={raw_lc} city={raw_city} est={raw_est}")
 
@@ -329,6 +332,7 @@ async def relay(payload: WebhookRelayPayload):
                 monitor_details = {
                     "order_id": str(order_id),
                     "source": "webhook",
+                    "logistics": True,
                     "logistic_company": logistic_company,
                     "shipping_status": data.get('shipping_status'),
                     "receiver_city": rcv_city,
