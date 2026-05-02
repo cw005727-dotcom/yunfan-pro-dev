@@ -6,6 +6,7 @@ GET /api/monitoring/stream - 实时事件流（供前端监控面板轮询）
 """
 from fastapi import APIRouter
 from datetime import datetime, timezone, timedelta
+import json
 from ..db import get_db_connection
 
 # 北京时间（UTC+8）转巴西时间（UTC-3），差11小时
@@ -68,6 +69,33 @@ async def monitoring_stream():
                 "time": "紧急",
                 "urgent": True
             })
+
+        # 1b. 当日物流动态（来自 monitoring_logs 的 shipments webhook 记录）
+        cursor.execute("""
+            SELECT timestamp, message, details, site_id
+            FROM monitoring_logs
+            WHERE timestamp >= ? AND details LIKE '%logistics%'
+            ORDER BY timestamp DESC LIMIT 10
+        """, (f"{today_bj} 00:00:00",))
+        for row in cursor.fetchall():
+            details = row['details'] or {}
+            if isinstance(details, str):
+                try: details = json.loads(details)
+                except: details = {}
+            logistic_company = details.get('logistic_company', '')
+            receiver_city = details.get('receiver_city', '')
+            est_del = details.get('estimated_delivery_date', '')
+            if est_del:
+                est_del = est_del[:10]
+            events.append({
+                "id": f"ship_{row['timestamp']}",
+                "type": "logistics",
+                "label": "物流动态",
+                "desc": f"{SITE_MAP.get(row['site_id'], row['site_id'])} {row['message']}",
+                "time": row['timestamp'][11:16] if row['timestamp'] else "",
+                "urgent": False
+            })
+
 
         # 2. 当日新增违规记录（created_at 存北京时间，直接用北京日期过滤）
         cursor.execute("""
