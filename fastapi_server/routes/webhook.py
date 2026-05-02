@@ -221,7 +221,7 @@ def handle_claims(conn, data: dict):
     详细的 claim 信息通过 ml_notifications 触发后续处理。
     """
     resource = data.get('resource', '')
-    match = re.search(r'/claims[/_]?(\d+)', resource)
+    match = re.search(r'/claims/([^\s/]+)', resource)
     claim_id = match.group(1) if match else data.get('id', '')
     if not claim_id:
         return
@@ -298,7 +298,7 @@ async def relay(payload: WebhookRelayPayload):
                 handle_claims(conn, data)
                 site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
                 resource = data.get('resource', '')
-                match = re.search(r'/claims[/_]?(\d+)', resource)
+                match = re.search(r'/claims/([^\s/]+)', resource)
                 claim_id = match.group(1) if match else order_id or ''
                 reason = data.get('reason', {})
                 reason_text = reason.get('description', '') if isinstance(reason, dict) else ''
@@ -314,13 +314,13 @@ async def relay(payload: WebhookRelayPayload):
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
 
             # ml_notifications 队列
-            if topic in ('orders', 'orders_v2', 'shipments', 'marketplace_claims'):
+            if topic == 'marketplace_claims':
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+                    "INSERT OR IGNORE INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
                     (
-                        str(order_id or data.get('id', '')),
-                        data.get('resource', f"/{topic}/{order_id}"),
+                        str(claim_id),
+                        data.get('resource', f"/claims/{claim_id}"),
                         data.get('user_id'),
                         topic,
                         data.get('application_id'),
