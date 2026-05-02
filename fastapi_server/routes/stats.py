@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api", tags=["统计"])
 
 
 @router.get("/stats")
+@router.get("/stats/orders", include_in_schema=False)  # alias
 async def get_stats(
     shop: Optional[str] = Query(None, description="按店铺名称筛选"),
     group: Optional[str] = Query(None, description="按分组标签筛选"),
