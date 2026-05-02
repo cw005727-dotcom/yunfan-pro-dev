@@ -9,12 +9,15 @@ CBT 全球卖订单同步脚本 - 轻量版（防止 SIGKILL）
 import requests, sqlite3, json, base64, os, signal, sys
 from datetime import datetime, timezone, timedelta
 
+DATA_DIR = '/home/admin/data'
 PROJECT_ROOT = '/home/admin/yunfan-pro-dev'
 # 确保 logs 目录存在（cron 重定向不会失败）
 os.makedirs(os.path.join(PROJECT_ROOT, 'logs'), exist_ok=True)
-TOKEN_FILE = os.path.join(PROJECT_ROOT, 'ml_tokens.enc')
-KEY_FILE = os.path.join(PROJECT_ROOT, '.ml_token_key')
-DB = os.path.join(PROJECT_ROOT, 'mercadolibre.db')
+TOKEN_FILE = os.path.join(DATA_DIR, 'ml_tokens.enc')
+KEY_FILE = os.path.join(DATA_DIR, '.ml_token_key')
+import socket
+DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else PROJECT_ROOT
+DB = os.path.join(DATA_DIR, 'mercadolibre.db')
 MAX_ORDERS = 30  # 每次最多处理30个新订单
 MAX_RUNTIME = 55  # 55秒强制退出
 

@@ -3,7 +3,9 @@
 import sqlite3, json, time, logging
 from datetime import datetime, timezone, timedelta
 
-SERVER_DB = '/home/admin/yunfan-pro-dev/mercadolibre.db'
+import socket
+DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else '/home/admin/yunfan-pro-dev'
+SERVER_DB = os.path.join(DATA_DIR, 'mercadolibre.db')
 LOG_FILE  = '/home/admin/yunfan-pro-dev/notification_processor.log'
 
 logging.basicConfig(

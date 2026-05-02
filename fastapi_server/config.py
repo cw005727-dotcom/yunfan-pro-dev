@@ -12,7 +12,9 @@ PROJECT_ROOT = BASE_DIR
 # 数据库路径
 # 开发环境: 本地目录
 # 生产环境: /home/admin/yunfan-pro-dev/
-DB_PATH = os.environ.get("DB_PATH", str(BASE_DIR / "mercadolibre.db"))
+import socket
+DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else str(BASE_DIR)
+DB_PATH = os.environ.get("DB_PATH", os.path.join(DATA_DIR, "mercadolibre.db"))
 
 # API 配置
 API_PORT = int(os.environ.get("API_PORT", "8506"))

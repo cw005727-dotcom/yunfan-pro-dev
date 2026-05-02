@@ -91,7 +91,9 @@ MINIMAX_CONFIG = {
 }
 
 import os
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mercadolibre.db")
+import socket
+DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(DATA_DIR, 'mercadolibre.db')
 
 def background_notification_worker():
     """后台处理美客多 Webhook 通知"""

@@ -203,13 +203,15 @@ def handle_questions(conn, data: dict):
     buyer_name = data.get('from', {}).get('nickname', '') if isinstance(data.get('from'), dict) else ''
 
     try:
-        cursor.execute(""""
-            INSERT OR REPLACE INTO customer_messages
-            (id, site_id, seller_id, buyer_id, buyer_name, item_id, last_message, status, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'unread', datetime('now'))
-        """, (str(question_id), site, str(seller_id), str(from_user or ''), str(buyer_name), str(product), str(question_text[:200])[:200]))
+        conn.execute(
+            "INSERT OR REPLACE INTO customer_messages (id, site_id, seller_id, buyer_id, buyer_name, item_id, last_message, status, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+            (str(question_id), site, str(seller_id), str(from_user or ""),
+             str(buyer_name), str(product), str(question_text[:200])[:200], "unread"))
     except Exception as e:
         logger.warning(f"[Questions webhook] failed to write: {e}")
+
+
 
 
 def handle_claims(conn, data: dict):
@@ -224,9 +226,8 @@ def handle_claims(conn, data: dict):
     if not claim_id:
         return
 
-    cursor = conn.cursor()
     try:
-        cursor.execute(
+        conn.execute(
             "INSERT OR IGNORE INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
             (
                 str(claim_id),
@@ -339,4 +340,3 @@ async def relay(payload: WebhookRelayPayload):
         raise
     except Exception as e:
         logger.error(f"[Webhook Relay] error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))

@@ -11,7 +11,9 @@ key = open('.ml_token_key').read().strip()
 tok = json.loads(d(open('ml_tokens.enc').read(), key))
 h = {'Authorization': 'Bearer ' + tok['access_token'], 'x-format-new': 'true'}
 
-conn = sqlite3.connect('mercadolibre.db')
+import socket
+DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.dirname(os.path.abspath(__file__))
+conn = sqlite3.connect(os.path.join(DATA_DIR, 'mercadolibre.db'))
 c = conn.cursor()
 
 c.execute("SELECT id FROM orders_v2 WHERE logistic_type IS NULL OR logistic_type='' LIMIT 30")
