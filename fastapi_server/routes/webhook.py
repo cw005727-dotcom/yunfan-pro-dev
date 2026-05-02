@@ -289,9 +289,29 @@ async def relay(payload: WebhookRelayPayload):
 
             elif topic == 'shipments':
                 handle_shipments(conn, data)
-                monitor_msg = f"🚚 物流更新：订单 {data.get('order_id')} → {data.get('shipping_status', 'unknown')}"
+                logistic_company = data.get('logistic_company') or data.get('tracking_method') or '-'
+                rcv_city = data.get('receiver_city') or '-'
+                est_del = data.get('estimated_delivery_date') or ''
+                if est_del:
+                    est_del = est_del[:10]
+                monitor_msg = (
+                    f"🚚 物流更新：订单 {order_id} → "
+                    f"{logistic_company} / "
+                    f"{data.get('shipping_status', '-')}"
+                )
+                if rcv_city and rcv_city != '-':
+                    monitor_msg += f" / 收货：{rcv_city}"
+                if est_del:
+                    monitor_msg += f" / 预计{est_del}"
                 monitor_site = data.get('site_id')
-                monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('shipping_status')}
+                monitor_details = {
+                    "order_id": str(order_id),
+                    "source": "webhook",
+                    "logistic_company": logistic_company,
+                    "shipping_status": data.get('shipping_status'),
+                    "receiver_city": rcv_city,
+                    "estimated_delivery_date": est_del
+                }
                 urgent = False
 
             elif topic == 'questions':
