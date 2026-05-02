@@ -6,10 +6,12 @@ POST /api/ml/webhook/relay - ML webhook 接收转发
   - orders_v2 / orders: 新订单 → orders_v2 表
   - shipments: 物流状态更新 → 通过 order_id 找到对应订单，更新 shipping/tracking 字段
   - questions: 新咨询 → customer_messages 表
+  - marketplace_claims: 索赔/投诉 → monitoring_logs 实时播报（+ ml_notifications 队列表）
 """
 from datetime import datetime, timezone, timedelta
 import logging
 import json
+import re
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -24,6 +26,13 @@ logger = logging.getLogger(__name__)
 SITE_NAMES = {
     'MLB': '巴西', 'MLM': '墨西哥', 'MLA': '阿根廷',
     'MCO': '哥伦比亚', 'MLC': '智利', 'MLU': '乌拉圭'
+}
+
+# claims status → 中文描述
+CLAIM_STATUS_ZH = {
+    'opened': '已开立', 'closed': '已关闭', 'resolved': '已解决',
+    'refunded': '已退款', 'cancelled': '已取消', 'payment_expiring': '付款即将过期',
+    'mediation': '调解中', 'pending': '处理中', 'disputed': '争议中',
 }
 
 
@@ -69,6 +78,11 @@ class WebhookRelayPayload(BaseModel):
     receiver_city: Optional[str] = None
     receiver_state: Optional[str] = None
     estimated_delivery_date: Optional[str] = None
+    # claims 专用字段
+    type: Optional[str] = None
+    reason: Optional[dict] = None
+    currency_id: Optional[str] = None
+    opened_by: Optional[str] = None
 
     class Config:
         extra = "allow"
@@ -196,13 +210,42 @@ def handle_questions(conn, data: dict):
         logger.warning(f"[Questions webhook] failed to write: {e}")
 
 
+def handle_claims(conn, data: dict):
+    """
+    marketplace_claims webhook:
+    提取 claim_id，写入 ml_notifications（幂等，INSERT OR IGNORE）。
+    详细的 claim 信息通过 ml_notifications 触发后续处理。
+    """
+    resource = data.get('resource', '')
+    match = re.search(r'/claims[/_]?(\d+)', resource)
+    claim_id = match.group(1) if match else data.get('id', '')
+    if not claim_id:
+        return
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT OR IGNORE INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+            (
+                str(claim_id),
+                resource or f"/claims/{claim_id}",
+                data.get('user_id'),
+                'marketplace_claims',
+                data.get('application_id'),
+            )
+        )
+    except Exception as e:
+        logger.warning(f"[Claims webhook] failed to write ml_notifications: {e}")
+
+
 @router.post("/relay")
 async def relay(payload: WebhookRelayPayload):
     """
     统一接收 ML 所有 webhook 通知，按 topic 分流处理：
-      orders / orders_v2 → handle_orders → orders_v2
-      shipments         → handle_shipments → 更新已有订单物流字段
-      questions         → handle_questions → customer_messages
+      orders / orders_v2      → handle_orders   → orders_v2
+      shipments               → handle_shipments → 更新已有订单物流字段
+      questions               → handle_questions → customer_messages
+      marketplace_claims      → handle_claims    → ml_notifications（后续处理）
     monitoring_logs 写在事务 commit 之后，避免 SQLite 锁。
     """
     try:
@@ -219,6 +262,7 @@ async def relay(payload: WebhookRelayPayload):
         monitor_store = None
         monitor_site = None
         monitor_details = None
+        urgent = False  # 索赔默认紧急
 
         with get_db_connection() as conn:
             if topic in ('orders', 'orders_v2'):
@@ -230,12 +274,14 @@ async def relay(payload: WebhookRelayPayload):
                 monitor_store = data.get('user_id')
                 monitor_site = data.get('site_id')
                 monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('status'), "amount": amount}
+                urgent = False
 
             elif topic == 'shipments':
                 handle_shipments(conn, data)
                 monitor_msg = f"🚚 物流更新：订单 {data.get('order_id')} → {data.get('shipping_status', 'unknown')}"
                 monitor_site = data.get('site_id')
                 monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('shipping_status')}
+                urgent = False
 
             elif topic == 'questions':
                 handle_questions(conn, data)
@@ -243,12 +289,29 @@ async def relay(payload: WebhookRelayPayload):
                 monitor_msg = f"💬 新咨询：{site} 咨询 {str(data.get('item_id', ''))[:30]}"
                 monitor_site = data.get('site_id')
                 monitor_details = {"source": "webhook"}
+                urgent = False
+
+            elif topic == 'marketplace_claims':
+                handle_claims(conn, data)
+                site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
+                resource = data.get('resource', '')
+                match = re.search(r'/claims[/_]?(\d+)', resource)
+                claim_id = match.group(1) if match else order_id or ''
+                reason = data.get('reason', {})
+                reason_text = reason.get('description', '') if isinstance(reason, dict) else ''
+                status_zh = CLAIM_STATUS_ZH.get(data.get('status', ''), data.get('status', ''))
+                type_zh = {'claim': '投诉', 'mediation': '调解', 'return': '退货'}.get(data.get('type', ''), data.get('type', ''))
+                monitor_msg = f"⚠️ 索赔/投诉：{site} {type_zh} {claim_id} [{status_zh}] {reason_text}"
+                monitor_site = data.get('site_id')
+                monitor_store = data.get('user_id')
+                monitor_details = {"claim_id": claim_id, "status": data.get('status'), "type": data.get('type'), "reason": reason_text, "source": "webhook"}
+                urgent = True
 
             else:
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
 
             # ml_notifications 队列
-            if topic in ('orders', 'orders_v2', 'shipments'):
+            if topic in ('orders', 'orders_v2', 'shipments', 'marketplace_claims'):
                 cursor = conn.cursor()
                 cursor.execute(
                     "INSERT INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
@@ -265,7 +328,8 @@ async def relay(payload: WebhookRelayPayload):
 
         # 事务结束后再写 monitoring_logs，避免数据库锁
         if monitor_msg:
-            log_to_monitoring('info', monitor_msg, store_id=monitor_store, site_id=monitor_site, details=monitor_details)
+            log_to_monitoring('warning' if urgent else 'info', monitor_msg,
+                              store_id=monitor_store, site_id=monitor_site, details=monitor_details)
 
         return {"ok": True, "topic": topic, "id": order_id}
 
