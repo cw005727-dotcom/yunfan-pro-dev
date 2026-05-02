@@ -50,6 +50,7 @@ async def monitoring_stream():
         brt_now = beijing_now - timedelta(hours=11)  # 巴西时间
         today_brt = brt_now.strftime('%Y-%m-%d')  # BRT "今天"日期，用于过滤
         now_brt_str = brt_now.strftime('%Y-%m-%dT%H:%M:%S')  # BRT 当前时间字符串，用于比较发货截止
+        today_bj = beijing_now.strftime('%Y-%m-%d')  # 北京今天日期（监控物流动态用）
         events = []
 
         # 1. 超期发货预警（last_ship_date 存在 BRT，需要用 BRT 当前时间比较）
