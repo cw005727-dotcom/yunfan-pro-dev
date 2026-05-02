@@ -10,15 +10,13 @@ sync_ml_shipments.py — 同步物流基础字段到 orders_v2
 
 cron: */15 * * * *
 """
-import os, sys, json, base64, time, sqlite3, requests
+import os, sys, json, base64, time, sqlite3, requests, socket
 
 def decrypt(enc, key):
     kb = key.encode()
     db = base64.b64decode(enc.encode())
     return ''.join(chr(db[i] ^ kb[i % len(kb)]) for i in range(len(db)))
 
-DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.dirname(os.path.abspath(__file__))
-import socket
 DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.dirname(os.path.abspath(__file__))
 
 KEY_FILE = os.path.join(DATA_DIR, '.ml_token_key')
