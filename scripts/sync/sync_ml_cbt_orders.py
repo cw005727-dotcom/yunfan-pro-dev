@@ -1,18 +1,29 @@
+#!/usr/bin/env python3
 """
-CBT 全球卖订单同步脚本 v4
-- 两步穿透：search 找子订单ID → marketplace/orders/{id} 拿详情
-- 增量写入：已存在的跳过
-- 同时写 monitoring_logs 供前端监控播报
+CBT 全球卖订单同步脚本 - 轻量版（防止 SIGKILL）
+- 每次最多处理 30 个订单（足够增量更新）
+- 所有 API 加 timeout，总运行不超过 60 秒
+- 已有订单直接跳过
 - order_date 统一存北京时间
-- 物流数据：加 x-format-new: true，从 shipping.id 穿透查 /marketplace/shipments/{id}
 """
-import requests, sqlite3, json, base64, os
+import requests, sqlite3, json, base64, os, signal, sys
 from datetime import datetime, timezone, timedelta
 
 PROJECT_ROOT = '/home/admin/yunfan-pro-dev'
 TOKEN_FILE = os.path.join(PROJECT_ROOT, 'ml_tokens.enc')
 KEY_FILE = os.path.join(PROJECT_ROOT, '.ml_token_key')
 DB = os.path.join(PROJECT_ROOT, 'mercadolibre.db')
+MAX_ORDERS = 30  # 每次最多处理30个新订单
+MAX_RUNTIME = 55  # 55秒强制退出
+
+SITE_NAMES = {'MLB': '巴西', 'MLM': '墨西哥', 'MLA': '阿根廷', 'MCO': '哥伦比亚', 'MLC': '智利', 'MLU': '乌拉圭'}
+
+def timeout_handler(signum, frame):
+    print(f'[{datetime.now().strftime("%H:%M:%S")}] 超时 {MAX_RUNTIME}s，强制退出')
+    sys.exit(0)
+
+signal.signal(signal.SIGALRM, timeout_handler)
+signal.alarm(MAX_RUNTIME)
 
 def simple_decrypt(enc_data, key):
     key_bytes = key.encode()
@@ -25,12 +36,10 @@ def simple_decrypt(enc_data, key):
 def load_tokens():
     key = open(KEY_FILE).read().strip()
     tokens = json.loads(simple_decrypt(open(TOKEN_FILE).read(), key))
-    # 检查是否快过期
     created_at = tokens.get('created_at', 0)
     expires_in = tokens.get('expires_in', 21600)
     import time
     if time.time() - created_at > expires_in - 3600:
-        # refresh
         refreshed = requests.post('https://api.mercadolibre.com/oauth/token', data={
             'grant_type': 'refresh_token',
             'client_id': '8105299077213607',
@@ -39,8 +48,6 @@ def load_tokens():
         if refreshed.get('access_token'):
             tokens['access_token'] = refreshed['access_token']
             tokens['created_at'] = time.time()
-            if refreshed.get('refresh_token'):
-                tokens['refresh_token'] = refreshed['refresh_token']
             key = open(KEY_FILE).read().strip()
             enc = simple_crypt(json.dumps(tokens), key)
             open(TOKEN_FILE, 'w').write(enc)
@@ -58,8 +65,6 @@ tokens = load_tokens()
 at = tokens['access_token']
 h = {'Authorization': f'Bearer {at}', 'x-format-new': 'true'}
 
-SITE_NAMES = {'MLB': '巴西', 'MLM': '墨西哥', 'MLA': '阿根廷', 'MCO': '哥伦比亚', 'MLC': '智利', 'MLU': '乌拉圭'}
-
 def to_beijing(ts_str):
     if not ts_str:
         return ''
@@ -70,79 +75,94 @@ def to_beijing(ts_str):
     except:
         return ts_str[:19]
 
-def write_monitor(c, site_id, order_id, amount, status):
+def write_monitor(conn, site_id, order_id, amount, status):
     msg = f'📦 新订单：{SITE_NAMES.get(site_id, site_id)} {order_id} 成交 ${amount:.2f}'
     details = json.dumps({'order_id': order_id, 'status': status, 'amount': amount, 'source': 'sync'}, ensure_ascii=False)
+    c = conn.cursor()
     c.execute("SELECT 1 FROM monitoring_logs WHERE message LIKE ?", (f'%{order_id}%',))
     if not c.fetchone():
-        c.execute("""INSERT INTO monitoring_logs(level, store_id, site_id, message, details)
-VALUES('info', 3164139599, ?, ?, ?)""",
+        c.execute("INSERT INTO monitoring_logs(level, store_id, site_id, message, details) VALUES('info', 3164139599, ?, ?, ?)",
                   (site_id, msg, details))
 
-def get_shipment(order_json):
-    sid = order_json.get('shipping', {}).get('id')
-    if not sid:
-        return {}
-    r = requests.get(f'https://api.mercadolibre.com/marketplace/shipments/{sid}', headers=h, timeout=10)
-    if r.status_code != 200:
-        return {}
-    sd = r.json()
-    return {
-        'tracking_id': sd.get('tracking_number') or sd.get('tracking_id', ''),
-        'logistic_type': sd.get('logistic_type', ''),
-        'shipping_status': sd.get('status', ''),
-        'shipping_substatus': sd.get('substatus', ''),
-    }
-
-def sync(limit=50):
+def sync():
     conn = sqlite3.connect(DB)
     c = conn.cursor()
     new = 0
+    processed = 0
 
-    for offset in range(0, 200, limit):
-        url = f'https://api.mercadolibre.com/marketplace/orders/search?seller_id=3164139599&limit={limit}&offset={offset}&sort=date_desc'
-        r1 = requests.get(url, headers=h, timeout=30)
+    # 只取最新一批订单（按时间倒序，最多30个）
+    url = f'https://api.mercadolibre.com/marketplace/orders/search?seller_id=3164139599&limit={MAX_ORDERS}&sort=date_desc'
+    try:
+        r1 = requests.get(url, headers=h, timeout=15)
         groups = r1.json().get('results', [])
-        if not groups:
-            break
+    except Exception as e:
+        print(f'搜索失败: {e}')
+        conn.close()
+        return
 
-        for g in groups:
-            for sub in g.get('orders', []):
-                sid = str(sub['id'])
-                r2 = requests.get(f'https://api.mercadolibre.com/marketplace/orders/{sid}', headers=h, timeout=10)
+    for g in groups:
+        if new >= MAX_ORDERS:
+            break
+        for sub in g.get('orders', []):
+            if new >= MAX_ORDERS:
+                break
+            sid = str(sub['id'])
+            processed += 1
+
+            # 已有则跳过
+            c.execute('SELECT id FROM orders_v2 WHERE id=?', (sid,))
+            if c.fetchone():
+                continue
+
+            try:
+                r2 = requests.get(f'https://api.mercadolibre.com/marketplace/orders/{sid}', headers=h, timeout=8)
                 if r2.status_code != 200:
                     continue
-                d = r2.json()
-                items = d.get('order_items', [])
-                site = items[0]['item']['id'][:3] if items and items[0].get('item', {}).get('id') else ''
-                raw_date = d.get('date_created', '')
-                amount = round(sum(i.get('quantity',1)*i.get('unit_price',0) for i in items), 2)
-                status = d.get('status', '')
-                product = items[0].get('item', {}).get('title', '') if items else ''
-                seller_sku = items[0].get('item', {}).get('seller_sku', '') if items else ''
-                thumbnail = items[0]['item']['id'] if items and items[0].get('item', {}).get('id') else ''
-                qty = items[0].get('quantity', 1) if items else 1
+            except:
+                continue
 
-                ship = get_shipment(d)
-                order_date_bj = to_beijing(raw_date)
+            d = r2.json()
+            items = d.get('order_items', [])
+            site = items[0]['item']['id'][:3] if items and items[0].get('item', {}).get('id') else ''
+            raw_date = d.get('date_created', '')
+            amount = round(sum(i.get('quantity',1)*i.get('unit_price',0) for i in items), 2)
+            status = d.get('status', '')
+            product = items[0].get('item', {}).get('title', '') if items else ''
+            seller_sku = items[0].get('item', {}).get('seller_sku', '') if items else ''
+            thumbnail = items[0]['item']['id'] if items and items[0].get('item', {}).get('id') else ''
+            qty = items[0].get('quantity', 1) if items else 1
 
-                c.execute('SELECT id FROM orders_v2 WHERE id=?', (sid,))
-                if c.fetchone():
-                    continue
+            # 物流（可选，慢就跳过）
+            ship = {'shipping_status': '', 'tracking_id': '', 'logistic_type': '', 'shipping_substatus': ''}
+            ship_id = d.get('shipping', {}).get('id')
+            if ship_id:
+                try:
+                    rs = requests.get(f'https://api.mercadolibre.com/marketplace/shipments/{ship_id}', headers=h, timeout=5)
+                    if rs.status_code == 200:
+                        sd = rs.json()
+                        ship = {
+                            'shipping_status': sd.get('status', ''),
+                            'tracking_id': sd.get('tracking_number', '') or sd.get('tracking_id', ''),
+                            'logistic_type': sd.get('logistic_type', ''),
+                            'shipping_substatus': sd.get('substatus', ''),
+                        }
+                except:
+                    pass
 
-                c.execute('''INSERT INTO orders_v2(id,user_id,site_id,order_date,product_name,quantity,amount,status,seller_sku,thumbnail,shipping_status,tracking_id,logistic_type,shipping_substatus)
+            order_date_bj = to_beijing(raw_date)
+
+            c.execute('''INSERT INTO orders_v2(id,user_id,site_id,order_date,product_name,quantity,amount,status,seller_sku,thumbnail,shipping_status,tracking_id,logistic_type,shipping_substatus)
 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-                          (sid, 1, site, order_date_bj, product, qty, amount, status, seller_sku, thumbnail,
-                           ship.get('shipping_status', ''), ship.get('tracking_id', ''), ship.get('logistic_type', ''), ship.get('shipping_substatus', '')))
-                write_monitor(c, site, sid, amount, status)
-                new += 1
-                print(f'+ {sid} | {site} | {order_date_bj[:10]} | ${amount} | {ship.get("shipping_status","")} | {ship.get("tracking_id","")}')
+                      (sid, 1, site, order_date_bj, product, qty, amount, status, seller_sku, thumbnail,
+                       ship['shipping_status'], ship['tracking_id'], ship['logistic_type'], ship['shipping_substatus']))
+            write_monitor(conn, site, sid, amount, status)
+            new += 1
+            print(f'+ {sid} | {site} | {order_date_bj[:10]} | ${amount}')
 
-        conn.commit()
-        print(f'offset {offset}: +{new} new')
-
-    print(f'完成。新增: {new} 条')
+    conn.commit()
+    print(f'完成。处理 {processed} 个订单，新增 {new} 条')
     conn.close()
 
 if __name__ == '__main__':
+    print(f'[{datetime.now().strftime("%H:%M:%S")}] sync_ml_cbt_orders 启动（限制 {MAX_ORDERS} 条/次，{MAX_RUNTIME}s 超时）')
     sync()
