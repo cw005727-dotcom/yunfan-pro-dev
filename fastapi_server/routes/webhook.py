@@ -115,17 +115,17 @@ def handle_shipments(conn, data: dict):
         logger.info(f"[Shipments webhook] order {order_id} not found, skipping")
         return
 
-    cursor.execute("""
+    cursor.execute(""""
         UPDATE orders_v2 SET
-            shipping_status = COALESCE(?, shipping_status),
-            shipping_substatus = COALESCE(?, shipping_substatus),
-            tracking_id = COALESCE(?, tracking_id),
-            logistic_type = COALESCE(?, logistic_type),
-            logistic_company = COALESCE(?, logistic_company),
-            tracking_status = COALESCE(?, tracking_status),
-            receiver_city = COALESCE(?, receiver_city),
-            receiver_state = COALESCE(?, receiver_state),
-            estimated_delivery_date = COALESCE(?, estimated_delivery_date)
+            shipping_status = COALESCE(NULLIF(?, ''), shipping_status),
+            shipping_substatus = COALESCE(NULLIF(?, ''), shipping_substatus),
+            tracking_id = COALESCE(NULLIF(?, ''), tracking_id),
+            logistic_type = COALESCE(NULLIF(?, ''), logistic_type),
+            logistic_company = COALESCE(NULLIF(?, ''), logistic_company),
+            tracking_status = COALESCE(NULLIF(?, ''), tracking_status),
+            receiver_city = COALESCE(NULLIF(?, ''), receiver_city),
+            receiver_state = COALESCE(NULLIF(?, ''), receiver_state),
+            estimated_delivery_date = COALESCE(NULLIF(?, ''), estimated_delivery_date)
         WHERE id = ?
     """, (
         data.get('shipping_status'),
