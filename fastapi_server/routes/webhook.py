@@ -192,6 +192,7 @@ def handle_questions(conn, data: dict):
     cursor = conn.cursor()
     question_id = data.get('id') or data.get('question_id')
     if not question_id:
+        logger.warning(f"[Questions webhook] missing question_id, skipping")
         return
 
     from_val = data.get('from', {})
@@ -224,6 +225,7 @@ def handle_claims(conn, data: dict):
     match = re.search(r'/claims/([^\s/]+)', resource)
     claim_id = match.group(1) if match else data.get('id', '')
     if not claim_id:
+        logger.warning(f"[Claims webhook] missing claim_id, skipping")
         return
 
     try:

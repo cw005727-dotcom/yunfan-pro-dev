@@ -31,3 +31,6 @@ server.log
 # Backups
 backups/
 *.bak
+*.db
+mercadolibre.db
+fastapi_server/mercadolibre.db
