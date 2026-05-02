@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """notification_processor.py - ml_notifications consumer worker"""
-import sqlite3, json, time, logging
+import os, sqlite3, json, time, logging
 from datetime import datetime, timezone, timedelta
 
 import socket
@@ -130,7 +130,7 @@ def process_notification(notif):
 
         elif topic == 'marketplace_claims':
             import re
-            match = re.search(r'/claims[/_]?(\d+)', str(resource))
+            match = re.search(r'/claims/([^\s/]+)', str(resource))
             claim_id = match.group(1) if match else str(ml_id)
             if not claim_id:
                 logger.warning(f"[claims] no claim_id in {resource}")

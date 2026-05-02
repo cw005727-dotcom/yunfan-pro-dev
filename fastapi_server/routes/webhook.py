@@ -205,10 +205,10 @@ def handle_questions(conn, data: dict):
 
     try:
         conn.execute(
-            "INSERT OR REPLACE INTO customer_messages (id, site_id, seller_id, buyer_id, buyer_name, item_id, last_message, status, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-            (str(question_id), site, str(seller_id), str(from_user or ""),
-             str(buyer_name), str(product), str(question_text[:200])[:200], "unread"))
+            "INSERT OR REPLACE INTO customer_messages (id, site_id, seller_id, buyer_id, buyer_name, item_id, last_message, status) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(question_id), site, str(seller_id), str(from_user or ''),
+             str(buyer_name), str(product), str(question_text[:200])[:200], 'unread'))
     except Exception as e:
         logger.warning(f"[Questions webhook] failed to write: {e}")
 
@@ -315,19 +315,6 @@ async def relay(payload: WebhookRelayPayload):
             else:
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
 
-            # ml_notifications 队列
-            if topic == 'marketplace_claims':
-                cursor = conn.cursor()
-                cursor.execute(
-                    "INSERT OR IGNORE INTO ml_notifications (ml_id, resource, user_id, topic, application_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-                    (
-                        str(claim_id),
-                        data.get('resource', f"/claims/{claim_id}"),
-                        data.get('user_id'),
-                        topic,
-                        data.get('application_id'),
-                    )
-                )
 
             conn.commit()
 
