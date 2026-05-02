@@ -103,11 +103,15 @@ def to_beijing(ts_str):
 def handle_shipments(conn, data: dict):
     """
     shipments webhook: 通过 order_id 找到对应订单，只 UPDATE 物流字段。
+    支持两种 payload 格式：
+      1. webhook 直发格式（order_id/status/tracking_method/receiver_city 等直接字段）
+      2. ML shipments API 格式（shipping.id/status + logistic.type + destination.shipping_address.city.name）
     不做 INSERT（订单可能不存在），只更新已有订单。
     """
     cursor = conn.cursor()
     order_id = data.get('order_id') or data.get('id')
     if not order_id:
+        logger.warning(f"[handle_shipments] missing order_id, data keys={list(data.keys())[:8]}")
         return
 
     cursor.execute("SELECT id FROM orders_v2 WHERE id = ?", (str(order_id),))
@@ -115,7 +119,32 @@ def handle_shipments(conn, data: dict):
         logger.info(f"[Shipments webhook] order {order_id} not found, skipping")
         return
 
-    cursor.execute(""""
+    # ── 字段兼容：同时支持 webhook 直发字段 和 ML shipments API 嵌套格式 ──
+    # shipping_status: webhook 用 status，ML API 用 shipping.status
+    raw = data.get('shipping_status') or data.get('status')
+    # shipping_substatus: webhook 用 substatus，ML API 用 shipping.substatus
+    raw_sub = data.get('shipping_substatus') or data.get('substatus')
+    # tracking_id: webhook 用 tracking_id/tracking_number，ML API 用 shipping.tracking_number
+    raw_tid = data.get('tracking_id') or data.get('tracking_number')
+    if not raw_tid:
+        raw_tid = (data.get('shipping') or {}).get('tracking_number')
+    # logistic_type: ML API 嵌套在 logistic.type
+    raw_lt = (data.get('logistic') or {}).get('type') if isinstance(data.get('logistic'), dict) else data.get('logistic_type')
+    # logistic_company: webhook 直接字段或 tracking_method
+    raw_lc = data.get('logistic_company') or data.get('tracking_method')
+    # tracking_status: ML API substatus
+    raw_ts = data.get('tracking_status') or data.get('substatus')
+    # receiver_city / receiver_state: ML API 嵌套 destination.shipping_address.city.name
+    addr = (data.get('destination') or {}).get('shipping_address') or data.get('shipping_address', {})
+    raw_city = (addr.get('city') or {}).get('name') if isinstance(addr.get('city'), dict) else addr.get('city')
+    raw_state = (addr.get('state') or {}).get('name') if isinstance(addr.get('state'), dict) else addr.get('state')
+    # estimated_delivery_date: ML API 嵌套 lead_time.estimated_delivery_time.date
+    lt = data.get('lead_time') or {}
+    raw_est = (lt.get('estimated_delivery_time') or {}).get('date') if isinstance(lt, dict) else data.get('estimated_delivery_date')
+
+    logger.info(f"[handle_shipments] oid={order_id} ss={raw} lc={raw_lc} city={raw_city} est={raw_est}")
+
+    cursor.execute("""
         UPDATE orders_v2 SET
             shipping_status = COALESCE(NULLIF(?, ''), shipping_status),
             shipping_substatus = COALESCE(NULLIF(?, ''), shipping_substatus),
@@ -128,15 +157,8 @@ def handle_shipments(conn, data: dict):
             estimated_delivery_date = COALESCE(NULLIF(?, ''), estimated_delivery_date)
         WHERE id = ?
     """, (
-        data.get('shipping_status'),
-        data.get('shipping_substatus'),
-        data.get('tracking_id'),
-        data.get('logistic_type'),
-        data.get('logistic_company'),
-        data.get('tracking_status'),
-        data.get('receiver_city'),
-        data.get('receiver_state'),
-        data.get('estimated_delivery_date'),
+        raw, raw_sub, raw_tid, raw_lt, raw_lc,
+        raw_ts, raw_city, raw_state, raw_est,
         str(order_id)
     ))
 
