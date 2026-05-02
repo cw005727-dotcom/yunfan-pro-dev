@@ -5,6 +5,7 @@ sync_reputation.py - 同步 ML 全球卖店铺声誉数据到 stores 表
 API返回的 user_id 可能和 stores 表里的 master_user_id 不一致，用 site_id 定位记录
 """
 import requests, sqlite3, os, json
+os.makedirs('/home/admin/yunfan-pro-dev/logs', exist_ok=True)
 from datetime import datetime
 
 DB_PATH = '/home/admin/yunfan-pro-dev/mercadolibre.db'

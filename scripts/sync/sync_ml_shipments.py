@@ -1,5 +1,6 @@
 """物流状态轮询脚本"""
 import sys, os, requests, sqlite3, json
+os.makedirs('/home/admin/yunfan-pro-dev/logs', exist_ok=True)
 from datetime import datetime, timezone, timedelta
 
 # 加载 token（直接读加密文件）
