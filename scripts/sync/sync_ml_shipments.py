@@ -1,48 +1,188 @@
 #!/usr/bin/env python3
-"""修复 orders_v2 的 logistic_type 字段 - 用 logistic.type 填充"""
-import requests, json, base64, sqlite3
+"""
+sync_ml_shipments.py — 同步物流基础字段到 orders_v2
 
-def d(enc, key):
+从 /marketplace/orders/{id} 拿 shipping.id，再调 /marketplace/shipments/{id}
+更新 orders_v2 的：shipping_status / tracking_id / logistic_type / logistic_company
+                   / tracking_status / receiver_city / receiver_state / estimated_delivery_date
+
+限速 200ms/请求，每批30条
+
+cron: */15 * * * *
+"""
+import os, sys, json, base64, time, sqlite3, requests
+
+def decrypt(enc, key):
     kb = key.encode()
     db = base64.b64decode(enc.encode())
     return ''.join(chr(db[i] ^ kb[i % len(kb)]) for i in range(len(db)))
 
-key = open('.ml_token_key').read().strip()
-tok = json.loads(d(open('ml_tokens.enc').read(), key))
-h = {'Authorization': 'Bearer ' + tok['access_token'], 'x-format-new': 'true'}
-
+DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.dirname(os.path.abspath(__file__))
 import socket
 DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.dirname(os.path.abspath(__file__))
-conn = sqlite3.connect(os.path.join(DATA_DIR, 'mercadolibre.db'))
-c = conn.cursor()
 
-c.execute("SELECT id FROM orders_v2 WHERE logistic_type IS NULL OR logistic_type='' LIMIT 30")
-pending = [r[0] for r in c.fetchall()]
-print(f'待补 logistic_type: {len(pending)} 条')
+KEY_FILE = os.path.join(DATA_DIR, '.ml_token_key')
+ENC_FILE = os.path.join(DATA_DIR, 'ml_tokens.enc')
+DB_FILE  = os.path.join(DATA_DIR, 'mercadolibre.db')
 
-updated = 0
-for oid in pending:
-    r = requests.get('https://api.mercadolibre.com/marketplace/orders/' + oid, headers=h, timeout=10)
-    if r.status_code != 200:
-        continue
-    d = r.json()
-    ship_data = d.get('shipping', {})
-    sid = ship_data.get('id') if isinstance(ship_data, dict) else None
-    if not sid:
-        continue
-    r2 = requests.get('https://api.mercadolibre.com/marketplace/shipments/' + str(sid), headers=h, timeout=10)
-    if r2.status_code != 200:
-        continue
-    sd = r2.json()
-    lo = sd.get('logistic', {})
-    lt = lo.get('type', '') if isinstance(lo, dict) else ''
-    ti = sd.get('tracking_id', '') or sd.get('tracking_number', '')
-    ss = sd.get('status', '')
-    c.execute("UPDATE orders_v2 SET shipping_status=?, tracking_id=?, logistic_type=? WHERE id=?",
-        (ss, ti, lt, oid))
-    updated += 1
-    print(f'  {oid}: {ss} | {ti} | {lt}')
+def load_token():
+    key = open(KEY_FILE).read().strip()
+    tok = json.loads(decrypt(open(ENC_FILE).read(), key))
+    return tok['access_token']
 
-conn.commit()
-print(f'\n更新了 {updated} 条')
-conn.close()
+def parse_shipment(sd):
+    """从 shipments API 响应提取所有物流字段"""
+    addr = sd.get('destination', {}).get('shipping_address', {})
+    city = addr.get('city', {})
+    state = addr.get('state', {})
+    lead = sd.get('lead_time', {})
+    est  = lead.get('estimated_delivery_time', {})
+
+    logistic = sd.get('logistic', {}) or {}
+
+    return {
+        'logistic_type':        logistic.get('type', '') if isinstance(logistic, dict) else '',
+        'logistic_company':    sd.get('tracking_method', '') or '',
+        'tracking_id':         sd.get('tracking_number', '') or sd.get('tracking_id', '') or '',
+        'shipping_status':     sd.get('status', '') or '',
+        'shipping_substatus':  sd.get('substatus', '') or '',
+        'tracking_status':     sd.get('status', '') or '',
+        'receiver_city':      city.get('name', '') if isinstance(city, dict) else '',
+        'receiver_state':     state.get('name', '') if isinstance(state, dict) else '',
+        'estimated_delivery_date': est.get('date', '') or '',
+    }
+
+def sync_batch(cursor, orders, token):
+    """处理一批订单，写入所有物流字段"""
+    updated = 0
+    skipped = 0
+    errors  = 0
+
+    for order in orders:
+        oid = order['id']
+        # 跳过已有数据的订单（避免重复请求 API）
+        if order.get('logistic_company') and order.get('tracking_status'):
+            skipped += 1
+            continue
+
+        # Step 1: 拿 shipment_id
+        r1 = requests.get(
+            f'https://api.mercadolibre.com/marketplace/orders/{oid}',
+            headers={'Authorization': f'Bearer {token}', 'x-format-new': 'true'},
+            timeout=15
+        )
+        if r1.status_code == 429:
+            print(f'    ⚠️  429，等10秒...')
+            time.sleep(10)
+            continue
+        if r1.status_code != 200:
+            errors += 1
+            print(f'    ❌ orders API {r1.status_code}: {oid}')
+            continue
+
+        ship_id = r1.json().get('shipping', {}).get('id')
+        if not ship_id:
+            skipped += 1
+            continue
+
+        # Step 2: 拿 shipment 详情
+        r2 = requests.get(
+            f'https://api.mercadolibre.com/marketplace/shipments/{ship_id}',
+            headers={'Authorization': f'Bearer {token}', 'x-format-new': 'true'},
+            timeout=15
+        )
+        if r2.status_code == 429:
+            print(f'    ⚠️  429，等10秒...')
+            time.sleep(10)
+            continue
+        if r2.status_code != 200:
+            errors += 1
+            print(f'    ❌ shipments API {r2.status_code}: {oid}')
+            continue
+
+        p = parse_shipment(r2.json())
+
+        cursor.execute("""
+            UPDATE orders_v2 SET
+                logistic_type           = ?,
+                logistic_company        = ?,
+                tracking_id             = COALESCE(NULLIF(?, ''), tracking_id),
+                shipping_status         = ?,
+                shipping_substatus     = COALESCE(NULLIF(?, ''), shipping_substatus),
+                tracking_status         = ?,
+                receiver_city           = ?,
+                receiver_state          = ?,
+                estimated_delivery_date = ?
+            WHERE id = ?
+        """, (
+            p['logistic_type'],
+            p['logistic_company'],
+            p['tracking_id'],
+            p['shipping_status'],
+            p['shipping_substatus'],
+            p['tracking_status'],
+            p['receiver_city'],
+            p['receiver_state'],
+            p['estimated_delivery_date'],
+            oid
+        ))
+        updated += 1
+        print(f'  ✅ {oid} | {p["logistic_company"]} | {p["shipping_status"]} | {p["receiver_city"]}')
+
+        time.sleep(0.2)
+
+    return updated, skipped, errors
+
+
+def main():
+    print(f"\n{'='*60}")
+    print(f"🚚 物流基础字段同步")
+    print(f"   时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}\n")
+
+    token = load_token()
+
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # 找出需要同步的订单（有 tracking_id 但缺 logistic_company）
+    c.execute("""
+        SELECT id, tracking_id, logistic_company, tracking_status
+        FROM orders_v2
+        WHERE tracking_id IS NOT NULL AND tracking_id != ''
+          AND (logistic_company IS NULL OR logistic_company = '')
+        ORDER BY order_date DESC
+        LIMIT 100
+    """)
+    orders = [dict(r) for r in c.fetchall()]
+    total = len(orders)
+    print(f"📦 待同步: {total} 条\n")
+
+    if total == 0:
+        print("✅ 无需同步，退出")
+        conn.close()
+        return
+
+    BATCH = 30
+    total_updated = 0
+    total_skipped = 0
+    total_errors  = 0
+
+    for i in range(0, total, BATCH):
+        batch = orders[i:i+BATCH]
+        print(f"📤 批次 {i//BATCH+1}/{(total+BATCH-1)//BATCH} ({len(batch)} 条)...")
+        u, s, e = sync_batch(c, batch, token)
+        total_updated += u
+        total_skipped += s
+        total_errors  += e
+        conn.commit()
+
+    print(f"\n{'='*60}")
+    print(f"📊 完成: ✅{total_updated} ⏭️{total_skipped} ❌{total_errors}")
+    print(f"{'='*60}\n")
+    conn.close()
+
+
+if __name__ == '__main__':
+    main()

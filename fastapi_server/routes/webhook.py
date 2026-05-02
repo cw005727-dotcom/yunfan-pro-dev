@@ -122,7 +122,10 @@ def handle_shipments(conn, data: dict):
             tracking_id = COALESCE(?, tracking_id),
             logistic_type = COALESCE(?, logistic_type),
             logistic_company = COALESCE(?, logistic_company),
-            tracking_status = COALESCE(?, tracking_status)
+            tracking_status = COALESCE(?, tracking_status),
+            receiver_city = COALESCE(?, receiver_city),
+            receiver_state = COALESCE(?, receiver_state),
+            estimated_delivery_date = COALESCE(?, estimated_delivery_date)
         WHERE id = ?
     """, (
         data.get('shipping_status'),
@@ -131,6 +134,9 @@ def handle_shipments(conn, data: dict):
         data.get('logistic_type'),
         data.get('logistic_company'),
         data.get('tracking_status'),
+        data.get('receiver_city'),
+        data.get('receiver_state'),
+        data.get('estimated_delivery_date'),
         str(order_id)
     ))
 
