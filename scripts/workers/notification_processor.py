@@ -1,19 +1,10 @@
-"""
-notification_processor.py - ml_notifications 消费者 Worker
-从 ml_notifications 表读取 pending 通知，分 topic 处理后标记为 processed/failed。
-处理内容:
-  orders_v2 → 写 monitoring_logs
-  shipments → 写 monitoring_logs
-  questions → 写 monitoring_logs
-  marketplace_claims → 写 claims 表 + monitoring_logs (warning)
-  marketplace_orders → 写 monitoring_logs
-  marketplace_messages → 写 monitoring_logs
-"""
+#!/usr/bin/env python3
+"""notification_processor.py - ml_notifications consumer worker"""
 import sqlite3, json, time, logging
 from datetime import datetime, timezone, timedelta
 
 SERVER_DB = '/home/admin/yunfan-pro-dev/mercadolibre.db'
-LOG_FILE = '/home/admin/yunfan-pro-dev/notification_processor.log'
+LOG_FILE  = '/home/admin/yunfan-pro-dev/notification_processor.log'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,22 +28,19 @@ CLAIM_STATUS_ZH = {
     'mediation': '调解中', 'pending': '处理中', 'disputed': '争议中',
 }
 
-
 def bj_now():
     return datetime.now(BJ_TZ).strftime('%Y-%m-%d %H:%M:%S')
 
-
 def log_to_monitoring(level, message, store_id=None, site_id=None, details=None):
     try:
-        if store_id is not None:
-            store_id = int(store_id)
+        sid = int(store_id) if store_id is not None else None
     except (ValueError, TypeError):
-        store_id = None
+        sid = None
     try:
         conn = sqlite3.connect(SERVER_DB)
         conn.execute(
             "INSERT INTO monitoring_logs (timestamp, level, message, store_id, site_id, details) VALUES (?, ?, ?, ?, ?, ?)",
-            (bj_now(), level, message, store_id, site_id, json.dumps(details) if details else None)
+            (bj_now(), level, message, sid, site_id, json.dumps(details) if details else None)
         )
         conn.commit()
         conn.close()
@@ -60,8 +48,7 @@ def log_to_monitoring(level, message, store_id=None, site_id=None, details=None)
     except Exception as e:
         logger.error(f"[monitoring] write failed: {e}")
 
-
-def ensure_claims_table(conn):
+def ensure_claims(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS claims (
             id TEXT PRIMARY KEY,
@@ -78,144 +65,156 @@ def ensure_claims_table(conn):
         )
     """)
 
-
-def upsert_claims(conn, claim_id, order_id, site_id, status, claim_type, reason, amount, currency, opened_by):
-    ensure_claims_table(conn)
+def upsert_claim(conn, claim_id, order_id, site_id, status, claim_type, reason, amount, currency, opened_by):
+    ensure_claims(conn)
     conn.execute("""
         INSERT OR REPLACE INTO claims
         (id, order_id, site_id, status, type, reason, amount, currency_id, opened_by, last_update, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processor')
-    """, (str(claim_id), str(order_id or ''), site_id or '', status or '',
-          claim_type or '', reason or '', amount or 0, currency or '',
-          opened_by or '', bj_now()))
-
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        str(claim_id),
+        str(order_id) if order_id else '',
+        str(site_id) if site_id else '',
+        str(status) if status else '',
+        str(claim_type) if claim_type else '',
+        str(reason) if reason else '',
+        float(amount) if amount else 0.0,
+        str(currency) if currency else '',
+        str(opened_by) if opened_by else '',
+        bj_now(),
+        'processor'
+    ))
+    conn.commit()
 
 def process_notification(notif):
-    """处理单条 ml_notifications"""
     notif_id, ml_id, resource, user_id, topic, app_id = notif
     logger.info(f"[process] topic={topic} ml_id={ml_id} resource={resource}")
 
-    site = ''
-    order_id = ml_id
-
     try:
         if topic in ('orders_v2', 'orders'):
-            # ml_id 就是 order_id，从 resource 解析
-            order_id = ml_id or resource.split('/')[-1]
-            amt = 0
-            # 尝试从 orders_v2 读已存金额
+            order_id = ml_id or (resource.split('/')[-1] if resource else '')
             conn = sqlite3.connect(SERVER_DB)
-            row = conn.execute("SELECT amount, site_id, status FROM orders_v2 WHERE id=?", (str(order_id),)).fetchone()
-            if row:
-                amt = row[0] or 0
-                site = SITE_NAMES.get(row[1], row[1])
+            row = conn.execute(
+                "SELECT amount, site_id, status FROM orders_v2 WHERE id=?",
+                (str(order_id),)
+            ).fetchone()
             conn.close()
-            log_to_monitoring('info',
-                f"📦 订单通知：{site} {order_id} 成交 ${amt:.2f}" if amt else f"📦 订单：{order_id}",
-                store_id=user_id, site_id=site)
+            if row and row[0]:
+                site_name = SITE_NAMES.get(row[1], row[1])
+                log_to_monitoring('info', f"📦 订单通知：{site_name} {order_id} 成交 ${row[0]:.2f}")
+            else:
+                log_to_monitoring('info', f"📦 订单：{order_id}")
             return True
 
         elif topic == 'shipments':
-            order_id = ml_id or resource.split('/')[-1]
+            order_id = ml_id or (resource.split('/')[-1] if resource else '')
             conn = sqlite3.connect(SERVER_DB)
-            row = conn.execute("SELECT shipping_status, site_id FROM orders_v2 WHERE id=?", (str(order_id),)).fetchone()
+            row = conn.execute(
+                "SELECT shipping_status, site_id FROM orders_v2 WHERE id=?",
+                (str(order_id),)
+            ).fetchone()
+            conn.close()
             if row:
                 log_to_monitoring('info',
                     f"🚚 物流更新：订单 {order_id} → {row[0] or 'unknown'}",
-                    store_id=user_id, site_id=SITE_NAMES.get(row[1], row[1]))
+                    site_id=SITE_NAMES.get(row[1], row[1]))
             else:
-                log_to_monitoring('info', f"🚚 物流：shipment {order_id}", store_id=user_id)
-            conn.close()
+                log_to_monitoring('info', f"🚚 物流：shipment {order_id}")
             return True
 
         elif topic == 'questions':
-            log_to_monitoring('info', f"💬 新咨询：{ml_id}", store_id=user_id)
+            log_to_monitoring('info', f"💬 新咨询：{ml_id}")
             return True
 
         elif topic == 'marketplace_claims':
-            # ml_id 是 claim_id，resource 如 /claims/123456789
             import re
-            match = re.search(r'/claims[/_]?(\d+)', resource)
-            claim_id = match.group(1) if match else ml_id
+            match = re.search(r'/claims[/_]?(\d+)', str(resource))
+            claim_id = match.group(1) if match else str(ml_id)
             if not claim_id:
-                logger.warning(f"[claims] no claim_id found in {resource}")
+                logger.warning(f"[claims] no claim_id in {resource}")
                 return False
 
-            # 尝试调 API 补全信息
-            status_zh = CLAIM_STATUS_ZH.get('', '')
+            status_zh = ''
             reason_text = ''
-            amount = 0
+            amount = 0.0
             currency = ''
             order_id = ''
             claim_type = ''
+
             try:
-                from token_manager import load_tokens
-                tok = load_tokens()
-                import requests as _req
-                h = {'Authorization': f"Bearer {tok['access_token']}", 'x-format-new': 'true'}
-                cr = _req.get(f'https://api.mercadolibre.com/marketplace/v2/claims/{claim_id}', headers=h, timeout=8)
-                if cr.status_code == 200:
-                    cd = cr.json()
-                    status_zh = CLAIM_STATUS_ZH.get(cd.get('status', ''), cd.get('status', ''))
-                    reason_text = (cd.get('reason', {}) or {}).get('description', '') if isinstance(cd.get('reason'), dict) else str(cd.get('reason', ''))
-                    amount = cd.get('amount', 0)
-                    currency = cd.get('currency_id', '')
-                    order_id = cd.get('order_id', '')
-                    claim_type = {'claim': '投诉', 'mediation': '调解', 'return': '退货'}.get(cd.get('type', ''), cd.get('type', ''))
+                import base64, os
+                key_file = '/home/admin/yunfan-pro-dev/.ml_token_key'
+                enc_file = '/home/admin/yunfan-pro-dev/ml_tokens.enc'
+                if os.path.exists(key_file) and os.path.exists(enc_file):
+                    key = open(key_file).read().strip()
+                    enc = open(enc_file).read()
+                    data = ''.join(chr(b ^ key.encode()[i % len(key)]) for i, b in enumerate(base64.b64decode(enc)))
+                    import json as _json
+                    tokens = _json.loads(data)
+                    import requests as _req
+                    h = {'Authorization': f"Bearer {tokens['access_token']}"}
+                    cr = _req.get(f'https://api.mercadolibre.com/marketplace/v2/claims/{claim_id}',
+                                  headers=h, timeout=8)
+                    if cr.status_code == 200:
+                        cd = cr.json()
+                        status_zh = CLAIM_STATUS_ZH.get(cd.get('status',''), cd.get('status',''))
+                        r = cd.get('reason', {})
+                        reason_text = r.get('description', '') if isinstance(r, dict) else str(r)
+                        amount = float(cd.get('amount') or 0)
+                        currency = str(cd.get('currency_id', ''))
+                        order_id = str(cd.get('order_id', ''))
+                        claim_type = {'claim':'投诉','mediation':'调解','return':'退货'}.get(
+                            cd.get('type',''), cd.get('type',''))
             except Exception as e:
                 logger.warning(f"[claims] API enrich failed: {e}")
 
-            site_name = SITE_NAMES.get(site, site) if site else '?'
-            type_zh = {'claim': '投诉', 'mediation': '调解', 'return': '退货'}.get(claim_type, claim_type)
-            msg = f"⚠️ 索赔/投诉：{site_name} {type_zh} {claim_id} [{status_zh}] {reason_text}"
+            type_zh = {'claim':'投诉','mediation':'调解','return':'退货'}.get(claim_type, claim_type)
+            msg = f"⚠️ 索赔/投诉：{claim_id} [{status_zh}] {reason_text}"
+            logger.info(f"[claims] upsert claim_id={claim_id}")
 
             conn2 = sqlite3.connect(SERVER_DB)
-            ensure_claims_table(conn2)
-            upsert_claims(conn2, claim_id, order_id, site, status_zh, claim_type, reason_text, amount, currency, str(user_id))
-            conn2.commit()
-            log_to_monitoring('warning', msg, store_id=user_id, site_id=site,
-                             details={'claim_id': claim_id, 'status': status_zh, 'reason': reason_text})
+            upsert_claim(conn2, claim_id, order_id, '', status_zh, claim_type,
+                         reason_text, amount, currency, str(user_id))
             conn2.close()
+            log_to_monitoring('warning', msg,
+                             details={'claim_id': claim_id, 'status': status_zh, 'reason': reason_text})
             return True
 
         elif topic == 'marketplace_orders':
-            log_to_monitoring('info', f"📦 订单事件：{ml_id}", store_id=user_id)
+            log_to_monitoring('info', f"📦 订单事件：{ml_id}")
             return True
 
         elif topic == 'marketplace_messages':
-            log_to_monitoring('info', f"💬 新消息：{ml_id}", store_id=user_id)
+            log_to_monitoring('info', f"💬 新消息：{ml_id}")
             return True
 
         else:
             logger.info(f"[process] no handler for topic={topic}, skipping")
-            return True  # 跳过不重试
+            return True
 
     except Exception as e:
-        logger.error(f"[process] error handling {topic} {ml_id}: {e}")
+        logger.error(f"[process] error {topic} {ml_id}: {type(e).__name__}: {e}")
         return False
-
 
 def worker_loop():
     logger.info("notification_processor worker started.")
     while True:
         try:
             conn = sqlite3.connect(SERVER_DB)
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id, ml_id, resource, user_id, topic, application_id FROM ml_notifications WHERE status='pending' ORDER BY received_at LIMIT 10"
-            )
-            pending = cursor.fetchall()
+            pending = conn.execute(
+                "SELECT id, ml_id, resource, user_id, topic, application_id "
+                "FROM ml_notifications WHERE status='pending' ORDER BY received_at LIMIT 10"
+            ).fetchall()
             conn.close()
 
             if pending:
-                logger.info(f"[worker] {len(pending)} pending notifications")
+                logger.info(f"[worker] {len(pending)} pending")
                 conn2 = sqlite3.connect(SERVER_DB)
                 for notif in pending:
-                    success = process_notification(notif)
-                    status = 'processed' if success else 'failed'
+                    ok = process_notification(notif)
                     conn2.execute(
                         "UPDATE ml_notifications SET status=?, processed_at=? WHERE id=?",
-                        (status, bj_now(), notif[0])
+                        ('processed' if ok else 'failed', bj_now(), notif[0])
                     )
                     conn2.commit()
                 conn2.close()
@@ -224,7 +223,6 @@ def worker_loop():
             logger.error(f"[worker] loop error: {e}")
 
         time.sleep(5)
-
 
 if __name__ == '__main__':
     worker_loop()
