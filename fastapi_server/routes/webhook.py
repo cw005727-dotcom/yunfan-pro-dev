@@ -196,16 +196,18 @@ def handle_questions(conn, data: dict):
 
     from_val = data.get('from', {})
     from_user = from_val.get('id') if isinstance(from_val, dict) else None
+    seller_id = data.get('seller_id') or data.get('user_id') or '3164139599'
     site = data.get('site_id', '')
     product = data.get('item_id', '')
     question_text = data.get('question_text') or data.get('text', '')
+    buyer_name = data.get('from', {}).get('nickname', '') if isinstance(data.get('from'), dict) else ''
 
     try:
-        cursor.execute("""
-            INSERT OR IGNORE INTO customer_messages
-            (site_id, buyer_id, item_id, last_message, status, updated_at)
-            VALUES (?, ?, ?, ?, 'unread', datetime('now'))
-        """, (site, from_user, product, question_text[:200]))
+        cursor.execute(""""
+            INSERT OR REPLACE INTO customer_messages
+            (id, site_id, seller_id, buyer_id, buyer_name, item_id, last_message, status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'unread', datetime('now'))
+        """, (str(question_id), site, str(seller_id), str(from_user or ''), str(buyer_name), str(product), str(question_text[:200])[:200]))
     except Exception as e:
         logger.warning(f"[Questions webhook] failed to write: {e}")
 
