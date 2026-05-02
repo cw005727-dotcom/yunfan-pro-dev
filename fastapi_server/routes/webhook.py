@@ -44,7 +44,7 @@ class WebhookRelayPayload(BaseModel):
     site_id: Optional[str] = None
     topic: Optional[str] = "orders_v2"
     resource: Optional[str] = None
-    order_id: Optional[str] = None        # shipments topic 会带这个
+    order_id: Optional[str] = None
     order_date: Optional[str] = None
     product_name: Optional[str] = None
     quantity: Optional[int] = None
@@ -88,15 +88,14 @@ def to_beijing(ts_str):
 
 def handle_shipments(conn, data: dict):
     """
-    shipments webhook: 通过 order_id 或 order__id 找到对应订单，更新物流字段。
-    不做 INSERT（订单可能不存在），只 UPDATE 已有订单。
+    shipments webhook: 通过 order_id 找到对应订单，只 UPDATE 物流字段。
+    不做 INSERT（订单可能不存在），只更新已有订单。
     """
     cursor = conn.cursor()
     order_id = data.get('order_id') or data.get('id')
     if not order_id:
         return
 
-    # 检查该订单是否存在
     cursor.execute("SELECT id FROM orders_v2 WHERE id = ?", (str(order_id),))
     if not cursor.fetchone():
         logger.info(f"[Shipments webhook] order {order_id} not found, skipping")
@@ -122,14 +121,13 @@ def handle_shipments(conn, data: dict):
     ))
 
 
-def handle_orders(conn, data: dict, topic: str):
+def handle_orders(conn, data: dict):
     """orders / orders_v2 webhook: 插入或更新订单"""
     cursor = conn.cursor()
     order_id = data.get('id') or data.get('order_id')
     if not order_id:
         raise HTTPException(status_code=400, detail="Missing order id")
 
-    # 巴西时间转北京时间
     raw_date = data.get('order_date') or data.get('date_created') or ''
     order_date_bj = to_beijing(raw_date)
 
@@ -174,18 +172,6 @@ def handle_orders(conn, data: dict, topic: str):
         'webhook',
     ))
 
-    # monitoring_logs
-    site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
-    amount = data.get('amount')
-    amt_str = f'${amount:.2f}' if amount else 'N/A'
-    log_to_monitoring(
-        'info',
-        f"📦 新订单：{site} {order_id} 成交 {amt_str}",
-        store_id=data.get('user_id'),
-        site_id=data.get('site_id'),
-        details={"order_id": str(order_id), "source": "webhook", "status": data.get('status'), "amount": amount}
-    )
-
 
 def handle_questions(conn, data: dict):
     """questions webhook: 写入咨询消息"""
@@ -197,26 +183,15 @@ def handle_questions(conn, data: dict):
     from_val = data.get('from', {})
     from_user = from_val.get('id') if isinstance(from_val, dict) else None
     site = data.get('site_id', '')
-    site_name = SITE_NAMES.get(site, site)
     product = data.get('item_id', '')
     question_text = data.get('question_text') or data.get('text', '')
-    status = 'unread'
 
     try:
         cursor.execute("""
             INSERT OR IGNORE INTO customer_messages
             (site_id, buyer_id, item_id, last_message, status, updated_at)
             VALUES (?, ?, ?, ?, 'unread', datetime('now'))
-        """, (
-            site, from_user, product, question_text[:200]
-        ))
-        log_to_monitoring(
-            'info',
-            f"💬 新咨询：{site_name} 咨询 {product[:30]}",
-            store_id=from_user,
-            site_id=site,
-            details={"question_id": str(question_id), "source": "webhook"}
-        )
+        """, (site, from_user, product, question_text[:200]))
     except Exception as e:
         logger.warning(f"[Questions webhook] failed to write: {e}")
 
@@ -228,6 +203,7 @@ async def relay(payload: WebhookRelayPayload):
       orders / orders_v2 → handle_orders → orders_v2
       shipments         → handle_shipments → 更新已有订单物流字段
       questions         → handle_questions → customer_messages
+    monitoring_logs 写在事务 commit 之后，避免 SQLite 锁。
     """
     try:
         data = payload.model_dump(exclude_none=True)
@@ -238,18 +214,40 @@ async def relay(payload: WebhookRelayPayload):
         order_id = data.get('id') or data.get('order_id')
         logger.info(f"[Webhook Relay] topic={topic} id={order_id}")
 
+        # 预填 monitoring 信息（事务 commit 后再写）
+        monitor_msg = None
+        monitor_store = None
+        monitor_site = None
+        monitor_details = None
+
         with get_db_connection() as conn:
             if topic in ('orders', 'orders_v2'):
-                handle_orders(conn, data, topic)
+                handle_orders(conn, data)
+                site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
+                amount = data.get('amount')
+                amt_str = f'${amount:.2f}' if amount else 'N/A'
+                monitor_msg = f"📦 新订单：{site} {order_id} 成交 {amt_str}"
+                monitor_store = data.get('user_id')
+                monitor_site = data.get('site_id')
+                monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('status'), "amount": amount}
+
             elif topic == 'shipments':
                 handle_shipments(conn, data)
+                monitor_msg = f"🚚 物流更新：订单 {data.get('order_id')} → {data.get('shipping_status', 'unknown')}"
+                monitor_site = data.get('site_id')
+                monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('shipping_status')}
+
             elif topic == 'questions':
                 handle_questions(conn, data)
-            else:
-                # 未知 topic 也记录一下
-                logger.info(f"[Webhook Relay] unknown topic: {topic}, data keys: {list(data.keys())}")
+                site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
+                monitor_msg = f"💬 新咨询：{site} 咨询 {str(data.get('item_id', ''))[:30]}"
+                monitor_site = data.get('site_id')
+                monitor_details = {"source": "webhook"}
 
-            # ml_notifications 队列（仅订单类 topic）
+            else:
+                logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
+
+            # ml_notifications 队列
             if topic in ('orders', 'orders_v2', 'shipments'):
                 cursor = conn.cursor()
                 cursor.execute(
@@ -262,7 +260,12 @@ async def relay(payload: WebhookRelayPayload):
                         data.get('application_id'),
                     )
                 )
-                conn.commit()
+
+            conn.commit()
+
+        # 事务结束后再写 monitoring_logs，避免数据库锁
+        if monitor_msg:
+            log_to_monitoring('info', monitor_msg, store_id=monitor_store, site_id=monitor_site, details=monitor_details)
 
         return {"ok": True, "topic": topic, "id": order_id}
 
