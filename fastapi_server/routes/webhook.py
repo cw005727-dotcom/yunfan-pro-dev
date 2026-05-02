@@ -96,8 +96,8 @@ async def relay(payload: WebhookRelayPayload):
                  logistic_company, tracking_status, receiver_city, receiver_state,
                  estimated_delivery_date, source)
                 VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'webhook')
-            """", (
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
                 order_data.get('id'),
                 order_data.get('user_id'),
                 order_data.get('site_id'),
@@ -125,6 +125,7 @@ async def relay(payload: WebhookRelayPayload):
                 order_data.get('receiver_city'),
                 order_data.get('receiver_state'),
                 order_data.get('estimated_delivery_date'),
+                'webhook',
             ))
             conn.commit()
 
