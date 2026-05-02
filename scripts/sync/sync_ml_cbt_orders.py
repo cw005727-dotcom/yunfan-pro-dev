@@ -93,7 +93,7 @@ def sync():
     # 只取最新一批订单（按时间倒序，最多30个）
     url = f'https://api.mercadolibre.com/marketplace/orders/search?seller_id=3164139599&limit={MAX_ORDERS}&sort=date_desc'
     try:
-        r1 = requests.get(url, headers=h, timeout=15)
+        r1 = requests.get(url, headers=h, timeout=10)
         groups = r1.json().get('results', [])
     except Exception as e:
         print(f'搜索失败: {e}')
