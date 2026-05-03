@@ -32,22 +32,25 @@ def parse_shipment(sd):
     """从 shipments API 响应提取所有物流字段"""
     addr = sd.get('destination', {}).get('shipping_address', {})
     city = addr.get('city', {})
-    state = addr.get('state', {})
+    # pay_before = 最晚发货时间（shipping_option.estimated_delivery_time.pay_before）
     lead = sd.get('lead_time', {})
     est  = lead.get('estimated_delivery_time', {})
+    pay_before = est.get('pay_before', '') if isinstance(est, dict) else ''
 
-    logistic = sd.get('logistic', {}) or {}
+    city_name = city.get('name', '') if isinstance(city, dict) else ''
+    state_name = state.get('name', '') if isinstance(state, dict) else ''
 
     return {
-        'logistic_type':        logistic.get('type', '') if isinstance(logistic, dict) else '',
-        'logistic_company':    sd.get('tracking_method', '') or '',
-        'tracking_id':         sd.get('tracking_number', '') or sd.get('tracking_id', '') or '',
-        'shipping_status':     sd.get('status', '') or '',
-        'shipping_substatus':  sd.get('substatus', '') or '',
-        'tracking_status':     sd.get('status', '') or '',
-        'receiver_city':      city.get('name', '') if isinstance(city, dict) else '',
-        'receiver_state':     state.get('name', '') if isinstance(state, dict) else '',
+        'logistic_type':          logistic.get('type', '') if isinstance(logistic, dict) else '',
+        'logistic_company':       sd.get('tracking_method', '') or '',
+        'tracking_id':            sd.get('tracking_number', '') or sd.get('tracking_id', '') or '',
+        'shipping_status':        sd.get('status', '') or '',
+        'shipping_substatus':     sd.get('substatus', '') or '',
+        'tracking_status':        sd.get('status', '') or '',
+        'receiver_city':          city_name,
+        'receiver_state':          state_name,
         'estimated_delivery_date': est.get('date', '') or '',
+        'last_ship_date':         pay_before,
     }
 
 def sync_batch(cursor, orders, token):
@@ -110,7 +113,8 @@ def sync_batch(cursor, orders, token):
                 tracking_status         = ?,
                 receiver_city           = ?,
                 receiver_state          = ?,
-                estimated_delivery_date = ?
+                estimated_delivery_date = ?,
+                last_ship_date          = ?
             WHERE id = ?
         """, (
             p['logistic_type'],
@@ -122,6 +126,7 @@ def sync_batch(cursor, orders, token):
             p['receiver_city'],
             p['receiver_state'],
             p['estimated_delivery_date'],
+            p['last_ship_date'],
             oid
         ))
         updated += 1
