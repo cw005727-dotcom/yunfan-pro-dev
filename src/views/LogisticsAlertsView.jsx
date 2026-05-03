@@ -158,6 +158,24 @@ const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
                         </span>
                       </div>
                     )}
+
+                    {/* categoryId=1 显示承运商+目的城市 */}
+                    {categoryId === '1' && order.logistic_company && (
+                      <div className="flex items-center justify-between px-2 py-1 rounded-lg border bg-blue-50 border-blue-100">
+                        <span className="text-[11px] font-black text-blue-500 uppercase tracking-wider">快递</span>
+                        <span className="text-[11px] font-mono font-black text-blue-700 truncate ml-2">
+                          {order.logistic_company}
+                        </span>
+                      </div>
+                    )}
+                    {categoryId === '1' && order.receiver_city && (
+                      <div className="flex items-center justify-between px-2 py-1 rounded-lg border bg-blue-50 border-blue-100">
+                        <span className="text-[11px] font-black text-blue-500 uppercase tracking-wider">收件</span>
+                        <span className="text-[11px] font-mono font-black text-blue-700 truncate ml-2">
+                          {order.receiver_city}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
