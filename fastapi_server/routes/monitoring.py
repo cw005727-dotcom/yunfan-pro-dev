@@ -66,7 +66,7 @@ async def monitoring_stream():
                 "id": f"overdue_{row['id']}",
                 "type": "logistics",
                 "label": "发货超时",
-                "desc": f"{site} 订单{row['id']}发货已超期",
+                "desc": f"{site} 发货已超期",
                 "time": "紧急",
                 "urgent": True
             })
@@ -134,7 +134,7 @@ async def monitoring_stream():
                 "id": f"order_{row['id']}",
                 "type": "order",
                 "label": "新订单",
-                "desc": f"{site} 订单 {row['id']} 成交 ${row['amount']:.2f}",
+                "desc": f"{site} 新订单 成交 ${row['amount']:.2f}",
                 "time": row['order_date'][11:16] if row['order_date'] else "",
                 "order_date": row['order_date'] or "",
                 "urgent": False

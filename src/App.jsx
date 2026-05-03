@@ -196,7 +196,7 @@ const MonitoringSidebar = ({ mobile, onClose }) => {
                 )}
             </div>
             
-            <div className="flex-1 overflow-y-auto px-3 py-6 space-y-4 no-scrollbar z-10">
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2 no-scrollbar z-10">
                 {logs.map((log) => {
                     const cfg = typeConfig[log.type] || typeConfig.order;
                     return (
@@ -205,7 +205,7 @@ const MonitoringSidebar = ({ mobile, onClose }) => {
                             className={`animate-log-eject group relative flex flex-col rounded-2xl backdrop-blur-xl border transition-all duration-300 cursor-pointer overflow-hidden
                                 ${cfg.bg} ${cfg.border} hover:bg-white/5 hover:border-white/20 shadow-sm`}
                         >
-                            <div className="p-4 space-y-2">
+                            <div className="p-3 space-y-1">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-1.5 h-1.5 rounded-full`} style={{ backgroundColor: cfg.hex, boxShadow: `0 0 8px ${cfg.hex}` }}></div>
@@ -214,7 +214,7 @@ const MonitoringSidebar = ({ mobile, onClose }) => {
                                     <span className="text-[11px] whitespace-nowrap text-slate-500 font-mono italic">{log.time}</span>
                                 </div>
                                 
-                                <p className="text-[11px] text-slate-500 font-bold leading-relaxed group-hover:text-white transition-colors">
+                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed group-hover:text-white transition-colors">
                                     {log.desc}
                                 </p>
                             </div>
