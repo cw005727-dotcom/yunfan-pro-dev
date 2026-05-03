@@ -127,7 +127,6 @@ const AdaptiveRadar = ({ orders, selectedId, onSelect, categoryId }) => {
                 
                 <div className="flex gap-3 items-center">
                   <div className="relative shrink-0">
-                    <img src={order.thumbnail} className="w-11 h-11 object-cover rounded-xl border border-slate-100 shadow-sm" alt="" />
                     {order.is_overdue && (
                       <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center border-2 border-white">
                         <Icon name="alert-triangle" className="w-2 h-2" />
@@ -478,7 +477,6 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative shrink-0">
-                        <img src={o.thumbnail} className="w-10 h-10 object-cover rounded-lg border border-slate-100 shadow-sm" alt="" />
                         <span className="absolute -top-1 -right-1 text-[11px] bg-white border border-slate-100 rounded px-1 font-black shadow-sm">
                           {SITE_FLAGS[o.site_id]?.split(' ')[0]}
                         </span>
