@@ -18,8 +18,8 @@ KEY_FILE = os.path.join(DATA_DIR, '.ml_token_key')
 import socket
 DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else PROJECT_ROOT
 DB = os.path.join(DATA_DIR, 'mercadolibre.db')
-MAX_ORDERS = 30  # 每次最多处理30个新订单
-MAX_RUNTIME = 55  # 55秒强制退出
+MAX_ORDERS = 1000  # 每次最多处理1000个新订单
+MAX_RUNTIME = 240  # 240秒强制退出
 
 SITE_NAMES = {'MLB': '巴西', 'MLM': '墨西哥', 'MLA': '阿根廷', 'MCO': '哥伦比亚', 'MLC': '智利', 'MLU': '乌拉圭'}
 
