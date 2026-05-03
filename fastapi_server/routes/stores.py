@@ -21,8 +21,8 @@ from fastapi.responses import HTMLResponse
 from scripts.utils.token_manager import load_tokens, save_tokens
 
 # ML OAuth 配置（与 api_server.py 保持一致）
-ML_APP_ID = "8105299077213607"
-ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
+ML_APP_ID = "6279738394953717"
+ML_CLIENT_SECRET = "86i8GgQ9fzVVPiyWAdXvIXQC1gbWAUn5"
 ML_REDIRECT_URI = "https://chensan.vip/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
