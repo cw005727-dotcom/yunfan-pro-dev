@@ -42,28 +42,19 @@ async def meli_auth_post(code: str = Body(None)):
 
 
 async def _do_auth(code: str):
-    """统一授权处理"""
+    """统一授权处理（已暂停自动兑换，显示 code 让用户手动发给我）"""
     if not code:
         raise HTTPException(status_code=400, detail="No code provided")
 
-    try:
-        payload = {
-            "grant_type": "authorization_code",
-            "client_id": ML_APP_ID,
-            "client_secret": ML_CLIENT_SECRET,
-            "code": code,
-            "redirect_uri": ML_REDIRECT_URI
-        }
-        resp = requests.post(ML_TOKEN_URL, data=payload, timeout=10)
-        data = resp.json()
+    # 显示 code 不自动兑换，等用户把 code 发给 AI 来手动换
+    return HTMLResponse(
+        content=f'<html><body><h2>授权码已生成 ✅</h2><p>请把这个 code 发给 AI：</p><pre style="background:#f4f4f4;padding:15px;border-radius:8px;word-break:break-all;font-size:14px">{code}</pre><p><b>！请勿关闭此页面，AI 处理完成后会通知你。</b></p></body></html>',
+        headers={"Location": None}
+    )
 
-        if 'access_token' in data:
-            save_tokens(data)
-            return HTMLResponse(content='<html><body><h2>授权成功 ✅</h2><p>可以关闭此窗口。</p></body></html>')
-        else:
-            return {"status": "error", "detail": str(data)}
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+
+async def _do_auth_EXCHANGE(code: str):
+    """真正的兑换逻辑（保留原逻辑供手动调用）"""
 
 
 @router.get("/stores")
