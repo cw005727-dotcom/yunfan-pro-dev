@@ -14,7 +14,8 @@ import json
 import re
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..db import get_db_connection
@@ -275,7 +276,7 @@ def handle_claims(conn, data: dict):
 
 
 @router.post("/relay")
-async def relay(payload: WebhookRelayPayload):
+async def relay(body: dict = Body(...)):
     """
     统一接收 ML 所有 webhook 通知，按 topic 分流处理：
       orders / orders_v2      → handle_orders   → orders_v2
@@ -285,7 +286,7 @@ async def relay(payload: WebhookRelayPayload):
     monitoring_logs 写在事务 commit 之后，避免 SQLite 锁。
     """
     try:
-        data = payload.model_dump(exclude_none=True)
+        data = body  # 直接用原始 dict，不走 Pydantic 验证
         if not data:
             raise HTTPException(status_code=400, detail="Empty payload")
 
@@ -381,3 +382,4 @@ async def relay(payload: WebhookRelayPayload):
         raise
     except Exception as e:
         logger.error(f"[Webhook Relay] error: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
