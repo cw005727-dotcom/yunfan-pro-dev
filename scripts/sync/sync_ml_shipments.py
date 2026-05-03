@@ -36,11 +36,9 @@ def to_beijing(ts_str):
         return ''
     try:
         dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-        utc = dt.replace(tzinfo=timezone.utc)
-        bj = utc + timedelta(hours=8)
-        return bj.strftime('%Y-%m-%dT%H:%M:%S')
+        return dt.astimezone(timezone(timedelta(hours=8))).strftime('%Y-%m-%dT%H:%M:%S')
     except:
-        return ts_str[:19]
+        return ''
 
 def parse_shipment(sd):
     """从 shipments API 响应提取所有物流字段"""
