@@ -38,8 +38,8 @@ def parse_shipment(sd):
     pay_before = est.get('pay_before', '') if isinstance(est, dict) else ''
 
     city_name = city.get('name', '') if isinstance(city, dict) else ''
-    state_name = state.get('name', '') if isinstance(state, dict) else ''
-
+    state_name = addr.get('state', {}).get('name', '')
+    logistic = sd.get('logistic', {}) or {}
     return {
         'logistic_type':          logistic.get('type', '') if isinstance(logistic, dict) else '',
         'logistic_company':       sd.get('tracking_method', '') or '',
