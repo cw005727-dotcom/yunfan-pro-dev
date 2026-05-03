@@ -21,7 +21,7 @@ async def get_logistics_stats():
         cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('pending', 'ready_to_ship', 'ready_to_print', 'printed')")
         cat1 = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('shipped', 'in_transit', 'at_customs', 'left_customs', 'picked_up', 'dropped_off')")
+        cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('shipped', 'in_transit', 'new_shipped_status', 'at_customs', 'left_customs', 'picked_up', 'dropped_off')")
         cat2 = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM orders_v2 WHERE shipping_status = 'delivered'")
