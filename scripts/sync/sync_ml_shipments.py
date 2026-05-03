@@ -28,18 +28,33 @@ def load_token():
     tok = json.loads(decrypt(open(ENC_FILE).read(), key))
     return tok['access_token']
 
+from datetime import datetime, timezone, timedelta
+
+def to_beijing(ts_str):
+    """把 ISO 时间字符串（含时区）转成北京时间字符串"""
+    if not ts_str:
+        return ''
+    try:
+        dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+        utc = dt.replace(tzinfo=timezone.utc)
+        bj = utc + timedelta(hours=8)
+        return bj.strftime('%Y-%m-%dT%H:%M:%S')
+    except:
+        return ts_str[:19]
+
 def parse_shipment(sd):
     """从 shipments API 响应提取所有物流字段"""
     addr = sd.get('destination', {}).get('shipping_address', {})
     city = addr.get('city', {})
-    # pay_before = 最晚发货时间（shipping_option.estimated_delivery_time.pay_before）
     lead = sd.get('lead_time', {})
     est  = lead.get('estimated_delivery_time', {})
-    pay_before = est.get('pay_before', '') if isinstance(est, dict) else ''
+    pay_before_raw = est.get('pay_before', '') if isinstance(est, dict) else ''
+    pay_before_bj = to_beijing(pay_before_raw)
 
     city_name = city.get('name', '') if isinstance(city, dict) else ''
     state_name = addr.get('state', {}).get('name', '')
     logistic = sd.get('logistic', {}) or {}
+
     return {
         'logistic_type':          logistic.get('type', '') if isinstance(logistic, dict) else '',
         'logistic_company':       sd.get('tracking_method', '') or '',
@@ -49,8 +64,8 @@ def parse_shipment(sd):
         'tracking_status':        sd.get('status', '') or '',
         'receiver_city':          city_name,
         'receiver_state':          state_name,
-        'estimated_delivery_date': est.get('date', '') or '',
-        'last_ship_date':         pay_before,
+        'estimated_delivery_date': to_beijing(est.get('date', '')),
+        'last_ship_date':         pay_before_bj,
     }
 
 def sync_batch(cursor, orders, token):
