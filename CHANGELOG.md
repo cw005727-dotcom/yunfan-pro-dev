@@ -1,4 +1,10 @@
 
+## v4.31.1 (2026-05-03)
+### Webhook 422 Fix
+- **root cause**: ML webhook 全部返回 422 → FastAPI Pydantic 验证失败（字段类型不匹配）
+- **fix**: 改用 `body: dict = Body(...)` 接收原始 payload，绕过 Pydantic 模型验证
+- **ML 确认**: github.com/go-loco/restful + IPs (35.186/35.245/18.215/18.213) 均为 ML 官方 webhook 发送方
+
 ## v4.30.1 (2026-05-01 11:50)
 ### OAuth + Token Auto-Refresh
 - **Auth URL fixed**: changed from `http://localhost:8506` to `https://chensan.vip/api/meli-auth`
