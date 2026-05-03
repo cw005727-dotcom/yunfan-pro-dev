@@ -149,12 +149,11 @@ def main():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # 找出需要同步的订单（有 tracking_id 但缺 logistic_company）
+    # 找出需要同步的订单（缺 logistic_company 的全部补）
     c.execute("""
         SELECT id, tracking_id, logistic_company, tracking_status
         FROM orders_v2
-        WHERE tracking_id IS NOT NULL AND tracking_id != ''
-          AND (logistic_company IS NULL OR logistic_company = '')
+        WHERE logistic_company IS NULL OR logistic_company = ''
         ORDER BY order_date DESC
         LIMIT 100
     """)
