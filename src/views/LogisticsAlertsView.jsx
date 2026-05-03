@@ -452,7 +452,7 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
           <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-slate-900 z-10">
             <tr>
-              <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Intel / 订单标识</th>
+              <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Logistics / 物流追踪</th>
               <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Product / 作战目标</th>
               <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Status / 链路状态</th>
               <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Value / 货值</th>
@@ -469,7 +469,7 @@ const LogisticsTable = ({ orders, onSelect, activeCategory }) => {
                 >
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
-                      <p className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">#{o.id}</p>
+                      <p className="text-[11px] font-black text-slate-900 group-hover:text-blue-600 transition-colors">{SITE_FLAGS[o.site_id]}</p>
                       <div className="flex items-center gap-2">
                          <span className="text-[11px] text-slate-500 font-black uppercase tracking-tighter">LP: {o.tracking_id || 'PENDING'}</span>
                       </div>
