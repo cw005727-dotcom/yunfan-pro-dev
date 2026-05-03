@@ -3,11 +3,11 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils.token_manager import refresh_access_token, get_tokens, save_tokens
+from utils.token_manager import refresh_access_token, load_tokens, save_tokens
 import time
 
 def main():
-    tokens = get_tokens()
+    tokens = load_tokens()
     if not tokens:
         print("❌ 无法获取 token")
         return
