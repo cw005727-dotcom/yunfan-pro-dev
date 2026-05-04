@@ -302,7 +302,7 @@ async def relay(body: dict = Body(...)):
         urgent = False  # 索赔默认紧急
 
         with get_db_connection() as conn:
-            if topic in ('orders', 'orders_v2'):
+            if topic in ('orders', 'orders_v2', 'marketplace_orders'):
                 handle_orders(conn, data)
                 site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
                 amount = data.get('amount')
@@ -313,7 +313,7 @@ async def relay(body: dict = Body(...)):
                 monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('status'), "amount": amount}
                 urgent = False
 
-            elif topic == 'shipments':
+            elif topic in ('shipments', 'marketplace_shipments'):
                 handle_shipments(conn, data)
                 logistic_company = data.get('logistic_company') or data.get('tracking_method') or '-'
                 rcv_city = data.get('receiver_city') or '-'
