@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Auto-refresh ML access_token"""
-import sys, os, time, requests, json, urllib.parse, urllib.request
+import sys, os, time, json, urllib.parse, urllib.request
 
 PROJECT_ROOT = '/home/admin/yunfan-pro-dev'
 sys.path.insert(0, PROJECT_ROOT)
