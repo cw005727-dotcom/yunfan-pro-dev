@@ -67,7 +67,7 @@ async def monitoring_stream():
                 "id": f"overdue_{row['id']}",
                 "type": "logistics",
                 "label": "发货超时",
-                "desc": f"{site} 发货已超期",
+                "desc": f"{site} {row['id']} 发货已超期",
                 "time": "紧急",
                 "urgent": True
             })
