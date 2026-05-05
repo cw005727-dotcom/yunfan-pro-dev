@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """自动刷新 ML access_token，防止过期"""
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 修复：需要加 project root 到 sys.path，才能 import utils.token_manager
+PROJECT_ROOT = '/home/admin/yunfan-pro-dev'
+sys.path.insert(0, PROJECT_ROOT)
+sys.path.insert(0, os.path.join(PROJECT_ROOT, 'scripts'))
 
 from utils.token_manager import refresh_access_token, load_tokens, save_tokens
 import time
