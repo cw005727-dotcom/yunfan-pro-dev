@@ -62,15 +62,11 @@ async def monitoring_stream():
             LIMIT 5
         """, (now_brt_str,))
         for row in cursor.fetchall():
-            site = SITE_MAP.get(row['site_id'], row['site_id'])
-            product = (row['product_name'] or '商品')[:20]
-            qty = row['quantity'] or 1
-            tid = row['tracking_id'] or ''
             events.append({
                 "id": f"overdue_{row['id']}",
                 "type": "logistics",
                 "label": "发货超时",
-                "desc": f"{site} 发货已超期 | {product} x{qty}{' | 运单号:'+tid if tid else ''}",
+                "desc": f"{site} 发货已超期 | 运单号:{tid}" if tid else f"{site} 发货已超期",
                 "time": "紧急",
                 "urgent": True
             })
