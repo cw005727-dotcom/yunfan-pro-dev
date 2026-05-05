@@ -1,43 +1,56 @@
 #!/usr/bin/env python3
-"""自动刷新 ML access_token，防止过期"""
-import sys, os
-# 修复：需要加 project root 到 sys.path，才能 import utils.token_manager
+"""Auto-refresh ML access_token"""
+import sys, os, time, requests, json, urllib.parse, urllib.request
+
 PROJECT_ROOT = '/home/admin/yunfan-pro-dev'
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, 'scripts'))
 
-from utils.token_manager import refresh_access_token, load_tokens, save_tokens
-import time
+CLIENT_ID = '2853782117476515'
+CLIENT_SECRET = '0pxmJU6zBiOJ4LyNokerwH4I835ykX3F'
+
+from utils.token_manager import load_tokens, save_tokens
+
+def refresh_access_token(rt):
+    params = urllib.parse.urlencode({
+        'grant_type': 'refresh_token',
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_SECRET,
+        'refresh_token': rt,
+    })
+    req = urllib.request.Request(
+        'https://api.mercadolibre.com/oauth/token',
+        data=params.encode(),
+        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read())
 
 def main():
     tokens = load_tokens()
     if not tokens:
-        print("❌ 无法获取 token")
+        print('no tokens found')
         return
 
     rt = tokens.get('refresh_token')
     if not rt:
-        print("❌ 无 refresh_token")
+        print('no refresh_token')
         return
 
-    created_at = tokens.get('created_at', 0)
-    expires_in = tokens.get('expires_in', 21600)
-    expires_at = created_at + expires_in
-    remaining = expires_at - time.time()
+    remaining = tokens.get('created_at', 0) + tokens.get('expires_in', 21600) - time.time()
+    print(f'AT remaining: {remaining:.0f}s ({remaining/3600:.1f}h)')
 
-    print(f"当前 AT 剩余 {remaining:.0f}s ({remaining/3600:.1f}h)")
-
-    # 快过期了（<30分钟）或已过期才刷新
     if remaining > 1800:
-        print(f"AT 仍有效（还剩 {remaining:.0f}s），跳过刷新")
+        print(f'Still valid ({remaining:.0f}s), skip')
         return
 
-    print("AT 快过期，开始刷新...")
-    new_tokens = refresh_access_token(rt)
-    if new_tokens:
-        print("✅ 刷新成功:", new_tokens['access_token'][:40])
-    else:
-        print("❌ 刷新失败")
+    print('Refreshing...')
+    try:
+        new_tokens = refresh_access_token(rt)
+        save_tokens(new_tokens)
+        print('OK:', new_tokens['access_token'][:40])
+    except Exception as e:
+        print(f'FAILED: {e}')
 
 if __name__ == '__main__':
     main()
