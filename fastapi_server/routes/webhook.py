@@ -12,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 import logging
 import json
 import re
+import requests
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Body
@@ -99,6 +100,47 @@ def to_beijing(ts_str):
         return bj.strftime('%Y-%m-%dT%H:%M:%S')
     except:
         return ts_str[:19] if ts_str else ''
+
+
+def enrich_marketplace_order(data: dict, order_id: str):
+    """marketplace_orders webhook 缺少详情字段，通过 ML API 补充。"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT access_token FROM stores WHERE user_id=? LIMIT 1",
+                (str(data.get('user_id') or ''),)
+            )
+            row = cursor.fetchone()
+        if not row or not row[0]:
+            logger.warning(f"[enrich] no token for user {data.get('user_id')}")
+            return
+        token = row[0]
+        headers = {'Authorization': f'Bearer {token}'}
+        url = f'https://api.mercadolibre.com/marketplace/orders/{order_id}'
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            od = resp.json()
+            # 合并关键字段
+            data['site_id'] = od.get('site_id')
+            data['status'] = od.get('status')
+            data['order_date'] = to_beijing(od.get('date_created') or '')
+            data['paid_amount'] = od.get('total_amount')
+            # order_items 里的单价 × 数量
+            items = od.get('order_items', []) or []
+            if items:
+                first = items[0]
+                data['product_name'] = first.get('item', {}).get('title', '')
+                data['seller_sku'] = first.get('item', {}).get('seller_sku', '')
+                data['quantity'] = first.get('quantity', 1)
+                unit_price = first.get('unit_price') or 0
+                qty = first.get('quantity', 1)
+                data['amount'] = float(unit_price) * int(qty)
+            logger.info(f"[enrich] got order details: site={data.get('site_id')} amount={data.get('amount')} status={data.get('status')}")
+        else:
+            logger.warning(f"[enrich] API {url} -> {resp.status_code}")
+    except Exception as e:
+        logger.error(f"[enrich] error: {e}")
 
 
 def handle_shipments(conn, data: dict):
@@ -309,6 +351,10 @@ async def relay(body: dict = Body(...)):
             raise HTTPException(status_code=400, detail="Missing order id")
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去
         data['id'] = order_id
+
+        # marketplace_orders 缺少详情字段，先通过 API 补充
+        if topic == 'marketplace_orders':
+            enrich_marketplace_order(data, order_id)
 
         # 预填 monitoring 信息（事务 commit 后再写）
         monitor_msg = None
