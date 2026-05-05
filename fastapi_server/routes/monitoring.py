@@ -54,19 +54,23 @@ async def monitoring_stream():
         events = []
 
         # 1. 超期发货预警（last_ship_date 存在 BRT，需要用 BRT 当前时间比较）
-        cursor.execute("""
-            SELECT o.id, o.last_ship_date, o.site_id
+        cursor.execute(""""
+            SELECT o.id, o.last_ship_date, o.site_id, o.product_name, o.quantity, o.tracking_id
             FROM orders_v2 o
             WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ?
+            ORDER BY o.last_ship_date ASC
             LIMIT 5
         """, (now_brt_str,))
         for row in cursor.fetchall():
             site = SITE_MAP.get(row['site_id'], row['site_id'])
+            product = (row['product_name'] or '商品')[:20]
+            qty = row['quantity'] or 1
+            tid = row['tracking_id'] or ''
             events.append({
                 "id": f"overdue_{row['id']}",
                 "type": "logistics",
                 "label": "发货超时",
-                "desc": f"{site} 发货已超期",
+                "desc": f"{site} 发货已超期 | {product} x{qty}{' | 运单号:'+tid if tid else ''}",
                 "time": "紧急",
                 "urgent": True
             })
