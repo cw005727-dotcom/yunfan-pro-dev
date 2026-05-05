@@ -54,7 +54,7 @@ async def monitoring_stream():
         events = []
 
         # 1. 超期发货预警（last_ship_date 存在 BRT，需要用 BRT 当前时间比较）
-        cursor.execute(""""
+        cursor.execute("""
             SELECT o.id, o.last_ship_date, o.site_id, o.product_name, o.quantity, o.tracking_id
             FROM orders_v2 o
             WHERE o.shipping_status IN ('pending', 'ready_to_ship') AND o.last_ship_date < ?
