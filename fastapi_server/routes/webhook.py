@@ -110,7 +110,13 @@ def handle_shipments(conn, data: dict):
     不做 INSERT（订单可能不存在），只更新已有订单。
     """
     cursor = conn.cursor()
+    # ML marketplace_shipments webhook: resource="/marketplace/shipments/46916896649"
+    raw_resource = data.get('resource', '') or ''
     order_id = data.get('order_id') or data.get('id')
+    if not order_id and raw_resource:
+        m = re.search(r'/shipments?/(\d+)', raw_resource)
+        if m:
+            order_id = m.group(1)
     if not order_id:
         logger.warning(f"[handle_shipments] missing order_id, data keys={list(data.keys())[:8]}")
         return
@@ -298,9 +304,8 @@ async def relay(body: dict = Body(...)):
             m = re.search(r'/orders/(\d+)', raw_resource)
             if m:
                 order_id = m.group(1)
-        logger.info(f"[Webhook Relay] topic={topic} id={order_id} data_keys={list(data.keys())}")
+        logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
         if not order_id:
-            logger.warning(f"[Webhook Relay] MISSING order_id after resource parse, data={data}")
             raise HTTPException(status_code=400, detail="Missing order id")
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去
         data['id'] = order_id
