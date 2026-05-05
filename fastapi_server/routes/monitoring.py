@@ -134,7 +134,7 @@ async def monitoring_stream():
                 "id": f"order_{row['id']}",
                 "type": "order",
                 "label": "新订单",
-                "desc": f"{site} 新订单 成交 ${row['amount']:.2f}",
+                "desc": f"{site} 新订单 成交 ${row['amount']:.2f if row['amount'] is not None else 'N/A'}",
                 "time": row['order_date'][11:16] if row['order_date'] else "",
                 "order_date": row['order_date'] or "",
                 "urgent": False
