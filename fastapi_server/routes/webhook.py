@@ -301,6 +301,9 @@ async def relay(body: dict = Body(...)):
         logger.info(f"[Webhook Relay] topic={topic} id={order_id} data_keys={list(data.keys())}")
         if not order_id:
             logger.warning(f"[Webhook Relay] MISSING order_id after resource parse, data={data}")
+            raise HTTPException(status_code=400, detail="Missing order id")
+        # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去
+        data['id'] = order_id
 
         # 预填 monitoring 信息（事务 commit 后再写）
         monitor_msg = None
