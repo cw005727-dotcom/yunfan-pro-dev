@@ -291,8 +291,14 @@ async def relay(body: dict = Body(...)):
             raise HTTPException(status_code=400, detail="Empty payload")
 
         topic = data.get('topic', 'orders_v2')
+        # ML marketplace_orders webhook 格式：resource="/orders/123456"（order_id 在 resource 字段里）
+        raw_resource = data.get('resource', '') or ''
         order_id = data.get('id') or data.get('order_id')
-        logger.info(f"[Webhook Relay] topic={topic} id={order_id}")
+        if not order_id and raw_resource:
+            m = re.search(r'/orders/(\d+)', raw_resource)
+            if m:
+                order_id = m.group(1)
+        logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
 
         # 预填 monitoring 信息（事务 commit 后再写）
         monitor_msg = None
