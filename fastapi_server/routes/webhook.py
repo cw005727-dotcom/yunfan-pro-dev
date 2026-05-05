@@ -298,7 +298,9 @@ async def relay(body: dict = Body(...)):
             m = re.search(r'/orders/(\d+)', raw_resource)
             if m:
                 order_id = m.group(1)
-        logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
+        logger.info(f"[Webhook Relay] topic={topic} id={order_id} data_keys={list(data.keys())}")
+        if not order_id:
+            logger.warning(f"[Webhook Relay] MISSING order_id after resource parse, data={data}")
 
         # 预填 monitoring 信息（事务 commit 后再写）
         monitor_msg = None
