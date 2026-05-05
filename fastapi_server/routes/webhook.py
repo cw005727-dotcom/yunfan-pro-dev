@@ -355,10 +355,11 @@ async def relay(body: dict = Body(...)):
         # marketplace_orders 缺少详情字段，先通过 API 补充
         if topic == 'marketplace_orders':
             enrich_marketplace_order(data, order_id)
-            # API enrichment 可能仍失败，用当前北京时间做兜底订单时间（webhook到达≈下单时间）
+            # API enrichment 可能仍失败：用当前北京时间做兜底订单时间
+            # handle_orders 会把 order_date 传给 to_beijing()（+12h），所以这里不用它
+            # 改用直接 UPDATE：在 handle_orders 插入后，再 UPDATE order_date 为正确值
             if not data.get('order_date'):
-                bj_now = datetime.now()
-                data['order_date'] = bj_now.strftime('%Y-%m-%dT%H:%M:%S')
+                data['_bj_now'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # 预填 monitoring 信息（事务 commit 后再写）
         monitor_msg = None
@@ -370,6 +371,11 @@ async def relay(body: dict = Body(...)):
         with get_db_connection() as conn:
             if topic in ('orders', 'orders_v2', 'marketplace_orders'):
                 handle_orders(conn, data)
+                # 兜底：修正 marketplace_orders 的 order_date（handle_orders 里的 to_beijing 会把北京时加12h）
+                if topic == 'marketplace_orders' and data.get('_bj_now'):
+                    cursor2 = conn.cursor()
+                    cursor2.execute("UPDATE orders_v2 SET order_date=? WHERE id=?",
+                                    (data['_bj_now'], str(order_id)))
                 site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
                 amount = data.get('amount')
                 amt_str = f'${amount:.2f}' if amount else 'N/A'
