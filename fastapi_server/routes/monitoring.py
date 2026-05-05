@@ -62,6 +62,8 @@ async def monitoring_stream():
             LIMIT 5
         """, (now_brt_str,))
         for row in cursor.fetchall():
+            site = SITE_MAP.get(row['site_id'], row['site_id'])
+            tid = row['tracking_id'] or ''
             events.append({
                 "id": f"overdue_{row['id']}",
                 "type": "logistics",
