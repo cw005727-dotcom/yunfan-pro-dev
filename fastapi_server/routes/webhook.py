@@ -355,13 +355,10 @@ async def relay(body: dict = Body(...)):
         # marketplace_orders 缺少详情字段，先通过 API 补充
         if topic == 'marketplace_orders':
             enrich_marketplace_order(data, order_id)
-            # API  enrichment 可能仍失败，用 webhook 的 received 时间戳做兜底订单时间
+            # API enrichment 可能仍失败，用当前北京时间做兜底订单时间（webhook到达≈下单时间）
             if not data.get('order_date'):
-                received_ms = data.get('received')
-                if received_ms:
-                    import datetime
-                    bj_ts = datetime.datetime.fromtimestamp(received_ms / 1000) + datetime.timedelta(hours=8)
-                    data['order_date'] = bj_ts.strftime('%Y-%m-%dT%H:%M:%S')
+                bj_now = datetime.datetime.now()
+                data['order_date'] = bj_now.strftime('%Y-%m-%dT%H:%M:%S')
 
         # 预填 monitoring 信息（事务 commit 后再写）
         monitor_msg = None
