@@ -125,18 +125,22 @@ def enrich_marketplace_order(data: dict, order_id: str):
             data['site_id'] = od.get('site_id')
             data['status'] = od.get('status')
             data['order_date'] = to_beijing(od.get('date_created') or '')
-            data['paid_amount'] = od.get('total_amount')
-            # order_items 里的单价 × 数量
-            items = od.get('order_items', []) or []
+            # order_items 里的单价 × 数量（total_amount 经常为 null，要从 items 累加）
+            items = od.get('order_items') or []
+            total = round(sum(
+                float(i.get('unit_price') or 0) * int(i.get('quantity') or 1)
+                for i in items
+            ), 2)
+            # paid_amount 优先用 API 的 total_amount，没有则用计算值
+            data['amount'] = total
+            data['paid_amount'] = od.get('total_amount') or total
             if items:
                 first = items[0]
                 data['product_name'] = first.get('item', {}).get('title', '')
                 data['seller_sku'] = first.get('item', {}).get('seller_sku', '')
                 data['quantity'] = first.get('quantity', 1)
-                unit_price = first.get('unit_price') or 0
-                qty = first.get('quantity', 1)
-                data['amount'] = float(unit_price) * int(qty)
-            logger.info(f"[enrich] got order details: site={data.get('site_id')} amount={data.get('amount')} status={data.get('status')}")
+                data['thumbnail'] = first.get('item', {}).get('id', '')
+            logger.info(f"[enrich] got order details: site={data.get('site_id')} amount={data.get('amount')} paid={data.get('paid_amount')} status={data.get('status')}")
         else:
             logger.warning(f"[enrich] API {url} -> {resp.status_code}")
     except Exception as e:

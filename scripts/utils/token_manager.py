@@ -16,8 +16,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 KEY_FILE = PROJECT_ROOT / ".ml_token_key"
 TOKEN_FILE_ENC = str(PROJECT_ROOT / "ml_tokens.enc")
 
-ML_APP_ID = "8105299077213607"
-ML_CLIENT_SECRET = "viZR1saM1FSpYXquulrmh8T1pKiRjcjN"
+ML_APP_ID = "2853782117476515"
+ML_CLIENT_SECRET = "0pxmJU6zBiOJ4LyNokerwH4I835ykX3F"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
 # 提前刷新：access_token 剩余 < 24 小时时主动刷新

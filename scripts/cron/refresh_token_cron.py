@@ -2,7 +2,8 @@
 """Auto-refresh ML access_token"""
 import sys, os, time, json, urllib.parse, urllib.request
 
-PROJECT_ROOT = '/home/admin/yunfan-pro-dev'
+import socket
+PROJECT_ROOT = '/home/admin/yunfan-pro-dev' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else os.path.expanduser('~/yunfan-pro-dev')
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, 'scripts'))
 

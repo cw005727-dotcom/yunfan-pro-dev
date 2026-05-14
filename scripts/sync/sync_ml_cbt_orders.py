@@ -47,7 +47,7 @@ def load_tokens():
     if time.time() - created_at > expires_in - 3600:
         refreshed = requests.post('https://api.mercadolibre.com/oauth/token', data={
             'grant_type': 'refresh_token',
-            'client_id': '8105299077213607',
+            'client_id': '2853782117476515',
             'refresh_token': tokens.get('refresh_token', '')
         }, timeout=10).json()
         if refreshed.get('access_token'):
@@ -158,10 +158,11 @@ def sync():
 
                 order_date_bj = to_beijing(raw_date)
 
-                c.execute('''INSERT INTO orders_v2(id,user_id,site_id,order_date,product_name,quantity,amount,status,seller_sku,thumbnail,shipping_status,tracking_id,logistic_type,shipping_substatus)
-VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                paid = d.get('total_amount') or amount
+                c.execute('''INSERT INTO orders_v2(id,user_id,site_id,order_date,product_name,quantity,amount,status,seller_sku,thumbnail,shipping_status,tracking_id,logistic_type,shipping_substatus,paid_amount)
+VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                           (sid, 1, site, order_date_bj, product, qty, amount, status, seller_sku, thumbnail,
-                           ship['shipping_status'], ship['tracking_id'], ship['logistic_type'], ship['shipping_substatus']))
+                           ship['shipping_status'], ship['tracking_id'], ship['logistic_type'], ship['shipping_substatus'], paid))
                 write_monitor(conn, site, sid, amount, status)
                 new += 1
                 print(f'+ {sid} | {site} | {order_date_bj[:10]} | ${amount}')

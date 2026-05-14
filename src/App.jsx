@@ -21,6 +21,7 @@ const OptimizeTitleView = lazy(() => import('./views/OptimizeTitleView'));
 const ImageLabView = lazy(() => import('./views/ImageLabView'));
 const KeywordIntelView = lazy(() => import('./views/KeywordIntelView'));
 const SmartPriceCheckView = lazy(() => import('./views/SmartPriceCheckView'));
+const ProductResearchView = lazy(() => import('./views/ProductResearchView'));
 const Toast = lazy(() => import('./components/Toast'));
 
 const LoginPage = ({ onLogin }) => (
@@ -260,7 +261,8 @@ const App = () => {
             { id: 'reputation', label: '店铺声誉', icon: 'shield', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
             { id: 'radar', label: '爆品雷达', icon: 'zap', color: 'text-orange-500', bg: 'bg-orange-500', shadow: 'shadow-orange-500/30' },
             { id: 'infringement', label: '商品性能表', icon: 'bar-chart-2', color: 'text-indigo-500', bg: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', count: 0 },
-            { id: 'data-overview', label: '数据大盘', icon: 'pie-chart', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' }
+            { id: 'data-overview', label: '数据大盘', icon: 'pie-chart', color: 'text-blue-500', bg: 'bg-blue-500', shadow: 'shadow-blue-500/30' },
+            { id: 'research', label: '选品研究', icon: 'search', color: 'text-rose-500', bg: 'bg-rose-500', shadow: 'shadow-rose-500/30' }
         ],
         ops: [
             { id: 'price-check', label: '智能核价', icon: 'calculator', color: 'text-emerald-500', bg: 'bg-emerald-500', shadow: 'shadow-emerald-500/30' },
@@ -420,6 +422,7 @@ const App = () => {
                                     {sidebarItem === 'image' && <ImageLabView />}
                                     {sidebarItem === 'keyword' && <KeywordIntelView />}
                                     {sidebarItem === 'price-check' && <SmartPriceCheckView />}
+                                    {sidebarItem === 'research' && <ProductResearchView />}
                                 </div>
                                 {toast && <Toast {...toast} onClose={() => showToast(null)} />}
                             </Suspense>

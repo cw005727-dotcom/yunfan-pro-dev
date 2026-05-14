@@ -18,10 +18,15 @@ def to_beijing(dt_str):
         return dt.astimezone(BJ_TZ).strftime('%Y-%m-%d %H:%M:%S')
     except:
         return dt_str
+import sys, os
+import sys, os
+_s = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_s, '..', 'utils'))
+from token_manager import load_tokens
 from token_manager import load_tokens
 
 # 生产环境配置
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mercadolibre.db")
+DB_PATH = "/home/admin/data/mercadolibre.db"
 
 def pull_real_data():
     tokens = load_tokens()
@@ -77,9 +82,15 @@ def pull_real_data():
                         status = order.get('status', 'N/A')
                         
                         # 提取真实金额
-                        # 使用 payments 中的 transaction_amount (通常是单品价*数量)
+                        # 优先用 payments 的 transaction_amount，否则用 order_items 的 unit_price × qty
                         payments = order.get('payments', [])
                         total_amount = sum([p.get('transaction_amount', 0) for p in payments])
+                        if total_amount == 0 and order_items:
+                            # fallback: 累加所有 item 的 (单价 × 数量)
+                            total_amount = sum([
+                                (oi.get('unit_price', 0) or oi.get('sale_price', 0)) * oi.get('quantity', 1)
+                                for oi in order_items
+                            ])
                         
                         # 发货信息
                         shipping = order.get('shipping', {})
