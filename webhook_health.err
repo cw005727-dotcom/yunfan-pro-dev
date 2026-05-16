@@ -4478,3 +4478,478 @@
   warnings.warn(
 /Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
   warnings.warn(
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 56, in main
+    log(f"❌ webhook 返回异常: HTTP {r.status_code} body={r.text[:200]}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 56, in main
+    log(f"❌ webhook 返回异常: HTTP {r.status_code} body={r.text[:200]}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+/Users/chensan/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 54, in main
+    log("✅ webhook 端点正常响应")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 66, in <module>
+    main()
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 62, in main
+    log(f"❌ webhook 请求失败: {e}")
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py", line 28, in log
+    with open(LOG_FILE, "a") as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/admin/yunfan-pro-dev/logs/webhook_health.log'

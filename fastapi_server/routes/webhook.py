@@ -227,6 +227,7 @@ def handle_orders(conn, data: dict):
     raw_date = data.get('order_date') or data.get('date_created') or ''
     order_date_bj = to_beijing(raw_date)
 
+    logger.warning(f"[handle_orders] EXEC: id={str(order_id)} amt={data.get('amount')} paid={data.get('paid_amount')} od_bj={order_date_bj} site={data.get('site_id')}")
     cursor.execute("""
         INSERT OR REPLACE INTO orders_v2
         (id, user_id, site_id, order_date, product_name, quantity, amount,

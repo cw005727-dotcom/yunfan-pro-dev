@@ -35,7 +35,7 @@ MINIMAX_IMAGE_URL = "https://api.minimax.chat/v1/image_generation"
 
 # ML API 配置
 ML_API_BASE = "https://api.mercadolibre.com"
-ML_APP_ID = os.environ.get("ML_APP_ID", "4507485641678982")
+ML_APP_ID = os.environ.get("ML_APP_ID", "2853782117476515")
 ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ")
 
 # 日志配置
