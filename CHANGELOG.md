@@ -1,4 +1,42 @@
 
+## v4.32.1 (2026-05-16)
+### Webhook 全链路修复（6 个 bug）
+
+#### order_date 双转换 +24h bug ✅
+- **根因**：`enrich_marketplace_order` 调 `to_beijing(+12h)` 转成 bare datetime，`handle_orders` 又调 `to_beijing(+12h)` → +24h
+- **修复**：
+  - `to_beijing()` 改为 idempotent（bare datetime 检测后直接返回不转换）
+  - 新增 `is_bare_datetime()` 函数，handle_orders 据此判断跳过 to_beijing
+  - 删除临时修复的 `_bj_now` 兜底逻辑
+- **结果**：order_date 正确为 `2026-05-03T06:43:28`（UTC-4 18:43 → Beijing 06:43）
+
+#### amount 存为 0 ✅
+- **根因**：cursor bind 传 Python float，表字段是 INTEGER
+- **修复**：`float(data.get('amount') or 0)`
+
+#### paid_amount 存为 TEXT ⚠️
+- **根因**：orders_v2 表 paid_amount 列是 TEXT（历史设计）
+- **状态**：SQLite 不支持 ALTER COLUMN，需重建表；代码加 float() 转换，数据正确
+
+#### marketplace_orders_on_site 跳过 enrich ✅
+- **根因**：外层 `if topic == 'marketplace_orders':` 导致 `marketplace_orders_on_site` 掉入 unhandled
+- **修复**：`if topic in ('marketplace_orders', 'marketplace_orders_on_site'):`
+
+#### site_id 被 API null 覆盖 ✅
+- **修复**：`data['site_id'] = od.get('site_id') or data.get('site_id')`
+
+#### site 变量未赋值 500 ✅
+- **根因**：删除 _bj_now 块时误删了 `site = SITE_NAMES.get(...)`
+- **修复**：恢复该行
+
+### App ID 统一
+- Mac 本地所有文件：`4507485641678982` → `2853782117476515`
+- push GitHub ✅（commit `6e3d6ec`）
+
+### 发现
+- **两个数据库**：webhook 写入 `/home/admin/data/mercadolibre.db`，非项目目录下的 db
+- **ML API 时区**：MLM = UTC-4，`to_beijing()` 对带 offset 时间 +12h 是正确的
+
 ## v4.31.1 (2026-05-03)
 ### Webhook 422 Fix
 - **root cause**: ML webhook 全部返回 422 → FastAPI Pydantic 验证失败（字段类型不匹配）
