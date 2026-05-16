@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .config import API_PORT, API_HOST, CORS_ORIGINS, LOG_LEVEL, LOG_FILE, UPLOAD_DIR
+from .config import API_PORT, API_HOST, CORS_ORIGINS, LOG_LEVEL, LOG_FILE, UPLOAD_DIR, BASE_DIR
 from .db import get_db_connection
 
 # 配置日志
@@ -61,6 +61,7 @@ app = FastAPI(
 # ==================== 静态文件（uploads）====================
 from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+app.mount("/app", StaticFiles(directory=str(BASE_DIR / "dist"), html=True), name="dist")
 
 # ==================== 中间件 ====================
 
