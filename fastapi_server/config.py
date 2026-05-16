@@ -41,10 +41,12 @@ ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJR
 # 日志配置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FILE = BASE_DIR / "api_server.log"
+UPLOAD_DIR = BASE_DIR / "uploads"
 
 # CORS 白名单
 CORS_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3000",
     "https://chensan.vip",
 ]
