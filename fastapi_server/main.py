@@ -74,7 +74,7 @@ from .routes import (
     smart_rotation, market_radar, price_check,
     customer_service, monitoring, ai,
     sync, webhook, holidays, cms, auth,
-    product_research, admin
+    product_research, admin, amazon
 )
 
 app.include_router(stores.router)
@@ -97,6 +97,7 @@ app.include_router(cms.router)
 app.include_router(auth.router)
 app.include_router(product_research.router)
 app.include_router(admin.router)
+app.include_router(amazon.router)
 
 
 @app.get("/health")
