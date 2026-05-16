@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from ..db import get_db_connection
 
 BJ_TZ = timezone(timedelta(hours=8))
-router = APIRouter(prefix="/api/ml/webhook", tags=["Webhook"])
+router = APIRouter(prefix="/api", tags=["Webhook"])
 logger = logging.getLogger(__name__)
 
 SITE_NAMES = {
