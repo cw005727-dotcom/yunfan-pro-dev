@@ -105,17 +105,13 @@ def to_beijing(ts_str):
 def enrich_marketplace_order(data: dict, order_id: str):
     """marketplace_orders webhook 缺少详情字段，通过 ML API 补充。"""
     try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT access_token FROM stores WHERE user_id=? LIMIT 1",
-                (str(data.get('user_id') or ''),)
-            )
-            row = cursor.fetchone()
-        if not row or not row[0]:
-            logger.warning(f"[enrich] no token for user {data.get('user_id')}")
+        # 从加密文件加载 token（和中间件逻辑一致）
+        from scripts.utils.token_manager import load_tokens
+        token_data = load_tokens()
+        if not token_data or not token_data.get('access_token'):
+            logger.warning("[enrich] no token in token_manager")
             return
-        token = row[0]
+        token = token_data['access_token']
         headers = {'Authorization': f'Bearer {token}'}
         url = f'https://api.mercadolibre.com/marketplace/orders/{order_id}'
         resp = requests.get(url, headers=headers, timeout=10)
