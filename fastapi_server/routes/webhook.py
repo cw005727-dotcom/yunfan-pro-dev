@@ -1,6 +1,7 @@
 """
 Webhook 相关路由
-POST /api/ml/webhook/relay - ML webhook 接收转发
+POST /api/tongzhi - ML webhook 统一入口（/api/relay 已废弃）
+POST /api/meli-auth - OAuth 授权回调
 
 支持 topic:
   - orders_v2 / orders: 新订单 → orders_v2 表

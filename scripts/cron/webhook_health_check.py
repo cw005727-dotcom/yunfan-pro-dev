@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Webhook 健康检查 - 每5分钟跑一次
-1. 发测试请求到 https://chensan.vip/api/ml/webhook/relay
+1. 发测试请求到 http://47.76.179.242:8507/api/tongzhi
 2. 验证返回 ok=true
 3. 没响应或非200 → 发 Telegram 告警
 4. 记录结果到 webhook_health.log
@@ -9,7 +9,7 @@ Webhook 健康检查 - 每5分钟跑一次
 import requests, json, os, sys
 from datetime import datetime
 
-WEBHOOK_URL = "http://47.76.179.242:8506/api/ml/webhook/relay"
+WEBHOOK_URL = "http://47.76.179.242:8507/api/tongzhi"
 TEST_PAYLOAD = {
     "resource": "/orders/TEST-HEALTH-CHECK",
     "topic": "orders",
