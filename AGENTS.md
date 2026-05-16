@@ -57,3 +57,43 @@ git pull --rebase    # 再拉
 任何涉及用户系统的操作（执行脚本、修改文件、部署服务、写入数据库）必须先汇报方案，等用户确认后才执行。
 
 查询、读文件、计算类行为不需要汇报。
+## 🛡️ Git 安全规则（防丢失代码）
+
+### 每次 session 开始时
+```bash
+git add . && git commit -m "wip"
+```
+把当前状态锁住，丢了能从 git 恢复。
+
+### 完成任何小功能后
+```bash
+git add <文件> && git commit -m "feat: 功能名"
+```
+不要等到"全部完成再commit"，不知道什么时候会出事。
+
+### 操作 git 前必查
+```bash
+git status --short
+```
+有 `??`（未跟踪）或 `M`（修改）→ 先 commit 再操作。
+
+### 永远禁止
+```
+git checkout HEAD -- <file>
+git reset --hard
+```
+用 `git stash` 代替 stash 可恢复，checkout 无法还原。
+
+### 危险操作前自动检查
+任何 git pull / checkout / reset / merge 前，自动执行 `git status --short`。
+
+### push 前必 commit
+```bash
+git commit -m "wip"  # 先存
+git pull --rebase    # 再拉
+```
+
+### 代码交付规则
+1. 所有代码改动写进 `CHANGELOG.md`
+2. 功能完成后立即 `git add . && git commit`
+3. **不留未提交的本地修改过夜**
