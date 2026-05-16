@@ -716,7 +716,7 @@ export default function AutoCenterView() {
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">商品详情</p>
                   <button onClick={() => copyText(result.result_data.product_detail, 'd')}
                     className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-violet-600 font-medium">
-                    <Icon                    <Icon name="Copy" className="w-3 h-3" /> 复制HTML
+                    <Icon name="Copy" className="w-3 h-3" /> 复制HTML
                   </button>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-2.5 text-[10px] text-slate-600 max-h-40 overflow-y-auto border border-slate-100/60 leading-relaxed"
