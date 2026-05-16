@@ -118,10 +118,11 @@ def enrich_marketplace_order(data: dict, order_id: str):
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             od = resp.json()
-            # 合并关键字段
-            data['site_id'] = od.get('site_id')
-            data['status'] = od.get('status')
-            data['order_date'] = to_beijing(od.get('date_created') or '')
+            # 合并关键字段（优先用 API 数据，保留 webhook payload 作为 fallback）
+            data['site_id'] = od.get('site_id') or data.get('site_id')
+            data['status'] = od.get('status') or data.get('status')
+            raw_date = od.get('date_created')
+            data['order_date'] = to_beijing(raw_date) if raw_date else data.get('order_date')
             # order_items 里的单价 × 数量（total_amount 经常为 null，要从 items 累加）
             items = od.get('order_items') or []
             total = round(sum(
