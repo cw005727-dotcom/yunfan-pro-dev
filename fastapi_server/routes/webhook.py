@@ -370,7 +370,7 @@ async def relay(body: dict = Body(...)):
         urgent = False  # 索赔默认紧急
 
         with get_db_connection() as conn:
-            if topic in ('orders', 'orders_v2', 'marketplace_orders'):
+            if topic in ('orders', 'orders_v2', 'marketplace_orders', 'marketplace_orders_on_site'):
                 handle_orders(conn, data)
                 # 兜底：修正 marketplace_orders 的 order_date（handle_orders 里的 to_beijing 会把北京时加12h）
                 if topic == 'marketplace_orders' and data.get('_bj_now'):
