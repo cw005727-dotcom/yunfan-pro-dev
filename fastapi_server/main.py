@@ -2,6 +2,10 @@
 FastAPI 主入口
 YunFan Pro Backend API
 """
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import sys
 import logging
 from contextlib import asynccontextmanager
@@ -9,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .config import API_PORT, API_HOST, CORS_ORIGINS, LOG_LEVEL, LOG_FILE
+from .config import API_PORT, API_HOST, CORS_ORIGINS, LOG_LEVEL, LOG_FILE, UPLOAD_DIR
 from .db import get_db_connection
 
 # 配置日志
@@ -54,6 +58,10 @@ app = FastAPI(
 )
 
 
+# ==================== 静态文件（uploads）====================
+from fastapi.staticfiles import StaticFiles
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 # ==================== 中间件 ====================
 
 # CORS
@@ -74,8 +82,10 @@ from .routes import (
     smart_rotation, market_radar, price_check,
     customer_service, monitoring, ai,
     sync, webhook, holidays, cms, auth,
-    product_research, admin, amazon
+    product_research, admin, amazon, upload
 )
+from .routes.notifications import router as notifications_router
+from .routes.auto_center import router as auto_center_router
 
 app.include_router(stores.router)
 app.include_router(orders.router)
@@ -95,8 +105,12 @@ app.include_router(webhook.router)
 app.include_router(holidays.router)
 app.include_router(cms.router)
 app.include_router(auth.router)
+app.include_router(upload.router)
 app.include_router(product_research.router)
+app.include_router(notifications.router)
+app.include_router(notifications_router)
 app.include_router(admin.router)
+app.include_router(auto_center_router)
 app.include_router(amazon.router)
 
 
