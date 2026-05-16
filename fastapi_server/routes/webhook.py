@@ -353,8 +353,8 @@ async def relay(body: dict = Body(...)):
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去
         data['id'] = order_id
 
-        # marketplace_orders 缺少详情字段，先通过 API 补充
-        if topic == 'marketplace_orders':
+        # marketplace_orders / marketplace_orders_on_site 缺少详情字段，先通过 API 补充
+        if topic in ('marketplace_orders', 'marketplace_orders_on_site'):
             enrich_marketplace_order(data, order_id)
             # API enrichment 可能仍失败：用当前北京时间做兜底订单时间
             # handle_orders 会把 order_date 传给 to_beijing()（+12h），所以这里不用它
@@ -372,8 +372,8 @@ async def relay(body: dict = Body(...)):
         with get_db_connection() as conn:
             if topic in ('orders', 'orders_v2', 'marketplace_orders', 'marketplace_orders_on_site'):
                 handle_orders(conn, data)
-                # 兜底：修正 marketplace_orders 的 order_date（handle_orders 里的 to_beijing 会把北京时加12h）
-                if topic == 'marketplace_orders' and data.get('_bj_now'):
+                # 兜底：修正 marketplace_orders/orders_on_site 的 order_date（handle_orders 里的 to_beijing 会把北京时间加12h）
+                if topic in ('marketplace_orders', 'marketplace_orders_on_site') and data.get('_bj_now'):
                     cursor2 = conn.cursor()
                     cursor2.execute("UPDATE orders_v2 SET order_date=? WHERE id=?",
                                     (data['_bj_now'], str(order_id)))
