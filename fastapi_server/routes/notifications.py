@@ -92,17 +92,17 @@ def get_notifications():
 
         # message: 客户消息（空表占位）
         rows = cur.execute("""
-            SELECT id, site_id, created_at, subject, body
+            SELECT id, site_id, date_created, question_text, last_message
             FROM customer_messages
-            ORDER BY created_at DESC LIMIT 30
+            ORDER BY date_created DESC LIMIT 30
         """).fetchall()
         result["message"] = [
             {
                 "id": str(r[0]),
                 "site": r[1],
                 "nickname": "客户消息",
-                "title": r[3] or (r[4][:20] if r[4] else "新消息"),
-                "time": r[2][:10] if r[2] else "",
+                "title": r[1] or (r[2][:20] if r[2] else "新消息"),
+                "time": r[1][:10] if r[1] else "",
                 "read": False,
             }
             for r in rows
@@ -119,7 +119,7 @@ def get_notifications():
         result["reputation"] = [
             {
                 "id": f"rep_{r[0]}",
-                "site": r[2],
+                "site": r[2] or "MLM",
                 "nickname": r[1] or f"店铺{r[0]}",
                 "title": f"声誉告警: 投诉率{r[3]}% 取消率{r[4]}%",
                 "time": r[6] or "",
@@ -130,9 +130,9 @@ def get_notifications():
 
         # violation: 投诉违规
         rows = cur.execute("""
-            SELECT id, ml_id, site_id, created_at, claim_type, status
+            SELECT id, order_id, site_id, last_update, type, reason, status
             FROM claims
-            ORDER BY created_at DESC
+            ORDER BY last_update DESC
             LIMIT 30
         """).fetchall()
         result["violation"] = [
@@ -140,7 +140,7 @@ def get_notifications():
                 "id": str(r[0]),
                 "site": r[2],
                 "nickname": f"Claim_{r[1]}",
-                "title": f"投诉: {r[4] or r[5] or '新投诉'}",
+                "title": f"投诉: {r[4] or r[5] or '新投诉'} ({r[6]})",
                 "time": r[3][:10] if r[3] else "",
                 "read": False,
             }
