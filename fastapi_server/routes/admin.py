@@ -94,7 +94,7 @@ async def get_admin_stats():
             orders_count = cursor.execute("SELECT COUNT(*) FROM orders_v2").fetchone()[0]
             products_count = cursor.execute("SELECT COUNT(*) FROM product_metrics").fetchone()[0]
             stores_count = cursor.execute("SELECT COUNT(*) FROM stores").fetchone()[0]
-            last_sync = cursor.execute("SELECT MAX(last_updated) FROM stores").fetchone()[0]
+            last_sync = cursor.execute("SELECT MAX(alert_date) FROM stores").fetchone()[0]
 
             today = datetime.now().strftime('%Y-%m-%d')
             today_orders = cursor.execute(

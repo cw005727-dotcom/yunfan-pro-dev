@@ -7,8 +7,8 @@ PROJECT_ROOT = '/home/admin/yunfan-pro-dev' if socket.gethostname() == 'iZj6chbl
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, os.path.join(PROJECT_ROOT, 'scripts'))
 
-CLIENT_ID = '2853782117476515'
-CLIENT_SECRET = '0pxmJU6zBiOJ4LyNokerwH4I835ykX3F'
+CLIENT_ID = '4507485641678982'
+CLIENT_SECRET = 'fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ'
 
 from utils.token_manager import load_tokens, save_tokens
 

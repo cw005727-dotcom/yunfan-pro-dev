@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../api/client';
+import Icon from '../components/Icon.jsx';
 
 const NewsView = () => {
     const [articles, setArticles] = useState([]);

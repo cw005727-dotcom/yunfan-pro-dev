@@ -1,0 +1,2 @@
+*/4 * * * * /usr/bin/python3 /Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py >> /Users/chensan/yunfan-pro-dev/logs/refresh.log 2>&1
+*/5 * * * * /usr/bin/python3 /Users/chensan/yunfan-pro-dev/scripts/cron/webhook_health_check.py >> /Users/chensan/yunfan-pro-dev/webhook_monitor.log 2>&1
