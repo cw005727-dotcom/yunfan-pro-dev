@@ -34,3 +34,4 @@ backups/
 *.db
 mercadolibre.db
 fastapi_server/mercadolibre.db
+webhook_health.err
