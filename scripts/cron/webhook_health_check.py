@@ -19,7 +19,7 @@ TEST_PAYLOAD = {
     "amount": 0.01,
     "status": "test"
 }
-LOG_FILE = "/Users/chensan/yunfan-pro-dev/webhook_health.log"
+LOG_FILE = "/home/admin/yunfan-pro-dev/logs/webhook_health.log"
 
 def log(msg):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
