@@ -113,11 +113,12 @@ git checkout main      # 回到最新
 
 ## 八、ML 凭证
 
-- **App ID**: `8105299077213607`（旧 ID `2853782117476515` 已废弃）
-- **Client Secret**: `viZR1saM1FSpYXquulrmh8T1pKiRjcjN`
-- **Webhook URL**: `https://chensan.vip/api/ml/webhook/relay`
-- **access_token**: 约6小时过期
-- **refresh_token**: 为空（无法自动续期，需重新授权）
+- **App ID**: `4507485641678982`
+- **Client Secret**: `fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ`
+- **Webhook URL**: `https://chensan.vip/api/tongzhi`
+- **access_token**: 约6小时过期（自动刷新正常）
+- **refresh_token**: 有效期180天（整点 cron 自动刷新）
+- **OAuth 回调 URL**: `https://chensan.vip/api/meli-auth`
 
 ---
 

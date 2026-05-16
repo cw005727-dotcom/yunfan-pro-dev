@@ -74,3 +74,60 @@
 - ML Global Selling API 确认无 clicks/carts 端点，前端永久移除
 - ProductPerformanceView.jsx 移除 clicks/carts 列及相关逻辑（智能诊断/排序/top20Avg）
 - 潜在爆款 hot 定义：从"曝光+点击+加车三维度前20"改为"仅曝光前20"
+
+## v4.32.1 (2026-05-16)
+### Webhook URL 路由修复（重要！）
+
+**问题现象**：
+- ML 后台配置的 webhook URL：`https://chensan.vip/api/tongzhi`
+- ML 发出的 webhook 每次都 404，服务器日志显示 `[Webhook Relay] topic=orders_v2` 但无数据
+- 误以为是 enrich 代码问题，实际是 URL 路径完全对不上
+
+**根本原因**：
+- ML 后台配的 URL 是 `/api/tongzhi`
+- 服务器 webhook 路由的 prefix 是 `/api/ml/webhook`，实际路径是 `/api/ml/webhook/relay`
+- ML 发到 `/api/tongzhi` → nginx → uvicorn 8506/8507 → 路由匹配失败 → 404
+- 8506 上没有 `/api/tongzhi` 路由，8507 上注册的是 `/api/ml/webhook/tongzhi`，两者都不是 ML 发的路径
+
+**修复内容**：
+1. `webhook.py` router prefix 从 `/api/ml/webhook` 改为 `/api`
+2. 新增 `@router.post("/tongzhi")` 路由，复用 `relay()` 处理逻辑
+3. 迁移后 `/api/relay` → 404（路径变了），需同步更新所有内部调用处
+4. 服务器重启让新路由生效
+
+**验证结果**：
+```
+POST https://chensan.vip/api/tongzhi  → ✅ 200 OK
+POST https://chensan.vip/api/meli-auth → ✅ 400 (正常，等待code)
+```
+
+**ML Webhook 订阅配置**（截图确认）：
+- topic: `marketplace_orders` + `marketplace_orders_on_site`（MLM/MLC/MLB/MCO 全勾）
+- 回调 URL: `https://chensan.vip/api/tongzhi`
+- ML 实际发送的 topic 是 `orders_v2`（payload 自带完整数据，不走 enrich）
+
+**Webhook 处理流程**：
+```
+ML 服务器
+  ↓ POST https://chensan.vip/api/tongzhi
+nginx (SSL 终止，/api/ → 127.0.0.1:8507)
+  ↓
+uvicorn 8507 → /api/tongzhi 路由
+  ↓
+relay() → topic 分流
+  ├── orders_v2 / orders → handle_orders() → orders_v2 表
+  ├── marketplace_orders → enrich_marketplace_order() → /marketplace/orders/{id} API 补数据
+  ├── shipments → handle_shipments() → 更新已有订单物流字段
+  ├── questions → handle_questions() → customer_messages 表
+  └── marketplace_claims → handle_claims() → monitoring_logs 播报
+```
+
+**enrich_marketplace_order() 修复**：
+- 原来：从 stores 表查 `access_token`（stores 表无数据 → always fail）
+- 现在：从 `token_manager.load_tokens()` 加载 token（与 auth 中间件一致）
+- enrich 成功日志示例：`got order details: site=None amount=15.48 paid=76.78 status=paid`
+
+**自动刷新 token**：
+- 服务器 cron：每整点执行 `refresh_token_cron.py`
+- 新 App ID: `4507485641678982`（2026-05-15 切换）
+- 刷新失败原因：旧 App 签发的 refresh_token 无法用于新 App 授权（`invalid_grant`）
