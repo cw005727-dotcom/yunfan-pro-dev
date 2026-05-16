@@ -455,3 +455,9 @@ async def relay(body: dict = Body(...)):
     except Exception as e:
         logger.error(f"[Webhook Relay] error: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+
+
+@router.post("/tongzhi")
+async def tongzhi(body: dict = Body(...)):
+    """ML webhook 通知接收（/api/tongzhi 路径，与 /relay 同一逻辑）"""
+    return await relay(body)
