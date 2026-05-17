@@ -1,131 +1,103 @@
 """
-Coze API 客户端
+图片生成客户端 - 火山引擎 Seedream
 """
-import os
 import time
 import requests
 import logging
 
 logger = logging.getLogger(__name__)
 
-COZE_BOT_TOKEN = os.getenv("COZE_BOT_TOKEN", "")
-COZE_API_BASE  = "https://api.coze.com/v1"
-COZE_WF_URL    = "https://3c4c31e4-e9e8-4f48-abfd-1a56605f2db7.dev.coze.site/run"
-
-# 显式指定模型（与视频工作流保持一致）
-IMAGE_MODEL = "doubao-seedream-5-0-260128"
-VIDEO_MODEL = "doubao-seedance-1-5-pro-251215"
+# 火山引擎 Seedream 配置
+SEEDREAM_API_KEY = "57e448e2-545c-4c0e-a47b-b49e3ff3feef"
+SEEDREAM_ENDPOINT = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+SEEDREAM_MODEL = "doubao-seedream-4-0-250828"
 
 
-class CozeAPIError(Exception):
+class ImageGenError(Exception):
     pass
 
 
-class CozeClient:
-    def __init__(self, bot_token: str = None):
-        self.token = bot_token or COZE_BOT_TOKEN
-        self.headers = {
-            "Authorization": f"Bearer {self.token}",
+class ImageGenClient:
+    """火山引擎 Seedream 图片生成"""
+
+    def generate(self, prompt: str, image_types: list = None,
+                 image_style: str = "product photography",
+                 reference_images: list = None, **kwargs) -> dict:
+        """
+        调用火山引擎 Seedream 生成图片。
+        返回格式与原 Coze 一致：result_data.image_urls / result_data.images / result_data.prompt_used
+        """
+        if not prompt:
+            raise ImageGenError("prompt 不能为空")
+
+        image_types = image_types or ["main"]
+        has_ref = bool(reference_images and len(reference_images) > 0)
+
+        payload = {
+            "model": SEEDREAM_MODEL,
+            "prompt": prompt,
+            "image_size": "1024x1024",
+            "prompt_optimization": True,
+        }
+        if has_ref:
+            payload["image_url"] = reference_images[0].get("url") or reference_images[0].get("image_url", "")
+
+        headers = {
+            "Authorization": f"Bearer {SEEDREAM_API_KEY}",
             "Content-Type": "application/json"
         }
 
-    def run_workflow(self, workflow_type: str, **kwargs):
-        """通用工作流调用"""
-        payload = {
-            "workflow_type": workflow_type,
-            **kwargs
-        }
-        return self._call_workflow(payload)
-
-    def optimize_title(self, product_name: str = "", custom_instructions: str = "",
-                       title_count: int = 1, **kwargs):
-        payload = {
-            "workflow_type": "title",
-            "product_name": product_name,
-            "custom_instructions": custom_instructions,
-            "title_count": title_count,
-            **kwargs
-        }
-        return self._call_workflow(payload)
-
-    def generate_image(self, image_description: str = "", image_style: str = "product photography",
-                       image_types: list = None, reference_images: list = None,
-                       category: str = "", custom_instructions: str = "",
-                       model: str = None, **kwargs):
-        payload = {
-            "workflow_type": "image",
-            "image_description": image_description,
-            "image_style": image_style,
-            "image_types": image_types or ["main", "detail", "feature", "scene", "packaging"],
-            "reference_images": reference_images or [],
-            "category": category if category else "",
-            "custom_instructions": custom_instructions,
-            "model": model or IMAGE_MODEL,  # 显式指定模型
-            **kwargs
-        }
-        return self._call_workflow(payload)
-
-    def _call_workflow(self, payload: dict):
-        """调用 Coze 工作流 - 优先直接 HTTP"""
-        if not self.token:
-            raise CozeAPIError("COZE_BOT_TOKEN not configured")
-
-        start_time = time.time()
-        workflow_type = payload.get("workflow_type", "unknown")
-
-        # 优先直接 HTTP 到工作流 URL（更快，避免 REST API 超时）
+        start = time.time()
         try:
-            result = self._call_workflow_direct(payload)
-            elapsed = round((time.time() - start_time) * 1000, 0)
-            logger.info(f"[Coze] workflow={workflow_type} success elapsed={elapsed}ms result_keys={list(result.keys()) if isinstance(result, dict) else type(result)}")
+            resp = requests.post(SEEDREAM_ENDPOINT, json=payload, headers=headers, timeout=120)
+            elapsed = round((time.time() - start) * 1000, 0)
+            logger.info(f"[Seedream] prompt={prompt[:50]} status={resp.status_code} elapsed={elapsed}ms")
+
+            if resp.status_code != 200:
+                logger.error(f"[Seedream] HTTP {resp.status_code}: {resp.text[:200]}")
+                raise ImageGenError(f"火山引擎返回 {resp.status_code}")
+
+            data = resp.json()
+            logger.info(f"[Seedream] raw_response_keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}")
+
+            # 解析返回数据
+            image_list = []
+            url_list = []
+
+            # Volcano Engine 返回格式：data.data[].url
+            inner = data.get("data", {}) or data.get("choices", {}) or data.get("images", [])
+            items = []
+            if isinstance(inner, dict):
+                items = inner.get("data", [])
+            elif isinstance(inner, list):
+                items = inner
+
+            for item in items:
+                if isinstance(item, dict):
+                    url = item.get("url") or item.get("image_url") or ""
+                    if url:
+                        image_list.append({"type": "generated", "url": url, "prompt_used": prompt})
+                        url_list.append(url)
+
+            if not url_list:
+                logger.error(f"[Seedream] no image URLs in response: {str(data)[:300]}")
+                raise ImageGenError("火山引擎未返回图片 URL")
+
+            # 构造兼容 Coze 格式的返回
+            result = {
+                "message": f"✅ 图片生成完成！生成了 {len(url_list)} 张图片",
+                "result_data": {
+                    "images": image_list,
+                    "image_urls": url_list,
+                    "prompt_used": prompt,
+                },
+                "cost": {"image_generations": len(url_list)},
+            }
+            logger.info(f"[Seedream] success generated={len(url_list)} first_url={url_list[0][:60]}")
             return result
+
+        except ImageGenError:
+            raise
         except Exception as e:
-            elapsed = round((time.time() - start_time) * 1000, 0)
-            # fallback: 尝试 Coze REST API
-            try:
-                endpoint = f"{COZE_API_BASE}/workflows/run"
-                data = {"workflow_url": COZE_WF_URL, "parameters": payload}
-                resp = requests.post(endpoint, json=data, headers=self.headers, timeout=60)
-                elapsed = round((time.time() - start_time) * 1000, 0)
-                if resp.status_code == 200:
-                    result = resp.json()
-                    if result.get("code") == 0:
-                        logger.info(f"[Coze] workflow={workflow_type} REST_fallback success elapsed={elapsed}ms")
-                        return result.get("data", {})
-                    raise CozeAPIError(result.get("msg", "Coze API error"))
-                raise CozeAPIError(f"REST API returned {resp.status_code}: {resp.text}")
-            except CozeAPIError:
-                raise
-            except Exception:
-                logger.error(f"[Coze] workflow={workflow_type} ALL_FAILED elapsed={elapsed}ms error={str(e)}")
-                raise CozeAPIError(f"All Coze calls failed: {str(e)}")
-
-    def _call_workflow_direct(self, payload: dict):
-        """直接 HTTP POST 到工作流 URL"""
-        try:
-            resp = requests.post(COZE_WF_URL, json=payload, timeout=300)
-            if resp.status_code == 200:
-                result = resp.json()
-
-                # 关键日志：图片工作流增强追踪
-                if payload.get("workflow_type") == "image":
-                    data_block = result if isinstance(result, dict) else {}
-                    images = data_block.get("result_data", {}).get("images") or data_block.get("images") or []
-                    logger.info(f"[Coze-Image] payload_model={payload.get('model')} "
-                                f"data_count={len(images) if isinstance(images, list) else 'N/A'} "
-                                f"images_type={type(images).__name__} "
-                                f"result_keys={list(result.keys()) if isinstance(result, dict) else 'N/A'}")
-
-                    # 检查每条 ImageData
-                    if isinstance(images, list):
-                        for idx, img in enumerate(images[:3]):  # 只看前3条
-                            if isinstance(img, dict):
-                                has_url = "url" in img or "image_url" in img
-                                has_error = "error" in img or "error_detail" in img
-                                logger.info(f"[Coze-Image] item[{idx}] keys={list(img.keys())} has_url={has_url} has_error={has_error}")
-
-                return result
-            else:
-                raise CozeAPIError(f"Workflow returned {resp.status_code}: {resp.text}")
-        except Exception as e:
-            raise CozeAPIError(f"Workflow call failed: {str(e)}")
+            logger.error(f"[Seedream] exception: {str(e)}")
+            raise ImageGenError(f"火山引擎调用失败: {str(e)}")
