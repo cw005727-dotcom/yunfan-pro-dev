@@ -30,20 +30,18 @@ class ImageGenClient:
         if not prompt:
             raise ImageGenError("prompt 不能为空")
 
-        image_types = image_types or ["main"]
         has_ref = bool(reference_images and len(reference_images) > 0)
-        ref_url = None
+        ref_url = reference_images[0].get("url") or reference_images[0].get("image_url", "") if has_ref else None
 
         payload = {
             "model": SEEDREAM_MODEL,
             "version": "250828",
             "prompt": prompt,
             "reference_images": [ref_url] if has_ref else None,
-            "image_size": "2K",
+            "size": "2K",
             "response_format": "url",
-            "prompt_optimization": True,
+            "watermark": False,
         }
-
         logger.info(f"[Seedream] incoming: prompt={prompt[:50]} has_ref={has_ref} ref_url={ref_url}")
 
         headers = {

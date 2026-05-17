@@ -300,12 +300,16 @@ def _get_category_info(site: str, node_id: str):
     }
 
 def _translate_cat(site: str, node_id: str, fallback_name: str = "") -> str:
-    """查询类目中文翻译。BR/MX/US 均从对应站点映射表查，US 子类未映射时翻译英文名。"""
+    """查询类目中文翻译。BR/MX/US 均从对应站点映射表查；US 子类未映射时翻译英文名，MX/BR 子类未映射时翻译西/葡文名。"""
     cn = ""
     if site == "BR":
         cn = _BR_CATEGORIES.get(node_id, "")
+        if not cn and fallback_name:
+            cn = _translate_pt_to_zh(fallback_name)
     elif site == "MX":
         cn = _MX_CATEGORIES.get(node_id, "")
+        if not cn and fallback_name:
+            cn = _translate_es_to_zh(fallback_name)
     elif site == "US":
         cn = _US_CATEGORIES.get(node_id, "")
         # US 子类未翻译：尝试把英文名翻译成中文
@@ -313,10 +317,86 @@ def _translate_cat(site: str, node_id: str, fallback_name: str = "") -> str:
             cn = _translate_en_to_zh(fallback_name)
     return cn
 
+def _translate_es_to_zh(es_name: str) -> str:
+    """把常见西班牙语类目名翻译成中文（MX 子类 fallback 用）"""
+    es_lower = es_name.lower()
+    mapping = {
+        "arroz": "大米", "frijoles": "豆类", "pasta": "面食",
+        "canastas de regalo": "礼品篮", "regalos gourmet": "美食礼盒",
+        "carne": "肉类", "aves de corral": "禽肉", "caza": "野味",
+        "cereal de desayuno": "早餐麦片", "desayuno": "早餐",
+        "comida enlatada": "罐头食品", "envasada": "包装食品",
+        "empaquetada": "包装食品", "charcuter": "熟食",
+        "cerveza": "啤酒", "vino": "葡萄酒", "cocina": "厨房",
+        "reposter": "烘焙", "mermeladas": "果酱", "miel": "蜂蜜",
+        "pescados": "鱼", "mariscos": "海鲜", "frescos": "新鲜",
+        "accesorios para coche": "汽车配件", "aceites": "机油",
+        "fluidos para vehiculos": "汽车液", "cuidado de coche": "汽车护理",
+        "herramientas": "工具", "llantas": "轮胎", "rines": "轮毂",
+        "motos": "摩托车", "partes": "配件", "refacciones": "零部件",
+        "pinturas": "油漆", "paint": "油漆",
+        "sillas de coche": "安全座椅", "transporte": "车载用品",
+        "bebes": "婴儿", "bebe": "母婴",
+        "actividad": "活动用品", "entretenimiento": "娱乐",
+        "bacinicas": "便盆", "bancos infantiles": "儿童凳",
+        "ropa": "服装", "zapatos": "童鞋",
+        "pañales": "尿布", "carriolas": "婴儿车", "cochecitos": "童车",
+        "chupones": "奶嘴", "mordederas": "牙胶",
+        "higiene": "护理", "cuidado": "护理",
+        "baño": "沐浴", "cuerpo": "身体",
+        "cosmeticos": "彩妆", "cuidado de la piel": "护肤",
+        "juguetes": "玩具", "juegos": "游戏",
+        "herramientas": "工具", "jardineria": "园艺",
+        "deportes": "运动", "outdoors": "户外",
+        "electronica": "电子", "computadoras": "电脑",
+        "celulares": "手机", "tablets": "平板电脑",
+        "hogar": "家居", "cocina": "厨房",
+        "muebles": "家具", "iluminacion": "灯具",
+        "oficina": "办公", "papeleria": "文具",
+        "musica": "音乐", "peliculas": "电影",
+        "libros": "图书", "mascotas": "宠物",
+    }
+    for key, zh in mapping.items():
+        if key in es_lower or es_lower in key:
+            return zh
+    return ""
+
+def _translate_pt_to_zh(pt_name: str) -> str:
+    """把常见葡萄牙语类目名翻译成中文（BR 子类 fallback 用）"""
+    pt_lower = pt_name.lower()
+    mapping = {
+        "alimentos": "食品", "bebidas": "饮料",
+        "frescos": "新鲜", "refrigerados": "冷藏",
+        "enlatados": "罐头", "embalados": "包装",
+        "automotivo": "汽车用品", "automoveis": "汽车",
+        "bebes": "母婴", "cuidado": "护理",
+        "higiene": "卫生", "brinquedos": "玩具",
+        "jogos": "游戏", "artes": "艺术",
+        "artesanato": "手工", "ferramentas": "工具",
+        "casa": "家居", "cozinha": "厨房",
+        "moveis": "家具", "ilumina": "灯具",
+        "eletronicos": "电子产品", "informatica": "电脑",
+        "celulares": "手机", "tablets": "平板电脑",
+        "esportes": "运动", "ar livre": "户外",
+        "pets": "宠物", "animais": "宠物",
+        "livros": "图书", "musica": "音乐",
+        "filmes": "电影", "beleza": "美妆",
+        "maquiagem": "彩妆", "cuidado": "护肤",
+        "skincare": "护肤", "cabelo": "护发",
+        "maos": "手护理", "pes": "足部护理",
+    }
+    for key, zh in mapping.items():
+        if key in pt_lower or pt_lower in key:
+            return zh
+    return ""
+
 def _translate_en_to_zh(en_name: str) -> str:
     """把常见英文类目名翻译成中文（US 子类 fallback 用）"""
-    en_lower = en_name.lower()
+    import unicodedata
+    en_lower = unicodedata.normalize('NFD', en_name.lower())
+    en_lower = ''.join(c for c in en_lower if c not in '`\'"')
     mapping = {
+        # 电子/数码
         "cell phone": "手机通讯", "cell phones": "手机通讯",
         "accessories": "配件", "cases": "保护套",
         "screen protectors": "屏幕保护膜", "cables": "数据线",
@@ -330,43 +410,75 @@ def _translate_en_to_zh(en_name: str) -> str:
         "headphones": "耳机", "speakers": "音响",
         "cameras": "相机", "tvs": "电视", "tv": "电视",
         "video games": "电子游戏", "game consoles": "游戏机",
+        "electronics": "电子产品", "smartphones": "智能手机",
+        "smartwatches": "智能手表", "kindle": "电子书",
+        # 美妆/个护
         "makeup": "彩妆", "skincare": "护肤", "hair care": "护发",
         "perfumes": "香水", "fragrances": "香水",
         "nail care": "美甲", "cosmetics": "美妆",
-        "beauty gift sets": "美妆礼盒", "baby": "母婴",
-        "diapering": "尿布", "feeding": "喂养",
+        "beauty gift sets": "美妆礼盒",
+        # 母婴/儿童
+        "baby": "母婴", "diapering": "尿布", "feeding": "喂养",
         "toys": "玩具", "toys & games": "玩具游戏",
+        "kids": "儿童", "children": "儿童",
         "clothing": "服装", "shoes": "鞋",
         "costumes": "服装", "baby clothing": "婴儿服装",
         "boys fashion": "男童服装", "girls fashion": "女童服装",
         "womens fashion": "女装", "mens fashion": "男装",
-        "luggage": "箱包", "home": "家居", "kitchen": "厨房",
-        "cookware": "厨具", "bedding": "床上用品",
-        "bathroom": "浴室", "furniture": "家具",
-        "lighting": "灯具", "storage": "收纳",
-        "cleaning": "清洁用品", "appliances": "家电",
-        "garden": "园艺", "grocery": "食品饮料",
-        "food": "食品", "drinks": "饮料", "coffee": "咖啡",
-        "tea": "茶", "snacks": "零食", "health": "健康",
-        "supplements": "营养补充", "medicine": "药品",
-        "oral care": "口腔护理", "automotive": "汽车用品",
-        "car care": "汽车护理", "tools": "工具",
-        "sports": "运动", "outdoors": "户外", "fitness": "健身",
-        "running": "跑步", "office": "办公", "pet": "宠物",
-        "books": "图书", "music": "音乐", "movies": "电影",
-        "arts": "艺术", "crafts": "手工", "jewelry": "珠宝",
+        "luggage": "箱包", "fashion": "服饰",
+        # 儿童玩具细分类
+        "kids dress up": "儿童变装游戏", "pretend play": "过家家玩具",
+        "kids electronics": "儿童电子玩具", "kids party supplies": "儿童派对用品",
+        "dress up": "变装游戏", "party supplies": "派对用品",
+        "building sets": "积木", "building toys": "积木玩具",
+        "puzzles": "拼图", "board games": "桌游", "card games": "卡牌游戏",
+        "action figures": "玩偶手办", "dolls": "娃娃", "dollhouses": "娃娃屋",
+        "learning toys": "早教玩具", "stem toys": "STEM玩具",
+        "outdoor play": "户外玩具", "play tents": "游戏帐篷",
+        "ride on toys": "骑乘玩具", "bikes": "自行车",
+        "arts crafts": "艺术手工", "beading": "串珠",
+        "jewelry making": "珠宝制作", "craft supplies": "手工材料",
+        "face paints": "面部彩绘",
+        # 家居/厨房
+        "home": "家居", "kitchen": "厨房", "cookware": "厨具",
+        "bedding": "床上用品", "bathroom": "浴室",
+        "furniture": "家具", "lighting": "灯具",
+        "storage": "收纳", "cleaning": "清洁用品",
+        "appliances": "家电", "garden": "园艺", "gardening": "园艺",
+        # 家居细分
+        "seasonal decor": "季节装饰", "seasonal": "季节用品",
+        "outdoor decor": "户外装饰", "patio decor": "露台装饰",
+        "holiday decor": "节日装饰", "christmas": "圣诞用品",
+        "halloween": "万圣节", "thanksgiving": "感恩节",
+        "wall art": "墙上装饰", "wall decor": "墙上装饰",
+        "throw pillows": "抱枕靠垫", "blankets": "毯子",
+        "curtains": "窗帘", "rugs": "地毯", "mats": "地垫",
+        # 食品/健康
+        "grocery": "食品饮料", "food": "食品", "drinks": "饮料",
+        "coffee": "咖啡", "tea": "茶", "snacks": "零食",
+        "health": "健康", "supplements": "营养补充",
+        "medicine": "药品", "oral care": "口腔护理",
+        # 汽车/户外
+        "automotive": "汽车用品", "car care": "汽车护理",
+        "tools": "工具", "sports": "运动", "outdoors": "户外",
+        "fitness": "健身", "running": "跑步",
+        "camping": "露营", "hiking": "徒步", "fishing": "钓鱼",
+        "boating": "船类", "cycling": "骑行",
+        # 办公/其他
+        "office": "办公", "pet": "宠物", "books": "图书",
+        "music": "音乐", "movies": "电影", "arts": "艺术",
+        "crafts": "手工", "jewelry": "珠宝",
         "watches": "手表", "sunglasses": "太阳镜",
-        "kitchen utensils": "厨房用具", "cutlery": "餐具",
-        "blenders": "搅拌机", "mixers": "料理机",
-        "coffee makers": "咖啡机", "microwaves": "微波炉",
+        # 家电细分
+        "cooktops": "电磁炉", "dishwashers": "洗碗机",
+        "freezers": "冰柜", "ranges": "燃气灶",
+        "microwaves": "微波炉", "built-in": "嵌入式",
         "refrigerators": "冰箱", "washers": "洗衣机",
         "dryers": "干衣机", "air conditioners": "空调",
         "vacuum cleaners": "吸尘器", "fans": "风扇",
         "heaters": "取暖器", "air purifiers": "空气净化器",
         "smart home": "智能家居", "security cameras": "监控摄像",
-        "cooktops": "电磁炉", "dishwashers": "洗碗机",
-        "freezers": "冰柜", "ranges": "燃气灶",
-        "microwave ovens": "微波炉", "built-in": "嵌入式",
+        # 翻新/设备
         "device accessories": "配件", "device subscriptions": "订阅服务",
         "amazon devices": "亚马逊设备", "amazon renewed": "官方翻新",
         "renewed automotive": "汽车用品", "renewed camera": "相机",
@@ -374,11 +486,17 @@ def _translate_en_to_zh(en_name: str) -> str:
         "renewed home": "家居", "renewed tablets": "平板电脑",
         "renewed smartphones": "智能手机", "renewed smartwatches": "智能手表",
         "renewed video game": "游戏机", "renewed laptops": "笔记本电脑",
+        # 儿童服装/鞋
+        "boys clothing": "男童服装", "girls clothing": "女童服装",
+        "baby shoes": "婴儿鞋", "kids shoes": "童鞋",
+        "costume accessories": "演出配饰", "wigs": "假发",
+        "makeup kits": "化妆套装",
     }
     for key, zh in mapping.items():
         if key in en_lower or en_lower in key:
             return zh
     return ""
+
 
 def _list_all_node_ids(site: str) -> list:
     """返回该站点所有类目 nodeId（扁平列表）"""
@@ -565,8 +683,9 @@ def list_sites():
 @router.post("/hot")
 async def pull_hot_products(req: HotReq):
     """
-    爆品模式：调用 product_search（MCP 返回图片），
+    爆品模式：调用 product_search，每页20条，取5次共100条，
     前端按月销量(sales)降序排列。
+    不做销量/评分下限过滤，只做 max_listed_days 过滤。
     """
     import logging
     logger = logging.getLogger("uvicorn.error")
@@ -575,44 +694,36 @@ async def pull_hot_products(req: HotReq):
     if site not in ("US", "MX", "BR"):
         raise HTTPException(400, "站点仅支持 US / MX / BR")
 
-    # product_search：所有站点都用 searchName 过滤类目
-    args = {
-        "amzSite": site,
-        "page": req.page,
-        # 不加 sortby_potential_index，MCP 默认排序，前端按销量重排
-    }
-    if req.search:
-        args["searchName"] = req.search
+    all_products = []
+    # 每次20条，5次=100条
+    for page in range(1, 6):
+        args = {
+            "amzSite": site,
+            "page": page,
+        }
+        if req.search:
+            args["searchName"] = req.search
+        raw = mcp_call("product_search", args)
+        try:
+            chunk = json.loads(raw) if isinstance(raw, str) else raw
+        except Exception:
+            chunk = []
+        chunk = chunk if isinstance(chunk, list) else []
+        for p in chunk:
+            norm = normalize_product(p, site)
+            norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
+            norm["big_category"] = p.get("所属大类", "")
+            norm["sub_category"] = p.get("所属细分类目", "")
+            norm["seller_country"] = p.get("卖家国籍", "")
+            norm["fba_fee"] = p.get("FBA费用", 0)
+            weight_raw = p.get("重量", 0)
+            try: norm["weight"] = float(weight_raw)
+            except: norm["weight"] = 0
+            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+                continue
+            all_products.append(norm)
 
-    raw = mcp_call("product_search", args)
-    try:
-        products_raw = json.loads(raw) if isinstance(raw, str) else raw
-    except Exception:
-        products_raw = []
-    products_raw = products_raw if isinstance(products_raw, list) else []
-
-    result = []
-    for p in products_raw:
-        norm = normalize_product(p, site)
-        # 爆品保留潜力指数（product_search 有此字段）
-        norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
-        norm["big_category"] = p.get("所属大类", "")
-        norm["sub_category"] = p.get("所属细分类目", "")
-        norm["seller_country"] = p.get("卖家国籍", "")
-        norm["fba_fee"] = p.get("FBA费用", 0)
-        weight_raw = p.get("重量", 0)
-        try: norm["weight"] = float(weight_raw)
-        except: norm["weight"] = 0
-        # 过滤
-        if norm["sales"] < req.min_sales:
-            continue
-        if norm["rating"] < req.min_rating:
-            continue
-        if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-            continue
-        result.append(norm)
-
-    return {"products": result, "total": len(result), "errors": []}
+    return {"products": all_products, "total": len(all_products), "errors": []}
 
 @router.post("/potential")
 async def pull_potential_products(req: NewReq):
@@ -664,32 +775,49 @@ async def pull_potential_products(req: NewReq):
         products = data if isinstance(data, list) else []
         errors = []
 
-    result = []
-    for p in products:
-        norm = normalize_product(p, site)
-        # 产品潜力指数
-        norm["potential_index"] = (
-            p.get("potential_index") or p.get("产品潜力指数") or 0
-        )
-        # 所属类目（中文字段）
-        big_cat = p.get("所属大类", "")
-        sub_cat = p.get("所属细分类目", "")
-        norm["big_category"] = big_cat
-        norm["sub_category"] = sub_cat
-        # 卖家国籍
-        norm["seller_country"] = p.get("卖家国籍", "")
-        # FBA费用
-        norm["fba_fee"] = p.get("FBA费用", 0)
-        # 重量
-        weight_raw = p.get("重量", 0)
-        try: norm["weight"] = float(weight_raw)
-        except: norm["weight"] = 0
-
-        if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+    all_products = []
+    errors = []
+    # 每次20条，5次=100条
+    for page in range(1, 6):
+        if site == "US":
+            args = {"amzSite": site, "page": page}
+            if req.search:
+                args["searchName"] = req.search
+            raw = mcp_call("potential_product", args)
+        else:
+            args = {
+                "amzSite": site,
+                "sortby_potential_index": True,
+                "page": page,
+            }
+            if req.search:
+                args["searchName"] = req.search
+            raw = mcp_call("product_search", args)
+        try:
+            chunk = json.loads(raw) if isinstance(raw, str) else raw
+        except Exception:
+            chunk = []
+        if isinstance(chunk, dict) and "error" in chunk:
+            errors.append(chunk["error"])
             continue
-        result.append(norm)
+        chunk = chunk if isinstance(chunk, list) else []
+        for p in chunk:
+            norm = normalize_product(p, site)
+            norm["potential_index"] = (
+                p.get("potential_index") or p.get("产品潜力指数") or 0
+            )
+            norm["big_category"] = p.get("所属大类", "")
+            norm["sub_category"] = p.get("所属细分类目", "")
+            norm["seller_country"] = p.get("卖家国籍", "")
+            norm["fba_fee"] = p.get("FBA费用", 0)
+            weight_raw = p.get("重量", 0)
+            try: norm["weight"] = float(weight_raw)
+            except: norm["weight"] = 0
+            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+                continue
+            all_products.append(norm)
 
-    return {"products": result, "total": len(result), "errors": errors}
+    return {"products": all_products, "total": len(all_products), "errors": errors}
 
 @router.post("/new")
 async def pull_new_products(req: NewReq):
@@ -718,20 +846,33 @@ async def pull_new_products(req: NewReq):
         products_raw = []
     products_raw = products_raw if isinstance(products_raw, list) else []
 
-    result = []
-    for p in products_raw:
-        norm = normalize_product(p, site)
-        norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
-        norm["big_category"] = p.get("所属大类", "")
-        norm["sub_category"] = p.get("所属细分类目", "")
-        norm["seller_country"] = p.get("卖家国籍", "")
-        norm["fba_fee"] = p.get("FBA费用", 0)
-        weight_raw = p.get("重量", 0)
-        try: norm["weight"] = float(weight_raw)
-        except: norm["weight"] = 0
+    all_products = []
+    # 每次20条，5次=100条
+    for page in range(1, 6):
+        args = {
+            "amzSite": site,
+            "page": page,
+        }
+        if req.search:
+            args["searchName"] = req.search
+        raw = mcp_call("product_search", args)
+        try:
+            chunk = json.loads(raw) if isinstance(raw, str) else raw
+        except Exception:
+            chunk = []
+        chunk = chunk if isinstance(chunk, list) else []
+        for p in chunk:
+            norm = normalize_product(p, site)
+            norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
+            norm["big_category"] = p.get("所属大类", "")
+            norm["sub_category"] = p.get("所属细分类目", "")
+            norm["seller_country"] = p.get("卖家国籍", "")
+            norm["fba_fee"] = p.get("FBA费用", 0)
+            weight_raw = p.get("重量", 0)
+            try: norm["weight"] = float(weight_raw)
+            except: norm["weight"] = 0
+            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+                continue
+            all_products.append(norm)
 
-        if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-            continue
-        result.append(norm)
-
-    return {"products": result, "total": len(result), "errors": []}
+    return {"products": all_products, "total": len(all_products), "errors": []}

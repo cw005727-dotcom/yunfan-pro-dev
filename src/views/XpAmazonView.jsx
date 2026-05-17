@@ -106,8 +106,6 @@ export default function XpAmazonView() {
   const [selectedSub, setSelectedSub] = useState('')     // 当前选中的子类 nodeId
   const [mode, setMode] = useState('potential')  // 潜力/新品/爆品三种模式，全部走 product_search（图片正常）
   const [minSales, setMinSales] = useState(0)
-  const [minRating, setMinRating] = useState(0)
-  const [maxListedDays, setMaxListedDays] = useState(0)
   const [products, setProducts] = useState([])
   const [filtered, setFiltered] = useState([])
   const [loading, setLoading] = useState(false)
@@ -161,16 +159,12 @@ export default function XpAmazonView() {
   }, [selectedCat, categoryTree])
 
   function filterProducts(all) {
-    let result = all || []
-    if (maxListedDays > 0) result = result.filter(n => (n.listed_days || 0) <= maxListedDays)
-    if (minSales > 0) result = result.filter(n => (n.sales || 0) >= minSales)
-    if (minRating > 0) result = result.filter(n => (n.rating || 0) >= minRating)
-    setFiltered(result)
+    // 爆品/新品/潜力三模式均直接展示后端返回的100条，不做前端二次过滤
+    // minSales 仅作为参考展示信息
+    setFiltered(all || [])
   }
 
-  useEffect(() => {
-    filterProducts(products)
-  }, [maxListedDays, minSales, minRating, mode])
+  // filterProducts driven by products setter
 
   const handlePull = async () => {
     if (!selectedCat) {
@@ -190,9 +184,6 @@ export default function XpAmazonView() {
         site,
         node_id: nodeId,
         page: 1,
-        min_sales: minSales,
-        min_rating: minRating,
-        max_listed_days: maxListedDays,
       }
       // MX/BR/US：传 category 中文名作为 searchName（product_search 用类目名过滤，不是 nodeId）
       const catObj = categories.find(c => c.id === selectedCat)
@@ -293,49 +284,9 @@ export default function XpAmazonView() {
             <span className="text-xs text-slate-400">{currentSubcats.length} 个子类</span>
           )}
 
-          {/* 月销筛选 */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-slate-500">月销≥</label>
-            <input
-              type="number"
-              value={minSales}
-              onChange={e => setMinSales(+e.target.value)}
-              className="w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-400"
-              placeholder="0"
-            />
-          </div>
 
-          {/* 上架天数 */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-slate-500">上架≤</label>
-            <select
-              value={maxListedDays}
-              onChange={e => setMaxListedDays(+e.target.value)}
-              className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-rose-400"
-            >
-              <option value={0}>不限</option>
-              <option value={30}>30天</option>
-              <option value={60}>60天</option>
-              <option value={90}>90天</option>
-              <option value={180}>180天</option>
-              <option value={365}>1年</option>
-            </select>
-          </div>
 
-          {/* 评分筛选 */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-slate-500">评分≥</label>
-            <input
-              type="number"
-              value={minRating}
-              onChange={e => setMinRating(+e.target.value)}
-              className="w-16 px-2 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-400"
-              placeholder="0"
-              step="0.1"
-              min="0"
-              max="5"
-            />
-          </div>
+
 
           {/* 模式切换 */}
           <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
@@ -389,6 +340,38 @@ export default function XpAmazonView() {
       {filtered.length > 0 && (
         <div className="flex-shrink-0 flex items-center justify-end gap-2 px-4 py-2 bg-white border-b border-slate-100">
           <span className="text-xs text-slate-500">共 {filtered.length} 条</span>
+          <button
+            onClick={() => {
+              const rows = filtered.map(p => ({
+                '站点': site,
+                'ASIN': p.asin || '',
+                '商品名称': (p.title || '').replace(/"/g, '""'),
+                '价格': p.price || 0,
+                '月销量': p.sales || 0,
+                '评分': p.rating || 0,
+                '上架天数': p.listed_days || 0,
+                '潜力指数': p.potential_index || 0,
+                '大类': p.big_category || '',
+                '细分类': p.sub_category || '',
+                '重量(g)': p.weight || 0,
+                'FBA费用': p.fba_fee || 0,
+                '卖家国籍': p.seller_country || '',
+                '亚马逊链接': `https://www.amazon.${siteLower}/dp/${p.asin}`,
+              }))
+              const headers = Object.keys(rows[0] || {})
+              const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${r[h]}"`).join(','))].join('\n')
+              const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `amazon_${mode}_${siteLower}_${new Date().toISOString().slice(0,10)}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+            className="px-2.5 py-1 bg-green-500 text-white rounded-md text-xs font-medium hover:bg-green-600 flex items-center gap-1"
+          >
+            📥 导出CSV
+          </button>
           <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
             {['grid', 'list'].map(v => (
               <button
