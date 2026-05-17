@@ -71,6 +71,7 @@ async def run_auto_workflow(req: AutoRunRequest):
             if not req.image_description:
                 raise HTTPException(status_code=400, detail="image_description 不能为空")
             image_gen = _get_image_gen_client()
+            logger.info(f"[AutoCenter] reference_images={req.reference_images}")
             result = image_gen.generate(
                 prompt=req.image_description,
                 image_style=req.image_style,

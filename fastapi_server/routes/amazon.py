@@ -394,7 +394,7 @@ def _translate_en_to_zh(en_name: str) -> str:
     """把常见英文类目名翻译成中文（US 子类 fallback 用）"""
     import unicodedata
     en_lower = unicodedata.normalize('NFD', en_name.lower())
-    en_lower = ''.join(c for c in en_lower if c not in '`\'"')
+    en_lower = ''.join(c for c in en_lower if unicodedata.category(c) != 'Mn')
     mapping = {
         # 电子/数码
         "cell phone": "手机通讯", "cell phones": "手机通讯",

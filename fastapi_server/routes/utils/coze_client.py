@@ -30,8 +30,17 @@ class ImageGenClient:
         if not prompt:
             raise ImageGenError("prompt 不能为空")
 
+            # 火山引擎 API 需要绝对 URL，不能用相对路径
+        base_url = "http://47.76.179.242:8506"
         has_ref = bool(reference_images and len(reference_images) > 0)
-        ref_url = reference_images[0].get("url") or reference_images[0].get("image_url", "") if has_ref else None
+        ref_url = None
+        if has_ref:
+            raw_ref = reference_images[0].get("url") or reference_images[0].get("image_url", "")
+            # 相对路径 -> 补全为绝对 URL
+            if raw_ref.startswith("/"):
+                ref_url = base_url + raw_ref
+            else:
+                ref_url = raw_ref
 
         payload = {
             "model": SEEDREAM_MODEL,
