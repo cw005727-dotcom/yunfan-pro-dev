@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 Webhook 健康检查 - 每5分钟跑一次
 1. 发测试请求到 http://47.76.179.242:8507/api/tongzhi
@@ -9,7 +9,7 @@ Webhook 健康检查 - 每5分钟跑一次
 import requests, json, os, sys
 from datetime import datetime
 
-WEBHOOK_URL = "http://47.76.179.242:8507/api/tongzhi"
+WEBHOOK_URL = "http://47.76.179.242:8506/api/tongzhi"
 TEST_PAYLOAD = {
     "resource": "/orders/TEST-HEALTH-CHECK",
     "topic": "orders",
@@ -19,7 +19,7 @@ TEST_PAYLOAD = {
     "amount": 0.01,
     "status": "test"
 }
-LOG_FILE = "/home/admin/yunfan-pro-dev/logs/webhook_health.log"
+LOG_FILE = os.path.join(os.path.expanduser('~/yunfan-pro-dev'), 'logs/webhook_health.log')
 
 def log(msg):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

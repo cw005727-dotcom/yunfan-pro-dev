@@ -4,12 +4,16 @@
 """
 import sys
 import os
+import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from fastapi import APIRouter, HTTPException
 from fastapi_server.routes.utils.coze_client import CozeClient, CozeAPIError
 from pydantic import BaseModel
 from typing import Optional, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auto", tags=["自动化中心"])
 
@@ -76,11 +80,33 @@ async def run_auto_workflow(req: AutoRunRequest):
         else:
             raise HTTPException(status_code=400, detail=f"Unknown workflow type: {req.workflow_type}")
 
-        return result
+        logger.info(f"[AutoCenter] workflow={req.workflow_type} result_keys={list(result.get('result_data', {}).keys()) if isinstance(result, dict) else 'N/A'}")
+        logger.info(f"[AutoCenter] raw_result={json.dumps(result, ensure_ascii=False)[:500]}")
+
+        # 检查 result_data 是否为空（被 except 吞掉的异常在这里暴露）
+        result_data = result.get('result_data', {}) if isinstance(result, dict) else {}
+        
+        if isinstance(result, dict) and not result_data:
+            # 可能是错误但被包装了，检查 error 字段
+            if result.get('error') or result.get('error_detail') or result.get('message'):
+                error_msg = result.get('error_detail') or result.get('error') or result.get('message', 'unknown error')
+                logger.error(f"[AutoCenter] workflow={req.workflow_type} returned error: {error_msg}")
+                raise HTTPException(status_code=502, detail=error_msg)
+            raise HTTPException(status_code=502, detail=f"Coze返回空结果: {result.get('message', 'no result_data')}")
+
+        # 统一返回 cost 字段
+        return {
+            "result_data": result_data,
+            "cost": result.get("cost", {"llm_calls": 0, "image_generations": 0, "video_generations": 0})
+        }
 
     except CozeAPIError as e:
+        logger.error(f"[AutoCenter] CozeAPIError: {str(e)}")
         raise HTTPException(status_code=502, detail=f"Coze API error: {str(e)}")
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"[AutoCenter] Internal error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 @router.get("/health")

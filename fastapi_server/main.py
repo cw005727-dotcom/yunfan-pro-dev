@@ -114,6 +114,32 @@ app.include_router(auto_center_router)
 app.include_router(amazon.router)
 
 
+@app.get("/api/proxy/image")
+async def proxy_image(url: str):
+    """代理 Amazon CDN 图片，解决 datacenter IP 400 问题"""
+    import logging
+    from urllib.request import Request, urlopen
+    from fastapi.responses import Response
+    logger = logging.getLogger("uvicorn.error")
+    if not url or not url.startswith("http"):
+        return Response(content="invalid url", status_code=400)
+    try:
+        req = Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.amazon.com/",
+        })
+        with urlopen(req, timeout=10) as resp:
+            body = resp.read()
+            content_type = resp.headers.get("Content-Type", "image/jpeg")
+            logger.info(f"[proxy_image] {url[:80]} -> {resp.status}")
+            return Response(content=body, media_type=content_type)
+    except Exception as e:
+        logger.warning(f"[proxy_image] failed: {url[:80]} {e}")
+        return Response(content=str(e), status_code=502)
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy"}

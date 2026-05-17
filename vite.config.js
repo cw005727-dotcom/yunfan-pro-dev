@@ -24,16 +24,14 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '127.0.0.1',
     proxy: {
       '/api': {
-        target: 'http://localhost:8506',
+        target: 'http://127.0.0.1:8506',
         changeOrigin: true,
-        headers: {
-          'X-Admin-Token': 'YUNFAN_ADMIN_2026',
-        },
       },
       '/admin_api': {
-        target: 'http://localhost:8506',
+        target: 'http://127.0.0.1:8506',
         changeOrigin: true,
         headers: {
           'X-Admin-Token': 'YUNFAN_ADMIN_2026',
@@ -42,7 +40,6 @@ export default defineConfig({
     },
   },
   define: {
-    // 注入 admin 专用 Token（生产环境从环境变量读取）
     ADMIN_TOKEN: JSON.stringify(process.env.ADMIN_TOKEN || 'dev-admin-token'),
   },
 });

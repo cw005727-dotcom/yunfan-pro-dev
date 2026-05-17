@@ -28,9 +28,11 @@ function ProductCard({ product, site, productMode }) {
   const currencySymbol = siteInfo?.currencySymbol || '$'
   const asin = product.asin || ''
   const rawUrl = product.thumbnail || product.image_url || ''
+  // 走后端代理（解决 Amazon CDN 对 datacenter IP 返回 400 的问题）
+  // 只有 MCP 返回真实 URL 时才走代理；空值/纯文本（ASIN）直接用占位图
   const imgUrl = rawUrl.startsWith('http')
     ? '/api/proxy/image?url=' + encodeURIComponent(rawUrl)
-    : rawUrl || PLACEHOLDER_IMG
+    : PLACEHOLDER_IMG
 
   const amazonBase = site === 'US' ? 'amazon.com'
     : site === 'MX' ? 'amazon.com.mx'
@@ -102,7 +104,7 @@ export default function XpAmazonView() {
   const [categoryTree, setCategoryTree] = useState([])   // 完整树结构（含子类）
   const [selectedCat, setSelectedCat] = useState('')     // 当前选中的大类 nodeId
   const [selectedSub, setSelectedSub] = useState('')     // 当前选中的子类 nodeId
-  const [mode, setMode] = useState('hot')
+  const [mode, setMode] = useState('potential')  // 潜力模式有图片，热卖模式无图片（MCP category_report 不返回图片）
   const [minSales, setMinSales] = useState(0)
   const [minRating, setMinRating] = useState(0)
   const [maxListedDays, setMaxListedDays] = useState(0)
@@ -185,21 +187,32 @@ export default function XpAmazonView() {
     try {
       // priority: subclass > main category
       const nodeId = selectedSub || selectedCat
+      console.log('[Amazon DEBUG] site:', site, 'nodeId:', nodeId, 'mode:', mode, 'selectedSub:', selectedSub, 'selectedCat:', selectedCat)
       const endpoint = mode === 'potential' ? '/api/amazon/potential' : '/api/amazon/hot'
+      const reqBody = {
+        site,
+        node_id: nodeId,
+        node_ids: [nodeId],
+        min_sales: minSales,
+        min_rating: minRating,
+        max_listed_days: maxListedDays,
+        page: 1,
+      }
+      // MX/BR potential 模式：传 category 中文名作为 searchName（MCP product_search 不识别 nodeId）
+      if (mode === 'potential' && (site === 'MX' || site === 'BR')) {
+        const catObj = categories.find(c => c.id === selectedCat)
+        if (catObj?.name) reqBody.search = catObj.name
+      }
+      console.log('[Amazon DEBUG] request body:', JSON.stringify(reqBody))
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          site,
-          node_id: nodeId,
-          node_ids: [nodeId],
-          min_sales: minSales,
-          min_rating: minRating,
-          max_listed_days: maxListedDays,
-          page: 1,
-        }),
+        body: JSON.stringify(reqBody),
       })
-      const data = await res.json()
+      console.log('[Amazon DEBUG] response status:', res.status)
+      const text = await res.text()
+      console.log('[Amazon DEBUG] response body:', text.substring(0, 200))
+      const data = JSON.parse(text)
       console.log('[Amazon] site:', site, 'nodeId:', nodeId, 'mode:', mode,
         'products:', data.products?.length, 'errors:', data.errors)
       if (!res.ok) {

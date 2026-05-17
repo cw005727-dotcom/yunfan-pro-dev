@@ -349,7 +349,7 @@ export default function AutoCenterView() {
   };
 
   const handleRun = async () => {
-    if (activeTab !== 'image' && !productName.trim()) {
+    if (!['image', 'video', 'detail'].includes(activeTab) && !productName.trim()) {
       showToast('请输入产品名称', 'error'); return;
     }
     if (activeTab === 'image' && !imageDesc.trim()) {
@@ -661,8 +661,8 @@ export default function AutoCenterView() {
                   )}
                 </div>
 
-                {result?.result_data?.images?.length > 0
-                  ? result.result_data.images.map((img, i) => (
+                {imgResults.length > 0
+                  ? imgResults.map((img, i) => (
                       <div key={i} className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-[8px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded-md uppercase">{img.label || img.type}</span>
