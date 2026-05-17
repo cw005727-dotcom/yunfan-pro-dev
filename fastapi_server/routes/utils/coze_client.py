@@ -2,6 +2,7 @@
 图片生成客户端 - 火山引擎 Seedream
 """
 import time
+import base64
 import requests
 import logging
 
@@ -11,6 +12,9 @@ logger = logging.getLogger(__name__)
 SEEDREAM_API_KEY = "57e448e2-545c-4c0e-a47b-b49e3ff3feef"
 SEEDREAM_ENDPOINT = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
 SEEDREAM_MODEL = "doubao-seedream-4-0-250828"
+
+# 后端公网地址（用于补全相对路径为绝对URL）
+BACKEND_PUBLIC_URL = "http://47.76.179.242:8506"
 
 
 class ImageGenError(Exception):
@@ -30,15 +34,14 @@ class ImageGenClient:
         if not prompt:
             raise ImageGenError("prompt 不能为空")
 
-            # 火山引擎 API 需要绝对 URL，不能用相对路径
-        base_url = "http://47.76.179.242:8506"
         has_ref = bool(reference_images and len(reference_images) > 0)
         ref_url = None
+
         if has_ref:
             raw_ref = reference_images[0].get("url") or reference_images[0].get("image_url", "")
             # 相对路径 -> 补全为绝对 URL
             if raw_ref.startswith("/"):
-                ref_url = base_url + raw_ref
+                ref_url = BACKEND_PUBLIC_URL + raw_ref
             else:
                 ref_url = raw_ref
 
@@ -46,12 +49,15 @@ class ImageGenClient:
             "model": SEEDREAM_MODEL,
             "version": "250828",
             "prompt": prompt,
-            "reference_images": [ref_url] if has_ref else None,
             "size": "2K",
             "response_format": "url",
             "watermark": False,
         }
-        logger.info(f"[Seedream] incoming: prompt={prompt[:50]} has_ref={has_ref} ref_url={ref_url}")
+        if has_ref:
+            # 图生图: 用 reference_images 传 URL 数组
+            payload["reference_images"] = [ref_url]
+
+        logger.info(f"[Seedream] prompt={prompt[:50]} has_ref={has_ref} ref_url={ref_url}")
 
         headers = {
             "Authorization": f"Bearer {SEEDREAM_API_KEY}",
@@ -62,7 +68,7 @@ class ImageGenClient:
         try:
             resp = requests.post(SEEDREAM_ENDPOINT, json=payload, headers=headers, timeout=120)
             elapsed = round((time.time() - start) * 1000, 0)
-            logger.info(f"[Seedream] prompt={prompt[:50]} status={resp.status_code} elapsed={elapsed}ms")
+            logger.info(f"[Seedream] status={resp.status_code} elapsed={elapsed}ms")
 
             if resp.status_code != 200:
                 logger.error(f"[Seedream] HTTP {resp.status_code}: {resp.text[:200]}")
@@ -75,13 +81,11 @@ class ImageGenClient:
             image_list = []
             url_list = []
 
-            # Volcano Engine 返回格式：data.data[].url
-            inner = data.get("data", {}) or data.get("choices", {}) or data.get("images", [])
-            items = []
-            if isinstance(inner, dict):
-                items = inner.get("data", [])
-            elif isinstance(inner, list):
-                items = inner
+            items = data.get("data", [])
+            if isinstance(items, dict):
+                items = items.get("data", [])
+            if not isinstance(items, list):
+                items = []
 
             for item in items:
                 if isinstance(item, dict):
