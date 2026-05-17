@@ -32,15 +32,19 @@ class ImageGenClient:
 
         image_types = image_types or ["main"]
         has_ref = bool(reference_images and len(reference_images) > 0)
+        ref_url = None
 
         payload = {
             "model": SEEDREAM_MODEL,
+            "version": "250828",
             "prompt": prompt,
-            "image_size": "1024x1024",
+            "reference_images": [ref_url] if has_ref else None,
+            "image_size": "2K",
+            "response_format": "url",
             "prompt_optimization": True,
         }
-        if has_ref:
-            payload["image_url"] = reference_images[0].get("url") or reference_images[0].get("image_url", "")
+
+        logger.info(f"[Seedream] incoming: prompt={prompt[:50]} has_ref={has_ref} ref_url={ref_url}")
 
         headers = {
             "Authorization": f"Bearer {SEEDREAM_API_KEY}",

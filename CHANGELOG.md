@@ -169,3 +169,17 @@ relay() → topic 分流
 - 服务器 cron：每整点执行 `refresh_token_cron.py`
 - 新 App ID: `4507485641678982`（2026-05-15 切换）
 - 刷新失败原因：旧 App 签发的 refresh_token 无法用于新 App 授权（`invalid_grant`）
+
+## v4.33.1 (2026-05-17)
+### 图片生成切换到火山引擎 Seedream
+
+**原因**：Coze 平台对 SDK 图片生成做了资源限制（ErrSourceLimit），无法使用。
+
+**改动**：
+- `coze_client.py`：废弃 CozeClient 类，改用 ImageGenClient 直调火山引擎
+  - endpoint：`POST https://ark.cn-beijing.volces.com/api/v3/images/generations`
+  - 模型：`doubao-seedream-4-0-250828`
+  - API Key：`57e448e2-545c-4c0e-a47b-b49e3ff3feef`（写死代码）
+  - 价格：约 **0.2 元/张**，需去火山引擎控制台续费
+- `auto_center.py`：移除 CozeClient 依赖，仅保留 image workflow（其他暂返回 501）
+- **前端无需改动**：API 返回格式完全兼容（result_data.image_urls/images/prompt_used）

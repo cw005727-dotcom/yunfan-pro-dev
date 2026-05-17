@@ -104,7 +104,7 @@ export default function XpAmazonView() {
   const [categoryTree, setCategoryTree] = useState([])   // 完整树结构（含子类）
   const [selectedCat, setSelectedCat] = useState('')     // 当前选中的大类 nodeId
   const [selectedSub, setSelectedSub] = useState('')     // 当前选中的子类 nodeId
-  const [mode, setMode] = useState('potential')  // 潜力模式有图片，热卖模式无图片（MCP category_report 不返回图片）
+  const [mode, setMode] = useState('potential')  // 潜力/新品/爆品三种模式，全部走 product_search（图片正常）
   const [minSales, setMinSales] = useState(0)
   const [minRating, setMinRating] = useState(0)
   const [maxListedDays, setMaxListedDays] = useState(0)
@@ -162,13 +162,9 @@ export default function XpAmazonView() {
 
   function filterProducts(all) {
     let result = all || []
-    if (mode === 'potential') {
-      if (maxListedDays > 0) result = result.filter(n => (n.listed_days || 0) <= maxListedDays)
-    } else {
-      if (maxListedDays > 0) result = result.filter(n => (n.listed_days || 0) <= maxListedDays)
-      if (minSales > 0) result = result.filter(n => (n.sales || 0) >= minSales)
-      if (minRating > 0) result = result.filter(n => (n.rating || 0) >= minRating)
-    }
+    if (maxListedDays > 0) result = result.filter(n => (n.listed_days || 0) <= maxListedDays)
+    if (minSales > 0) result = result.filter(n => (n.sales || 0) >= minSales)
+    if (minRating > 0) result = result.filter(n => (n.rating || 0) >= minRating)
     setFiltered(result)
   }
 
@@ -188,22 +184,23 @@ export default function XpAmazonView() {
       // priority: subclass > main category
       const nodeId = selectedSub || selectedCat
       console.log('[Amazon DEBUG] site:', site, 'nodeId:', nodeId, 'mode:', mode, 'selectedSub:', selectedSub, 'selectedCat:', selectedCat)
-      const endpoint = mode === 'potential' ? '/api/amazon/potential' : '/api/amazon/hot'
+      const endpointMap = { potential: '/api/amazon/potential', hot: '/api/amazon/hot', new: '/api/amazon/new' }
+      const endpoint = endpointMap[mode] || '/api/amazon/potential'
       const reqBody = {
         site,
         node_id: nodeId,
-        node_ids: [nodeId],
+        page: 1,
         min_sales: minSales,
         min_rating: minRating,
         max_listed_days: maxListedDays,
-        page: 1,
       }
-      // MX/BR potential 模式：传 category 中文名作为 searchName（MCP product_search 不识别 nodeId）
-      if (mode === 'potential' && (site === 'MX' || site === 'BR')) {
-        const catObj = categories.find(c => c.id === selectedCat)
-        if (catObj?.name) reqBody.search = catObj.name
+      // MX/BR/US：传 category 中文名作为 searchName（product_search 用类目名过滤，不是 nodeId）
+      const catObj = categories.find(c => c.id === selectedCat)
+      if (catObj?.name) {
+        reqBody.search = catObj.name
       }
-      console.log('[Amazon DEBUG] request body:', JSON.stringify(reqBody))
+      // 爆品：前端按月销量降序；新品：前端按上架时间升序
+      // 后端不做排序，前端拉取后排序
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -223,8 +220,18 @@ export default function XpAmazonView() {
         setError('该类目暂无数据，请尝试其他子类或站点')
         return
       }
-      setProducts(data.products || [])
-      filterProducts(data.products || [])
+      // ── 前端排序：爆品按月销降序，新品按上架时间升序 ──
+      let sorted = data.products || []
+      if (mode === 'hot') {
+        // 爆品：月销量越高越前
+        sorted = sorted.slice().sort((a, b) => (b.sales || 0) - (a.sales || 0))
+      } else if (mode === 'new') {
+        // 新品：上架天数越少越前（越新）
+        sorted = sorted.slice().sort((a, b) => (a.listed_days || 999) - (b.listed_days || 999))
+      }
+      // 潜力模式保持 MCP 原排序（sortby_potential_index=True）
+      setProducts(sorted)
+      filterProducts(sorted)
       setLastUpdate(new Date().toLocaleTimeString())
     } catch (err) {
       setError('加载失败: ' + err.message)
@@ -336,13 +343,19 @@ export default function XpAmazonView() {
               onClick={() => setMode('hot')}
               className={`px-3 py-1 rounded text-xs font-medium transition-all ${mode === 'hot' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
             >
-              🔥 畅销爆品
+              🔥 爆品
             </button>
             <button
               onClick={() => setMode('potential')}
               className={`px-3 py-1 rounded text-xs font-medium transition-all ${mode === 'potential' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
             >
-              ✨ 潜力新品
+              ⭐ 潜力
+            </button>
+            <button
+              onClick={() => setMode('new')}
+              className={`px-3 py-1 rounded text-xs font-medium transition-all ${mode === 'new' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
+            >
+              🆕 新品
             </button>
           </div>
 

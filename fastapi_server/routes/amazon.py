@@ -293,20 +293,91 @@ def _get_category_info(site: str, node_id: str):
     info = _CATEGORY_FLAT_CACHE[site].get(node_id, {})
     # 优先用翻译，否则用原始名
     name = info.get("name", "")
-    cn = _translate_cat(site, node_id) or name
+    cn = _translate_cat(site, node_id, name) or name
     return {
         "name": cn if cn else node_id,
         "emoji": info.get("emoji", "📦"),
     }
 
-def _translate_cat(site: str, node_id: str) -> str:
-    """查询类目中文翻译（BR/MX 返回翻译，US 返回英文原文的中文对照）"""
+def _translate_cat(site: str, node_id: str, fallback_name: str = "") -> str:
+    """查询类目中文翻译。BR/MX/US 均从对应站点映射表查，US 子类未映射时翻译英文名。"""
+    cn = ""
     if site == "BR":
-        return _BR_CATEGORIES.get(node_id, "")
+        cn = _BR_CATEGORIES.get(node_id, "")
     elif site == "MX":
-        return _MX_CATEGORIES.get(node_id, "")
+        cn = _MX_CATEGORIES.get(node_id, "")
     elif site == "US":
-        return _US_CATEGORIES.get(node_id, "")
+        cn = _US_CATEGORIES.get(node_id, "")
+        # US 子类未翻译：尝试把英文名翻译成中文
+        if not cn and fallback_name:
+            cn = _translate_en_to_zh(fallback_name)
+    return cn
+
+def _translate_en_to_zh(en_name: str) -> str:
+    """把常见英文类目名翻译成中文（US 子类 fallback 用）"""
+    en_lower = en_name.lower()
+    mapping = {
+        "cell phone": "手机通讯", "cell phones": "手机通讯",
+        "accessories": "配件", "cases": "保护套",
+        "screen protectors": "屏幕保护膜", "cables": "数据线",
+        "chargers": "充电器", "batteries": "电池",
+        "power banks": "移动电源", "tablets": "平板电脑",
+        "laptops": "笔记本电脑", "desktops": "台式机",
+        "computers": "电脑配件", "computer accessories": "电脑配件",
+        "computer components": "电脑组件", "monitors": "显示器",
+        "keyboards": "键盘", "mice": "鼠标",
+        "headsets": "耳机", "earbuds": "耳机",
+        "headphones": "耳机", "speakers": "音响",
+        "cameras": "相机", "tvs": "电视", "tv": "电视",
+        "video games": "电子游戏", "game consoles": "游戏机",
+        "makeup": "彩妆", "skincare": "护肤", "hair care": "护发",
+        "perfumes": "香水", "fragrances": "香水",
+        "nail care": "美甲", "cosmetics": "美妆",
+        "beauty gift sets": "美妆礼盒", "baby": "母婴",
+        "diapering": "尿布", "feeding": "喂养",
+        "toys": "玩具", "toys & games": "玩具游戏",
+        "clothing": "服装", "shoes": "鞋",
+        "costumes": "服装", "baby clothing": "婴儿服装",
+        "boys fashion": "男童服装", "girls fashion": "女童服装",
+        "womens fashion": "女装", "mens fashion": "男装",
+        "luggage": "箱包", "home": "家居", "kitchen": "厨房",
+        "cookware": "厨具", "bedding": "床上用品",
+        "bathroom": "浴室", "furniture": "家具",
+        "lighting": "灯具", "storage": "收纳",
+        "cleaning": "清洁用品", "appliances": "家电",
+        "garden": "园艺", "grocery": "食品饮料",
+        "food": "食品", "drinks": "饮料", "coffee": "咖啡",
+        "tea": "茶", "snacks": "零食", "health": "健康",
+        "supplements": "营养补充", "medicine": "药品",
+        "oral care": "口腔护理", "automotive": "汽车用品",
+        "car care": "汽车护理", "tools": "工具",
+        "sports": "运动", "outdoors": "户外", "fitness": "健身",
+        "running": "跑步", "office": "办公", "pet": "宠物",
+        "books": "图书", "music": "音乐", "movies": "电影",
+        "arts": "艺术", "crafts": "手工", "jewelry": "珠宝",
+        "watches": "手表", "sunglasses": "太阳镜",
+        "kitchen utensils": "厨房用具", "cutlery": "餐具",
+        "blenders": "搅拌机", "mixers": "料理机",
+        "coffee makers": "咖啡机", "microwaves": "微波炉",
+        "refrigerators": "冰箱", "washers": "洗衣机",
+        "dryers": "干衣机", "air conditioners": "空调",
+        "vacuum cleaners": "吸尘器", "fans": "风扇",
+        "heaters": "取暖器", "air purifiers": "空气净化器",
+        "smart home": "智能家居", "security cameras": "监控摄像",
+        "cooktops": "电磁炉", "dishwashers": "洗碗机",
+        "freezers": "冰柜", "ranges": "燃气灶",
+        "microwave ovens": "微波炉", "built-in": "嵌入式",
+        "device accessories": "配件", "device subscriptions": "订阅服务",
+        "amazon devices": "亚马逊设备", "amazon renewed": "官方翻新",
+        "renewed automotive": "汽车用品", "renewed camera": "相机",
+        "renewed computers": "电脑配件", "renewed headphones": "耳机",
+        "renewed home": "家居", "renewed tablets": "平板电脑",
+        "renewed smartphones": "智能手机", "renewed smartwatches": "智能手表",
+        "renewed video game": "游戏机", "renewed laptops": "笔记本电脑",
+    }
+    for key, zh in mapping.items():
+        if key in en_lower or en_lower in key:
+            return zh
     return ""
 
 def _list_all_node_ids(site: str) -> list:
@@ -410,7 +481,9 @@ def normalize_product(p: dict, site: str) -> dict:
 # ── 请求模型─────────────────────────────────────────────────────────────
 class HotReq(BaseModel):
     site: str = "US"
-    node_ids: Optional[list] = None   # 类目 nodeId 列表，不传则全量
+    node_id: str = ""
+    search: Optional[str] = None       # 类目中文名，用于 product_search searchName
+    page: int = 1
     min_sales: int = 0
     min_rating: float = 0.0
     max_listed_days: Optional[int] = None
@@ -418,7 +491,7 @@ class HotReq(BaseModel):
 class NewReq(BaseModel):
     site: str = "US"
     node_id: str = ""
-    search: Optional[str] = None       # optional keyword filter
+    search: Optional[str] = None       # 类目中文名，用于 product_search searchName
     page: int = 1
     max_listed_days: Optional[int] = None
 
@@ -461,18 +534,20 @@ def list_categories_by_site(site: str):
         for sub in node.get("子类", []):
             sub_id = sub.get("nodeId", "")
             sub_info = _get_category_info(site.upper(), sub_id)
+            cn = _translate_cat(site.upper(), sub_id, sub.get("类目名称", "") or sub.get("name", ""))
             subs.append({
                 "nodeId": sub_id,
                 "id": sub_id,
-                "类目名称": sub_info.get("name", sub.get("类目名称", "")),
-                "name": sub_info.get("name", sub.get("类目名称", "")),
+                "类目名称": cn or sub_info.get("name", sub.get("类目名称", "")),
+                "name": cn or sub_info.get("name", sub.get("类目名称", "")),
                 "emoji": sub_info.get("emoji", "📦"),
             })
+        top_cn = _translate_cat(site.upper(), node_id, node.get("类目名称", "") or node.get("name", ""))
         result.append({
             "nodeId": node_id,
             "id": node_id,
-            "类目名称": top_info.get("name", node.get("类目名称", "")),
-            "name": top_info.get("name", node.get("类目名称", "")),
+            "类目名称": top_cn or top_info.get("name", node.get("类目名称", "")),
+            "name": top_cn or top_info.get("name", node.get("类目名称", "")),
             "emoji": top_info.get("emoji", "📦"),
             "子类": subs,
         })
@@ -489,51 +564,55 @@ def list_sites():
 
 @router.post("/hot")
 async def pull_hot_products(req: HotReq):
+    """
+    爆品模式：调用 product_search（MCP 返回图片），
+    前端按月销量(sales)降序排列。
+    """
     import logging
     logger = logging.getLogger("uvicorn.error")
-    logger.warning(f"[AMAZON HOT] site={req.site} node_ids={req.node_ids} min_sales={req.min_sales}")
-    """
-    类目畅销榜（Bestsellers），支持 US/MX/BR。
-    调用 category_report，nodeId 支持站点本地类目ID。
-    """
+    logger.warning(f"[AMAZON HOT] site={req.site} node_id={req.node_id} search={req.search}")
     site = req.site.upper()
     if site not in ("US", "MX", "BR"):
         raise HTTPException(400, "站点仅支持 US / MX / BR")
 
-    # 如果没指定 node_ids，取该站点所有类目（最多取前10个避免超时）
-    if not req.node_ids:
-        all_ids = _list_all_node_ids(site)
-        req.node_ids = all_ids[:10]
+    # product_search：所有站点都用 searchName 过滤类目
+    args = {
+        "amzSite": site,
+        "page": req.page,
+        # 不加 sortby_potential_index，MCP 默认排序，前端按销量重排
+    }
+    if req.search:
+        args["searchName"] = req.search
 
-    all_products = []
-    errors = []
+    raw = mcp_call("product_search", args)
+    try:
+        products_raw = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        products_raw = []
+    products_raw = products_raw if isinstance(products_raw, list) else []
 
-    for node_id in req.node_ids:
-        raw = mcp_call("category_report", {"amzSite": site, "nodeId": node_id})
-        try:
-            data = json.loads(raw) if isinstance(raw, str) else raw
-        except Exception as ex:
-            logger.warning(f"[AMAZON HOT] json parse error: {ex}, raw[:100]={str(raw)[:100]}")
-            errors.append(f"node {node_id}: parse error")
+    result = []
+    for p in products_raw:
+        norm = normalize_product(p, site)
+        # 爆品保留潜力指数（product_search 有此字段）
+        norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
+        norm["big_category"] = p.get("所属大类", "")
+        norm["sub_category"] = p.get("所属细分类目", "")
+        norm["seller_country"] = p.get("卖家国籍", "")
+        norm["fba_fee"] = p.get("FBA费用", 0)
+        weight_raw = p.get("重量", 0)
+        try: norm["weight"] = float(weight_raw)
+        except: norm["weight"] = 0
+        # 过滤
+        if norm["sales"] < req.min_sales:
             continue
-        products = data.get("Top100产品", [])
-        logger.warning(f"[AMAZON HOT] node={node_id} raw_products={len(products)} data_keys={list(data.keys())}")
+        if norm["rating"] < req.min_rating:
+            continue
+        if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+            continue
+        result.append(norm)
 
-        cat_info = _get_category_info(site, node_id)
-        for p in products:
-            norm = normalize_product(p, site)
-            norm["category_id"] = node_id
-            norm["category_name"] = cat_info["name"]
-            # 过滤
-            if norm["sales"] < req.min_sales:
-                continue
-            if norm["rating"] < req.min_rating:
-                continue
-            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-                continue
-            all_products.append(norm)
-
-    return {"products": all_products, "total": len(all_products), "errors": errors}
+    return {"products": result, "total": len(result), "errors": []}
 
 @router.post("/potential")
 async def pull_potential_products(req: NewReq):
@@ -611,3 +690,48 @@ async def pull_potential_products(req: NewReq):
         result.append(norm)
 
     return {"products": result, "total": len(result), "errors": errors}
+
+@router.post("/new")
+async def pull_new_products(req: NewReq):
+    """
+    新品模式：调用 product_search（MCP 返回图片），
+    前端按上架时间(listed_days)升序排列（越新越前）。
+    """
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    logger.warning(f"[AMAZON NEW] site={req.site} node_id={req.node_id} search={req.search}")
+    site = req.site.upper()
+    if site not in ("US", "MX", "BR"):
+        raise HTTPException(400, "站点仅支持 US / MX / BR")
+
+    args = {
+        "amzSite": site,
+        "page": req.page,
+    }
+    if req.search:
+        args["searchName"] = req.search
+
+    raw = mcp_call("product_search", args)
+    try:
+        products_raw = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        products_raw = []
+    products_raw = products_raw if isinstance(products_raw, list) else []
+
+    result = []
+    for p in products_raw:
+        norm = normalize_product(p, site)
+        norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
+        norm["big_category"] = p.get("所属大类", "")
+        norm["sub_category"] = p.get("所属细分类目", "")
+        norm["seller_country"] = p.get("卖家国籍", "")
+        norm["fba_fee"] = p.get("FBA费用", 0)
+        weight_raw = p.get("重量", 0)
+        try: norm["weight"] = float(weight_raw)
+        except: norm["weight"] = 0
+
+        if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+            continue
+        result.append(norm)
+
+    return {"products": result, "total": len(result), "errors": []}
