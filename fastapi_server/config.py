@@ -20,7 +20,9 @@ DB_PATH = os.environ.get("DB_PATH", os.path.join(DATA_DIR, "mercadolibre.db"))
 API_PORT = int(os.environ.get("API_PORT", "8506"))
 API_HOST = os.environ.get("API_HOST", "0.0.0.0")
 
-# Token 文件路径
+# Token 文件路径（兼容旧代码）
+TOKEN_FILE = os.environ.get("TOKEN_FILE", str(Path.home() / ".ml_token_enc"))
+KEY_FILE = os.environ.get("KEY_FILE", str(Path.home() / ".ml_token_key"))
 TOKEN_FILE_ENC = os.environ.get("TOKEN_FILE_ENC", str(Path.home() / ".ml_token_enc"))
 TOKEN_FILE_JSON = os.environ.get("TOKEN_FILE_JSON", str(Path.home() / ".ml_token_json"))
 
