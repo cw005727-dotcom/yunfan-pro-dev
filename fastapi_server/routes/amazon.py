@@ -16,6 +16,49 @@ router = APIRouter(prefix="/api/amazon", tags=["amazon"])
 MCP_KEY = "znfbzeq3wwfgahdzzeznmfhxtzljqt09"
 MCP_URL = "https://mcp.sorftime.com"
 
+# ── 数据库路径─────────────────────────────────────────────────────────────
+DB_PATH = "/Users/chensan/Library/CloudStorage/OneDrive-个人/Mac 资料/YunfanV2/mercadolibre.db"
+
+# ── 数据库初始化─────────────────────────────────────────────────────────
+def _ensure_amazon_table():
+    import sqlite3
+    conn = sqlite3.connect(DB_PATH)
+    conn.executescript(
+        """
+    CREATE TABLE IF NOT EXISTS amazon_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asin TEXT NOT NULL,
+        site TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        title TEXT,
+        price REAL DEFAULT 0,
+        weight REAL DEFAULT 0,
+        monthly_sales INTEGER DEFAULT 0,
+        monthly_revenue REAL DEFAULT 0,
+        brand TEXT,
+        review_count INTEGER DEFAULT 0,
+        rating REAL DEFAULT 0,
+        seller_country TEXT,
+        node_id TEXT,
+        node_name TEXT,
+        big_category TEXT,
+        sub_category TEXT,
+        listed_days INTEGER DEFAULT 0,
+        launch_date TEXT,
+        fba_fee REAL DEFAULT 0,
+        fulfillment TEXT DEFAULT 'FBM',
+        thumbnail_url TEXT,
+        product_url TEXT,
+        potential_index REAL DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        fetched_at TEXT DEFAULT (datetime('now', '+8 hours')),
+        CONSTRAINT uq_amazon_asin_site_mode UNIQUE(asin, site, mode)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ap_site_mode ON amazon_products(site, mode);
+    """)
+    conn.commit()
+    conn.close()
+
 # ── MCP 调用（新增 User-Agent header，修复 406）───────────────────────────
 def mcp_call(tool, args):
     import urllib.request
@@ -876,3 +919,245 @@ async def pull_new_products(req: NewReq):
             all_products.append(norm)
 
     return {"products": all_products, "total": len(all_products), "errors": []}
+
+# ── 数据库写入─────────────────────────────────────────────────────────────
+UPSERT_PRODUCT = """
+INSERT INTO amazon_products (
+    asin, site, mode, title, price, weight, monthly_sales, monthly_revenue,
+    brand, review_count, rating, seller_country, node_id, node_name,
+    big_category, sub_category, listed_days, launch_date, fba_fee,
+    fulfillment, thumbnail_url, product_url, potential_index, status, fetched_at
+) VALUES (
+    :asin, :site, :mode, :title, :price, :weight, :monthly_sales, :monthly_revenue,
+    :brand, :review_count, :rating, :seller_country, :node_id, :node_name,
+    :big_category, :sub_category, :listed_days, :launch_date, :fba_fee,
+    :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours')
+)
+ON CONFLICT(asin, site, mode) DO UPDATE SET
+    title=excluded.title, price=excluded.price, weight=excluded.weight,
+    monthly_sales=excluded.monthly_sales, monthly_revenue=excluded.monthly_revenue,
+    brand=excluded.brand, review_count=excluded.review_count, rating=excluded.rating,
+    seller_country=excluded.seller_country, node_id=excluded.node_id,
+    node_name=excluded.node_name, big_category=excluded.big_category,
+    sub_category=excluded.sub_category, listed_days=excluded.listed_days,
+    launch_date=excluded.launch_date, fba_fee=excluded.fba_fee,
+    fulfillment=excluded.fulfillment, thumbnail_url=excluded.thumbnail_url,
+    product_url=excluded.product_url, potential_index=excluded.potential_index,
+    fetched_at=datetime('now', '+8 hours')
+"""
+
+def _upsert_products_db(products: list, site: str, mode: str):
+    """将商品列表批量写入 amazon_products 表"""
+    import sqlite3
+    _ensure_amazon_table()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    for p in products:
+        p['site'] = site
+        p['mode'] = mode
+        cur.execute(UPSERT_PRODUCT, p)
+    conn.commit()
+    conn.close()
+
+
+def _normalize_for_db(p: dict, site: str) -> dict:
+    """将 MCP 商品数据规范化为数据库字段"""
+    asin = str(p.get('asin') or p.get('ASIN') or p.get('Asin') or '')
+    site_map = {'US': 'com', 'MX': 'com.mx', 'BR': 'com.br'}
+    sl = site_map.get(site, 'com')
+    thumbnail = p.get('主图') or p.get('thumbnail') or p.get('image_url') or ''
+    title = p.get('title') or p.get('标题') or p.get('product_name') or ''
+    price_raw = p.get('price') or p.get('buyBoxPrice') or p.get('价格') or 0
+    try: price = float(str(price_raw).replace('$', '').replace(' ', ''))
+    except: price = 0.0
+    sales_raw = p.get('sales') or p.get('月销量') or 0
+    try: monthly_sales = int(float(str(sales_raw).replace(',', '')))
+    except: monthly_sales = 0
+    revenue_raw = p.get('revenue') or p.get('月销售额') or 0
+    try: monthly_revenue = float(str(revenue_raw).replace('$', '').replace(',', ''))
+    except: monthly_revenue = 0.0
+    brand = p.get('brand') or p.get('品牌') or ''
+    reviews_raw = p.get('reviews') or p.get('评论数') or 0
+    try: review_count = int(float(str(reviews_raw).replace(',', '')))
+    except: review_count = 0
+    rating_raw = str(p.get('rating') or p.get('星级') or '0').replace('★', '').strip()
+    try: rating = float(rating_raw)
+    except: rating = 0.0
+    seller_country = p.get('seller_country') or p.get('卖家国籍') or ''
+    node_id = p.get('node_id') or p.get('nodeId') or ''
+    node_name = p.get('node_name') or p.get('类目名称') or ''
+    big_cat = p.get('big_category') or p.get('所属大类') or ''
+    sub_cat = p.get('sub_category') or p.get('所属细分类目') or ''
+    listed_raw = p.get('listed_days') or p.get('上架天数') or p.get('上架时间') or 0
+    try: listed_days = int(float(listed_raw))
+    except: listed_days = 0
+    launch_date = p.get('launch_date') or p.get('上架日期') or p.get('date') or ''
+    if not listed_days and launch_date:
+        try:
+            launch_dt = datetime.strptime(launch_date, "%Y-%m-%d")
+            listed_days = (datetime.now() - launch_dt).days
+        except:
+            pass
+    fba_fee_raw = p.get('fba_fee') or p.get('FBA费用') or 0
+    try: fba_fee = float(fba_fee_raw)
+    except: fba_fee = 0.0
+    fulfillment = p.get('fulfillment') or p.get('fulfillment_type') or 'FBM'
+    weight_raw = p.get('weight') or p.get('重量') or 0
+    try: weight = float(weight_raw)
+    except: weight = 0.0
+    potential_raw = p.get('potential_index') or p.get('产品潜力指数') or 0
+    try: potential_index = float(potential_raw)
+    except: potential_index = 0.0
+    return {
+        'asin': asin,
+        'title': title[:500] if title else '',
+        'price': price,
+        'weight': weight,
+        'monthly_sales': monthly_sales,
+        'monthly_revenue': monthly_revenue,
+        'brand': brand[:100] if brand else '',
+        'review_count': review_count,
+        'rating': rating,
+        'seller_country': seller_country,
+        'node_id': node_id,
+        'node_name': node_name,
+        'big_category': big_cat,
+        'sub_category': sub_cat,
+        'listed_days': listed_days,
+        'launch_date': str(launch_date),
+        'fba_fee': fba_fee,
+        'fulfillment': fulfillment,
+        'thumbnail_url': thumbnail,
+        'product_url': f'https://www.amazon.{sl}/dp/{asin}',
+        'potential_index': potential_index,
+    }
+
+# ── 新 API：全量拉取并存库（播种）───────────────────────────────────────
+class SeedReq(BaseModel):
+    site: str = "US"
+    mode: str = "hot"
+    category_name: Optional[str] = None
+    pages: int = 25
+
+@router.post("/seed")
+async def seed_category(req: SeedReq):
+    """
+    单站×单模式×单个类目，拉取 N 页（默认25页=500条）并存库。
+    """
+    import logging, time
+    logger = logging.getLogger("uvicorn.error")
+    site = req.site.upper()
+    mode = req.mode.lower()
+    search = req.category_name
+    page_limit = max(1, min(req.pages, 25))
+
+    if site not in ('US', 'MX', 'BR'):
+        raise HTTPException(400, '站点仅支持 US/MX/BR')
+    if mode not in ('hot', 'potential', 'new'):
+        raise HTTPException(400, '模式仅支持 hot/potential/new')
+
+    _ensure_amazon_table()
+    logger.warning(f'[AMAZON SEED] site={site} mode={mode} cat={search} pages={page_limit}')
+
+    all_products = []
+    for page in range(1, page_limit + 1):
+        if mode == 'hot':
+            tool = 'category_report'
+        elif mode == 'potential':
+            tool = 'potential_product' if site == 'US' else 'product_search'
+        else:
+            tool = 'product_search'
+
+        args = {'amzSite': site, 'page': page}
+        if search:
+            args['searchName'] = search
+        if mode == 'potential' and site != 'US':
+            args['sortby_potential_index'] = True
+
+        raw = mcp_call(tool, args)
+        try:
+            chunk = json.loads(raw) if isinstance(raw, str) else raw
+        except Exception:
+            chunk = []
+        if isinstance(chunk, dict) and 'error' in chunk:
+            logger.warning(f'[AMAZON SEED] page {page} error: {chunk["error"]}')
+            break
+        # category_report wraps in {"Top100产品": [...]} vs product_search returns direct list
+        if isinstance(chunk, dict) and 'Top100产品' in chunk:
+            chunk = chunk['Top100产品']
+        chunk = chunk if isinstance(chunk, list) else []
+        if not chunk:
+            break
+
+        for p in chunk:
+            norm = _normalize_for_db(p, site)
+            all_products.append(norm)
+
+        if len(chunk) < 20:
+            logger.warning(f'[AMAZON SEED] page {page} 返回不足20条，数据源耗尽')
+            break
+        time.sleep(0.2)
+
+    if all_products:
+        _upsert_products_db(all_products, site, mode)
+
+    logger.warning(f'[AMAZON SEED] 完成: 写入 {len(all_products)} 条 [{site}][{mode}][{search}]')
+    return {
+        'site': site, 'mode': mode, 'category': search,
+        'pages_pulled': page_limit, 'products_saved': len(all_products),
+        'preview': all_products[:3],
+    }
+
+
+# ── 新 API：从数据库读取──────────────────────────────────────────────────
+class ListReq(BaseModel):
+    site: str = "US"
+    mode: str = "hot"
+    sort: str = "monthly_sales"
+    order: str = "desc"
+    limit: int = 500
+
+@router.post("/list")
+async def list_products(req: ListReq):
+    """从 amazon_products 表读取数据，按指定字段排序"""
+    import sqlite3
+    site = req.site.upper()
+    mode = req.mode.lower()
+    sort_field = req.sort
+    allowed_sorts = ['monthly_sales', 'listed_days', 'potential_index', 'price', 'review_count', 'rating', 'weight']
+    if sort_field not in allowed_sorts:
+        sort_field = 'monthly_sales'
+    order = 'DESC' if req.order.lower() == 'desc' else 'ASC'
+    limit = max(1, min(req.limit, 500))
+
+    _ensure_amazon_table()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT * FROM amazon_products WHERE site=? AND mode=? ORDER BY {sort_field} {order} LIMIT ?",
+        (site, mode, limit)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    products = [dict(r) for r in rows]
+    return {'products': products, 'total': len(products), 'site': site, 'mode': mode}
+
+
+@router.get("/stats")
+async def amazon_stats():
+    """返回各站点×模式的商品数量"""
+    import sqlite3
+    _ensure_amazon_table()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT site, mode, COUNT(*) as cnt FROM amazon_products GROUP BY site, mode ORDER BY site, mode")
+    rows = cur.fetchall()
+    conn.close()
+    stats = {}
+    for row in rows:
+        site, mode, cnt = row
+        if site not in stats:
+            stats[site] = {}
+        stats[site][mode] = cnt
+    return stats

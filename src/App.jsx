@@ -35,7 +35,7 @@ const lazyMap = {
 }
 
 const routeLabels = {
-  'xp-amazon': '亚马逊选品', 'xp-meli': '美客多选品', 'xp-holiday': '节假日选品',
+  'xp-amazon': '亚马逊中心', 'xp-meli': '美客多选品', 'xp-holiday': '节假日选品',
   notify: '通知中心', notifications: '通知中心',
   reputation: '店铺声誉', 'store-data': '店铺数据', 'product-report': '商品性能表',
   collect: '产品采集', 'listing-opt': '优化', 'listing-pub': '上架',

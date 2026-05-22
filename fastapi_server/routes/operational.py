@@ -1,0 +1,217 @@
+"""
+运营数据 API — 来自 operational_orders 表（Excel导入）
+"""
+import sqlite3
+import os
+from datetime import date
+from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
+from typing import Optional
+
+router = APIRouter(prefix="/api/operational", tags=["运营数据"])
+
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'mercadolibre.db')
+
+
+def get_conn():
+    return sqlite3.connect(DB_PATH, check_same_thread=False)
+
+
+def dt(day):
+    return day.replace('/', '-') if day else day
+
+
+def base_where(salesperson, site, store_name, date_from, date_to):
+    w, p = [], []
+    if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
+    if site:        w.append(" site = ? ");        p.append(site)
+    if store_name:  w.append(" store_name = ? ");   p.append(store_name)
+    if date_from:   w.append(" date(replace(order_date,'/','-')) >= ? "); p.append(dt(date_from))
+    if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
+    wc = " AND ".join(w)
+    return (" AND " + wc) if wc else "", p
+
+
+def agg_filter(conn, where_sql, params):
+    """统计主数据：排除 取消-发货前 + 取消-已取消，保留 取消-发货后"""
+    cur = conn.cursor()
+    exclude_sql = " AND status NOT IN ('取消-发货前','取消-已取消','找货-没汇总')"
+    cur.execute(
+        "SELECT COUNT(*), COALESCE(SUM(amount_usd),0), COALESCE(SUM(profit),0), "
+        "COALESCE(SUM(purchase_cost),0) FROM operational_orders WHERE 1=1" + where_sql + exclude_sql,
+        params
+    )
+    r = cur.fetchone()
+    return {"count": r[0] or 0, "gmv": round(r[1] or 0, 2), "profit": round(r[2] or 0, 2), "purchase_cost": round(r[3] or 0, 2)}
+
+
+def count_cancels(conn, where_sql, params):
+    """统计取消数：发货前取消 = 取消-发货前 + 取消-已取消；发货后取消 = 取消-发货后"""
+    cur = conn.cursor()
+    rows = cur.execute(
+        "SELECT status, COUNT(*) FROM operational_orders WHERE 1=1" + where_sql + " AND status LIKE '取消%' GROUP BY status",
+        params
+    ).fetchall()
+    cancel_pre = cancel_post = 0
+    for s, c in rows:
+        if s in ('取消-发货前', '取消-已取消'):
+            cancel_pre += c
+        elif s == '取消-发货后':
+            cancel_post += c
+    return {"cancel_pre": cancel_pre, "cancel_post": cancel_post}
+
+
+def margin(p, c):
+    return round(p / c * 100, 2) if c else None
+
+
+@router.get("/stats")
+def get_stats(
+    salesperson: Optional[str] = Query(None),
+    site:        Optional[str] = Query(None),
+    store_name:  Optional[str] = Query(None),
+    date_from:   Optional[str] = Query(None),
+    date_to:     Optional[str] = Query(None),
+):
+    conn = get_conn()
+    today_str = date.today().strftime("%Y-%m-%d")
+    month_start = date.today().replace(day=1).strftime("%Y-%m-%d")
+
+    # 总计
+    w, p = base_where(salesperson, site, store_name, date_from, date_to)
+    total = agg_filter(conn, w, p)
+    tc = count_cancels(conn, w, p)
+    total.update(tc)
+
+    # 本月（统计主数据时带日期条件，取消单独查）
+    w2, p2 = base_where(salesperson, site, store_name, None, None)
+    w2 += " AND date(replace(order_date,'/','-')) >= ?"
+    p2m = p2 + [month_start]
+    monthly = agg_filter(conn, w2, p2m)
+    mc = count_cancels(conn, w2, p2 + [month_start])
+    monthly.update(mc)
+
+    # 今日
+    w3, p3 = base_where(salesperson, site, store_name, None, None)
+    w3 += " AND date(replace(order_date,'/','-')) = ?"
+    p3d = p3 + [today_str]
+    daily = agg_filter(conn, w3, p3d)
+    dc = count_cancels(conn, w3, p3 + [today_str])
+    daily.update(dc)
+
+    conn.close()
+    return JSONResponse({
+        "total_orders": total["count"], "total_gmv": total["gmv"],
+        "total_profit": total["profit"], "total_purchase_cost": total["purchase_cost"],
+        "total_margin": margin(total["profit"], total["purchase_cost"]),
+        "total_cancel_pre": total["cancel_pre"], "total_cancel_post": total["cancel_post"],
+        "monthly_orders": monthly["count"], "monthly_gmv": monthly["gmv"],
+        "monthly_profit": monthly["profit"], "monthly_purchase_cost": monthly["purchase_cost"],
+        "monthly_margin": margin(monthly["profit"], monthly["purchase_cost"]),
+        "monthly_cancel_pre": monthly["cancel_pre"], "monthly_cancel_post": monthly["cancel_post"],
+        "today_orders": daily["count"], "today_gmv": daily["gmv"],
+        "today_profit": daily["profit"], "today_purchase_cost": daily["purchase_cost"],
+        "today_margin": margin(daily["profit"], daily["purchase_cost"]),
+        "today_cancel_pre": daily["cancel_pre"], "today_cancel_post": daily["cancel_post"],
+    })
+
+
+@router.get("/daily")
+def get_daily(
+    salesperson: Optional[str] = Query(None),
+    site:        Optional[str] = Query(None),
+    store_name:  Optional[str] = Query(None),
+    date_from:   Optional[str] = Query(None),
+    date_to:     Optional[str] = Query(None),
+):
+    conn = get_conn()
+    cur = conn.cursor()
+    w, p = base_where(salesperson, site, store_name, date_from, date_to)
+    w += " AND status NOT IN ('取消-发货前','取消-已取消','找货-没汇总')"
+    sql = (
+        "SELECT date(replace(order_date,'/','-')), COUNT(*), "
+        "COALESCE(SUM(amount_usd),0), COALESCE(SUM(profit),0) "
+        "FROM operational_orders WHERE 1=1" + w +
+        " GROUP BY date(replace(order_date,'/','-')) ORDER BY date(replace(order_date,'/','-')) ASC"
+    )
+    cur.execute(sql, p)
+    rows = cur.fetchall()
+    conn.close()
+    return JSONResponse({
+        "daily": [
+            {"date": r[0], "order_count": r[1], "gmv_usd": round(r[2], 2), "profit_cny": round(r[3], 2)}
+            for r in rows
+        ]
+    })
+
+
+@router.get("/stores")
+def get_stores(
+    salesperson: Optional[str] = Query(None),
+    site:        Optional[str] = Query(None),
+    store_name:  Optional[str] = Query(None),
+    date_from:   Optional[str] = Query(None),
+    date_to:     Optional[str] = Query(None),
+):
+    conn = get_conn()
+    cur = conn.cursor()
+    where, params = [], []
+    if salesperson: where.append(" salesperson = ? ");  params.append(salesperson)
+    if site:        where.append(" site = ? ");        params.append(site)
+    if date_from:   where.append(" date(replace(order_date,'/','-')) >= ? "); params.append(dt(date_from))
+    if date_to:     where.append(" date(replace(order_date,'/','-')) <= ? "); params.append(dt(date_to))
+    where.append(" NOT status IN ('取消-发货前','取消-已取消')")
+    wc = (" AND " + " AND ".join(where)) if where else ""
+    sql = (
+        "SELECT COALESCE(salesperson,'未知'), COALESCE(site,'未知'), COALESCE(store_name,'未知'), "
+        "COUNT(*), COALESCE(SUM(amount_usd),0), COALESCE(SUM(profit),0), COALESCE(SUM(purchase_cost),0) "
+        "FROM operational_orders WHERE 1=1" + wc +
+        " GROUP BY salesperson, site, store_name ORDER BY 5 DESC"
+    )
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    conn.close()
+    return JSONResponse({
+        "stores": [
+            {"salesperson": r[0], "site": r[1], "store_name": r[2], "order_count": r[3],
+             "gmv_usd": round(r[4], 2), "profit_cny": round(r[5], 2), "purchase_cost": round(r[6], 2)}
+            for r in rows
+        ]
+    })
+
+
+@router.get("/sites")
+def get_sites():
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT COALESCE(site,'未知') FROM operational_orders ORDER BY site")
+    rows = cur.fetchall()
+    conn.close()
+    return JSONResponse({"sites": [r[0] for r in rows]})
+
+
+@router.get("/store-names")
+def get_store_names(site: Optional[str] = Query(None), salesperson: Optional[str] = Query(None)):
+    conn = get_conn()
+    cur = conn.cursor()
+    w, p = [], []
+    if site:        w.append(" site = ? ");        p.append(site)
+    if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
+    wc = (" AND " + " AND ".join(w)) if w else ""
+    cur.execute(
+        "SELECT DISTINCT COALESCE(store_name,'未知') FROM operational_orders WHERE 1=1" + wc + " ORDER BY store_name",
+        p
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return JSONResponse({"store_names": [r[0] for r in rows]})
+
+
+@router.get("/salespersons")
+def get_salespersons():
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT COALESCE(salesperson,'未知') FROM operational_orders ORDER BY salesperson")
+    rows = cur.fetchall()
+    conn.close()
+    return JSONResponse({"salespersons": [r[0] for r in rows]})
