@@ -102,7 +102,7 @@ async def get_product_performance(
         SELECT item_id, sku, product_name, status, variation,
                unique_visits, order_count, unique_buyers, units_sold,
                gross_sales_usd, share_percent, visitor_convert_rate,
-               visitor_buy_convert_rate, thumbnail, pictures_count,
+               visitor_buy_convert_rate, thumbnail, pictures, pictures_count,
                ai_issue_type, ai_issue_desc, ai_suggestion
         FROM product_performance
         WHERE {where}
@@ -182,7 +182,7 @@ async def get_performance_list(
         SELECT item_id, sku, product_name, status, variation,
                unique_visits, order_count, unique_buyers, units_sold,
                gross_sales_usd, share_percent, visitor_convert_rate,
-               visitor_buy_convert_rate, thumbnail, pictures_count,
+               visitor_buy_convert_rate, thumbnail, pictures, pictures_count,
                ai_issue_type, ai_issue_desc, ai_suggestion, site_id
         FROM product_performance
         WHERE {where}

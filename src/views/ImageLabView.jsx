@@ -89,10 +89,11 @@ const ImageLabView = () => {
 
     const generateAll = async () => {
         setGlobalGenerating(true);
-        for (const card of cards) {
-            if (!card.prompt.trim()) continue;
-            await generateOne(card.key, card.prompt, referenceImage?.base64 || '');
-        }
+        const validCards = cards.filter(c => c.prompt.trim());
+        // 并行发送所有请求，不串行等待
+        await Promise.all(validCards.map(c =>
+            generateOne(c.key, c.prompt, referenceImage?.base64 || '')
+        ));
         setGlobalGenerating(false);
     };
 

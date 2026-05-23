@@ -127,9 +127,16 @@ export default function DataUploadView() {
       .catch(() => {});
   }, []);
 
-  const handleOrdersUpload = useCallback((data) => {
-    if (data.profit_changes) setProfitChanges(prev => [...data.profit_changes, ...prev].slice(0, 200));
-    if (data.logistics_changes) setLogisticsChanges(prev => [...data.logistics_changes, ...prev].slice(0, 200));
+  const handleOrdersUpload = useCallback(() => {
+    // 上传后刷新变化数据
+    fetch(`${API}/changes?change_type=profit&limit=100`)
+      .then(r => r.json())
+      .then(data => setProfitChanges(Array.isArray(data) ? data : []))
+      .catch(() => {});
+    fetch(`${API}/changes?change_type=logistics&limit=100`)
+      .then(r => r.json())
+      .then(data => setLogisticsChanges(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   return (
@@ -200,7 +207,8 @@ export default function DataUploadView() {
                   formData.append('site_id', site);
                   setSiteUploading(true);
                   try {
-                    const res = await fetch(pendingEndpoint, { method: 'POST', body: formData });
+                    const url = pendingEndpoint + '?site_id=' + site;
+                    const res = await fetch(url, { method: 'POST', body: formData });
                     const data = await res.json();
                     message.success(data.message || '上传成功');
                     if (pendingEndpoint === '/upload/links') {
