@@ -30,15 +30,15 @@ const issueStyle = (type) => {
     '⚠️高曝光低转化': { bg: '#fef3c7', color: '#d97706', border: '#f59e0b' },
     '💡低曝光高转化': { bg: '#d1fae5', color: '#059669', border: '#10b981' },
     '🛒零订单': { bg: '#fee2e2', color: '#dc2626', border: '#ef4444' },
-    '📈正常': { bg: '#f3f4f6', color: '#6b7280', border: '#9ca3af' },
+    '📈表现正常': { bg: '#f3f4f6', color: '#6b7280', border: '#9ca3af' },
   }
-  return map[type] || map['📈正常']
+  return map[type] || map['📈表现正常']
 }
 
 export default function ProductPerformanceView() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈正常': 0 })
+  const [stats, setStats] = useState({ '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈表现正常': 0 })
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -71,7 +71,7 @@ export default function ProductPerformanceView() {
       if (controller.signal.aborted) return
 
       setItems(data.items || [])
-      setStats(data.stats || { '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈正常': 0 })
+      setStats(data.stats || { '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈表现正常': 0 })
       setTotal(data.total || 0)
       setTotalPages(data.total_pages || 1)
     } catch (err) {
@@ -137,7 +137,7 @@ export default function ProductPerformanceView() {
             { key: '⚠️高曝光低转化', icon: 'alert-triangle', label: '高曝光低转化', color: '#fbbf24' },
             { key: '💡低曝光高转化', icon: 'zap', label: '低曝光高转化', color: '#34d399' },
             { key: '🛒零订单', icon: 'shopping-cart', label: '零订单商品', color: '#f87171' },
-            { key: '📈正常', icon: 'check-circle', label: '表现正常', color: '#a78bfa' },
+            { key: '📈表现正常', icon: 'check-circle', label: '表现正常', color: '#a78bfa' },
           ].map(({ key, icon, label, color }) => (
             <div key={key} style={{
               background: 'rgba(255,255,255,0.15)',
@@ -232,11 +232,11 @@ export default function ProductPerformanceView() {
           {/* 商品卡片网格 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(6, 1fr)',
             gap: '16px'
           }}>
             {items.map(item => {
-              const iss = issueStyle(item.ai_issue_type || '📈正常')
+              const iss = issueStyle(item.ai_issue_type || '📈表现正常')
               return (
                 <div key={item.item_id} onClick={() => setSelectedItem(item)} style={{
                   background: 'white', borderRadius: '10px', overflow: 'hidden',
@@ -254,14 +254,26 @@ export default function ProductPerformanceView() {
                 }}>
                   {/* 图片 */}
                   <div style={{
-                    height: '160px', background: '#f9fafb',
+                    height: '120px', background: '#f9fafb',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     overflow: 'hidden'
                   }}>
-                    {item.pictures?.[0] || item.thumbnail ? (
-                      <img src={item.pictures?.[0] || item.thumbnail} alt={item.product_name}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={e => { e.target.src = item.thumbnail; e.target.onError = null; }} />
+                    {(item.pictures?.[0] || item.thumbnail) ? (
+                      <img
+                        src={(() => {
+                          // 检查 pictures[0] 是否比 thumbnail 大（-O 结尾是原图，-I 是缩略图）
+                          const firstPic = Array.isArray(item.pictures) ? item.pictures[0] : null;
+                          return firstPic || item.thumbnail;
+                        })()}
+                        alt={item.product_name}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
+                        onError={e => {
+                          if (e.target.src !== item.thumbnail) {
+                            e.target.src = item.thumbnail;
+                          }
+                          e.target.onerror = null;
+                        }}
+                      />
                     ) : (
                       <Icon name="image" size={32} />
                     )}
@@ -306,7 +318,7 @@ export default function ProductPerformanceView() {
                       background: iss.bg, color: iss.color,
                       border: `1px solid ${iss.border}`
                     }}>
-                      {item.ai_issue_type || '📈正常'}
+                      {item.ai_issue_type || '📈表现正常'}
                     </div>
 
                     <div style={{ marginTop: '8px', fontSize: '11px', color: '#9ca3af' }}>
@@ -361,7 +373,7 @@ export default function ProductPerformanceView() {
             <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
               {(selectedItem.pictures?.[0] || selectedItem.thumbnail) && (
                 <img src={selectedItem.pictures?.[0] || selectedItem.thumbnail} alt="" style={{
-                  width: '180px', height: '180px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0
+                  width: '180px', height: '180px', objectFit: 'contain', borderRadius: '8px', flexShrink: 0
                 }} />
               )}
               <div style={{ flex: 1 }}>

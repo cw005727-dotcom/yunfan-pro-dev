@@ -46,7 +46,7 @@ COLUMN_MAP = {
     "订单运费": "order_shipping_fee",
     "订单备注": "order_remark",
     "定制单备注": "custom_order_remark",
-    "地区": "region",
+    "地区": "site",
     "买家名称": "buyer_name",
     "邮箱": "email",
     "电话": "phone",

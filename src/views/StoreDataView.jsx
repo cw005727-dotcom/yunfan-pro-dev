@@ -168,13 +168,13 @@ export default function StoreDataView_V5() {
   const [storeStats, setStoreStats] = useState([]);
   const [pieView, setPieView] = useState('site');
   const [rankView, setRankView] = useState('profit');
-  const SITE_NAMES = { MLB: '🇧🇷 巴西', MLM: '🇲🇽 墨西哥', MLA: '🇦🇷 阿根廷', MLC: '🇨🇱 智利', MCO: '🇨🇴 哥伦比亚', MLU: '🇺🇾 乌拉圭' };
+  const SITE_NAMES = { MLB: '🇧🇷 巴西', MLM: '🇲🇽 墨西哥', MLA: '🇦🇷 阿根廷', MLC: '🇨🇱 智利', MCO: '🇨🇴 哥伦比亚', MLU: '🇺🇾 乌拉圭', BR: '🇧🇷 巴西', MX: '🇲🇽 墨西哥', AR: '🇦🇷 阿根廷', CL: '🇨🇱 智利', CO: '🇨🇴 哥伦比亚' };
   const STATS_MAP = {
     '今日': { profit: 'today_profit', orders: 'today_orders', gmv: 'today_gmv', margin: 'today_margin', label: '今日' },
-    '本周': { profit: 'week_profit', orders: 'week_orders', gmv: 'week_gmv', margin: 'week_margin', label: '本周' },
+    '本周': { profit: 'total_profit', orders: 'total_orders', gmv: 'total_gmv', margin: 'total_margin', label: '本周' },
     '本月': { profit: 'monthly_profit', orders: 'monthly_orders', gmv: 'monthly_gmv', margin: 'monthly_margin', label: '本月' },
-    '上月': { profit: 'last_month_profit', orders: 'last_month_orders', gmv: 'last_month_gmv', margin: 'last_month_margin', label: '上月' },
-    '全年': { profit: 'year_profit', orders: 'year_orders', gmv: 'year_gmv', margin: 'year_margin', label: '全年' },
+    '上月': { profit: 'total_profit', orders: 'total_orders', gmv: 'total_gmv', margin: 'total_margin', label: '上月' },
+    '全年': { profit: 'total_profit', orders: 'total_orders', gmv: 'total_gmv', margin: 'total_margin', label: '全年' },
   };
   const s = STATS_MAP[selectedTimeRange] || STATS_MAP['今日'];
   const stat = (field) => stats ? (stats[s[field]] ?? 0) : 0;
@@ -225,6 +225,20 @@ export default function StoreDataView_V5() {
     fetch(`${API}/operational/sites`).then(r => r.json()).then(d => setSites(d.sites || []));
     fetch(`${API}/operational/salespersons`).then(r => r.json()).then(d => setSalespersons(d.salespersons || []));
     fetchData();
+  }, [fetchData]);
+
+  // 监听数据上传通知，自动重新拉取
+  useEffect(() => {
+    const checkUpdate = () => {
+      const t = localStorage.getItem('yunfan_data_updated');
+      if (t) {
+        fetch(`${API}/operational/salespersons`).then(r => r.json()).then(d => setSalespersons(d.salespersons || []));
+        fetchData();
+        localStorage.removeItem('yunfan_data_updated');
+      }
+    };
+    const timer = setInterval(checkUpdate, 2000);
+    return () => clearInterval(timer);
   }, [fetchData]);
 
   // 趋势图数据：混合双线

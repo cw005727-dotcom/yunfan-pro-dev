@@ -137,6 +137,8 @@ export default function DataUploadView() {
       .then(r => r.json())
       .then(data => setLogisticsChanges(Array.isArray(data) ? data : []))
       .catch(() => {});
+    // 通知其他页面数据已更新（店铺数据趋势页会自动重新拉取）
+    localStorage.setItem('yunfan_data_updated', Date.now().toString());
   }, []);
 
   return (
