@@ -163,16 +163,13 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setSubCategories(top?.children || [])
   }, [topCategories])
 
-  // 选类目：先 seed 拉取写入数据库，再从数据库读取
+  // 选类目：seed 拉取，直接用返回的数据展示
   const fetchByCategory = useCallback(async (catName, catNodeId, originalName) => {
     if (!catName && !catNodeId) return
-    console.log('[fetchByCategory] start', catName, catNodeId, site, mode)
     setLoading(true)
     setError('')
     setProducts([])
     try {
-      // 第一步：seed 拉取并写入数据库
-      console.log('[fetchByCategory] seeding...')
       const seedRes = await fetch('/api/amazon/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -184,30 +181,12 @@ export default function XpAmazonView_V5({ defaultMode }) {
         return
       }
       const seedData = await seedRes.json()
-      console.log('[fetchByCategory] seed done:', seedData.products_saved, '条')
-
-      // 第二步：从数据库读取，按类目名筛选
-      console.log('[fetchByCategory] loading from db...')
-      const listRes = await fetch('/api/amazon/list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site, mode, limit: 500, search: catName }),
-      })
-      if (!listRes.ok) {
-        const err = await listRes.json().catch(() => ({ detail: '读取失败' }))
-        setError(err.detail || '读取失败')
-        return
-      }
-      const listData = await listRes.json()
-      console.log('[fetchByCategory] db data:', listData.total, '条')
-      setProducts(listData.products || [])
+      setProducts(seedData.products || [])
       setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
     } catch (err) {
-      console.error('[fetchByCategory] error:', err)
       setError('操作失败: ' + err.message)
     } finally {
       setLoading(false)
-      console.log('[fetchByCategory] done')
     }
   }, [site, mode])
 

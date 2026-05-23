@@ -1176,6 +1176,7 @@ async def seed_category(req: SeedReq):
     return {
         'site': site, 'mode': mode, 'category': search,
         'pages_pulled': page_limit, 'products_saved': len(all_products),
+        'products': all_products,
         'preview': all_products[:3],
     }
 
