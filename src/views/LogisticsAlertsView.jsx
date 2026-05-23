@@ -169,20 +169,62 @@ export default function LogisticsAlertsView_V5() {
   const fetchData = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (selectedSalesperson) params.append('salesperson', selectedSalesperson);
     if (selectedSite) params.append('site', selectedSite);
 
-    Promise.all([
-      fetch(`${API}/operational/logistics-stats?${params.toString()}`).then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
-      fetch(`${API}/operational/logistics-list?${params.toString()}`).then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
-    ]).then(([s, l]) => {
-      setStats(s);
-      setOrders(l.orders || []);
-    }).catch(err => console.error(err)).finally(() => setLoading(false));
-  }, [selectedSalesperson, selectedSite]);
+    fetch(`${API}/logistics/tracking?${params.toString()}`)
+      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => {
+        // 将 orders_by_date 展平为订单列表
+        const allOrders = [];
+        if (data.orders_by_date) {
+          Object.keys(data.orders_by_date).sort().reverse().forEach(date => {
+            data.orders_by_date[date].forEach(o => {
+              allOrders.push({
+                order_number: o.order_number,
+                order_date: o.order_date,
+                site: o.site,
+                store_name: o.store_name,
+                salesperson: o.salesperson || '',
+                status: o.stage_name,
+                purchase_order_no: o.logistics_1688_order,
+                purchase_tracking: o.logistics_1688_tracking,
+                waybill_no: o.logistics_1688_tracking,
+                prepare_time: o.warehouse_in_date,
+                delivery_time: o.international_tracking ? o.order_date : '',
+                amount_usd: 0,
+                profit: 0,
+                buyer_name: '',
+                city: '',
+                carrier: '',
+                tracking_no: o.international_tracking,
+                created_at: o.order_date,
+                stage_code: o.stage_code,
+                stage_icon: o.stage_icon,
+                stage_name: o.stage_name,
+              });
+            });
+          });
+        }
+        setStats({
+          today_total: data.today_total,
+          today_purchased: data.purchased_count,
+          today_inbound: allOrders.filter(o => o.stage_code >= 3).length,
+          today_labeled: allOrders.filter(o => o.stage_code >= 4).length,
+          today_shipped: allOrders.filter(o => o.stage_code >= 5).length,
+          today_shipped_rate: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 5).length / allOrders.length * 100) : 0,
+          today_issues: data.over_48h_warning,
+          rate_48h: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 2).length / allOrders.length * 100) : 0,
+          stats_24h: data.stats_24h,
+          stats_48h: data.stats_48h,
+          over_48h_warning: data.over_48h_warning,
+        });
+        setOrders(allOrders);
+      })
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [selectedSite]);
 
   useEffect(() => {
-    fetch(`${API}/operational/salespersons`).then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => setSalespersons(d.salespersons || []));
     fetchData();
   }, [fetchData]);
 

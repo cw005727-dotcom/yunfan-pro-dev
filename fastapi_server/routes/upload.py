@@ -208,6 +208,110 @@ async def upload_links(
             pass
 
 
+@router.post("/upload/logistics")
+async def upload_logistics(file: UploadFile = File(...)):
+    """上传物流追踪Excel，解析入库到 logistics_tracking 表"""
+    if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="仅支持 .xlsx / .xls 文件")
+
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="文件过大（最大20MB）")
+
+    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        wb = openpyxl.load_workbook(tmp_path)
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            raise HTTPException(status_code=422, detail="Excel为空")
+
+        headers = list(rows[0])
+        field_map = {
+            '订单号': 'order_number',
+            '站点': 'site',
+            '自定义店铺名': 'store_name',
+            '下单时间': 'order_date',
+            '1688订单号': 'logistics_1688_order',
+            '物流单号': 'logistics_1688_tracking',
+            '贴单状态': 'label_status',
+            '入仓时间': 'warehouse_in_date',
+            '国际物流单号': 'international_tracking',
+        }
+
+        # 表头索引
+        col_idx = {}
+        for i, h in enumerate(headers):
+            if h and h in field_map:
+                col_idx[field_map[h]] = i
+
+        if 'order_number' not in col_idx:
+            raise HTTPException(status_code=422, detail="Excel缺少「订单号」列")
+
+        conn = sqlite3.connect(str(DB_PATH))
+        imported = 0
+        skipped = 0
+
+        for row in rows[1:]:
+            try:
+                order_number = str(row[col_idx['order_number']]).strip() if row[col_idx['order_number']] else ''
+                if not order_number or not order_number.isdigit():
+                    skipped += 1
+                    continue
+
+                data = {'order_number': order_number, 'is_ignored': 0}
+                for field, idx in col_idx.items():
+                    if field == 'order_number':
+                        continue
+                    val = row[idx] if idx < len(row) else None
+                    if val is not None:
+                        data[field] = str(val).strip()
+
+                conn.execute("""
+                    INSERT INTO logistics_tracking
+                    (order_number, site, store_name, order_date, logistics_1688_order,
+                     logistics_1688_tracking, label_status, warehouse_in_date,
+                     international_tracking, is_ignored)
+                    VALUES (?,?,?,?,?,?,?,?,?,0)
+                    ON CONFLICT(order_number) DO UPDATE SET
+                        site=excluded.site, store_name=excluded.store_name,
+                        order_date=excluded.order_date,
+                        logistics_1688_order=excluded.logistics_1688_order,
+                        logistics_1688_tracking=excluded.logistics_1688_tracking,
+                        label_status=excluded.label_status,
+                        warehouse_in_date=excluded.warehouse_in_date,
+                        international_tracking=excluded.international_tracking,
+                        is_ignored=excluded.is_ignored
+                """, (
+                    data.get('order_number'), data.get('site'), data.get('store_name'),
+                    data.get('order_date'), data.get('logistics_1688_order'),
+                    data.get('logistics_1688_tracking'), data.get('label_status'),
+                    data.get('warehouse_in_date'), data.get('international_tracking'),
+                ))
+                imported += 1
+            except Exception:
+                skipped += 1
+
+        conn.commit()
+        conn.close()
+        os.unlink(tmp_path)
+
+        return {'success': True, 'imported': imported, 'skipped': skipped,
+                'message': f'导入成功 {imported} 条，跳过 {skipped} 条'}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"解析失败: {str(e)}")
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except:
+            pass
+
+
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """通用文件上传"""
