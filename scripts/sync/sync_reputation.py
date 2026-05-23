@@ -27,7 +27,7 @@ def load_tokens():
     if time.time() - created_at > expires_in - 3600:
         refreshed = requests.post('https://api.mercadolibre.com/oauth/token', data={
             'grant_type': 'refresh_token',
-            'client_id': '4507485641678982',
+            'client_id': '2853782117476515',
             'refresh_token': tokens.get('refresh_token', '')
         }, timeout=10).json()
         if refreshed.get('access_token'):

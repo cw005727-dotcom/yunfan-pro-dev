@@ -6,8 +6,9 @@ import { useAppContext } from './context/AppContext'
 
 // Lazy page views
 const lazyMap = {
-  'xp-amazon':          () => import('./views/XpAmazonView'),
-  'xp-meli':            () => import('./views/XpMeliView'),
+  'xp-amazon-hot':       () => import('./views/XpAmazonView'),
+  'xp-amazon-potential': () => import('./views/XpAmazonView'),
+  'xp-amazon-new':       () => import('./views/XpAmazonView'),
   'xp-holiday':         () => import('./views/XpHolidayView'),
   notify:               () => import('./views/NotificationsView'),
   notifications:        () => import('./views/NotificationsView'),
@@ -18,6 +19,12 @@ const lazyMap = {
   'listing-opt':        () => import('./views/ListingOptimizeView'),
   'listing-pub':        () => import('./views/ListingPublishView'),
   logistics:            () => import('./views/LogisticsAlertsView'),
+  'logistics-cn':       () => import('./views/LogisticsAlertsView'),
+  'logistics-intl':     () => import('./views/LogisticsIntlView'),
+  'data-upload':        () => import('./views/DataUploadView'),
+  'today-todo':         () => import('./views/TodayTodoView'),
+  'xp-tiktok':          () => import('./views/XpTikTokShopView'),
+  personal:             () => import('./views/PersonalCenterView'),
   'auto-center':        () => import('./views/AutoCenterView'),
   news:                 () => import('./views/NewsView'),
   intro:                () => import('./views/BusinessIntroView'),
@@ -32,15 +39,10 @@ const lazyMap = {
   keyword:              () => import('./views/KeywordIntelView'),
   auth:                 () => import('./views/AuthPrepareView'),
   prepare:              () => import('./views/AuthPrepareView'),
-  'data-upload':       () => import('./views/DataUploadView'),
-  'personal':          () => import('./views/PersonalCenterView'),
-  'today-todo':        () => import('./views/TodayTodoView'),
-  'xp-tiktok':         () => import('./views/XpTikTokShopView'),
-  'logistics-intl':    () => import('./views/LogisticsIntlView'),
 }
 
 const routeLabels = {
-  'xp-amazon': '亚马逊中心', 'xp-meli': '美客多选品', 'xp-holiday': '节假日选品',
+  'xp-amazon-hot': '热销爆品', 'xp-amazon-potential': '潜力商品', 'xp-amazon-new': '最近上新',
   notify: '通知中心', notifications: '通知中心',
   reputation: '店铺声誉', 'store-data': '店铺数据', 'product-report': '商品性能表',
   collect: '产品采集', 'listing-opt': '优化', 'listing-pub': '上架',
@@ -49,8 +51,9 @@ const routeLabels = {
   'data-overview': '数据大盘', radar: '爆品雷达', research: '选品研究',
   'price-check': '智能核价', title: '标题优化', image: '视觉图生图', keyword: '关键词衍生',
   optimize: '标题优化', auth: '前期准备', prepare: '前期准备',
-  'data-upload': '数据上传', 'personal': '个人中心', 'today-todo': '今日待办',
-  'xp-tiktok': 'TikTok选品', 'logistics-intl': '物流追踪',
+  'data-upload': '数据上传', 'today-todo': '待办事项',
+  'logistics-cn': '国内物流哨兵', 'logistics-intl': '国际订单链路',
+  'xp-tiktok': 'TikTok爆品', personal: '个人中心',
 }
 
 function SkeletonView({ title }) {
@@ -71,7 +74,7 @@ function SkeletonView({ title }) {
 
 export default function App() {
   const { toast } = useAppContext()
-  const [sidebarItem, setSidebarItem] = useState('xp-amazon')
+  const [sidebarItem, setSidebarItem] = useState('xp-amazon-hot')
   const [topTab, setTopTab] = useState('xuanpin')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [DynamicView, setDynamicView] = useState(null)
@@ -81,13 +84,12 @@ export default function App() {
     if (hash) {
       const allItems = {}
       const NAV_GROUPS = [
-        { id: 'prepare', items: [{ id: 'auth' }, { id: 'prepare' }] },
+        { id: 'prepare', items: [{ id: 'auth' }, { id: 'personal' }] },
         { id: 'notify', items: [{ id: 'notify' }] },
-        { id: 'xuanpin', items: [{ id: 'xp-amazon' }, { id: 'xp-meli' }, { id: 'xp-holiday' }] },
+        { id: 'xuanpin', items: [{ id: 'xp-amazon-hot' }, { id: 'xp-amazon-potential' }, { id: 'xp-amazon-new' }] },
         { id: 'data', items: [{ id: 'reputation' }, { id: 'store-data' }, { id: 'product-report' }] },
-        { id: 'optimize', items: null },
-        { id: 'ops', items: [{ id: 'collect' }, { id: 'listing-opt' }, { id: 'listing-pub' }] },
-        { id: 'logistics', items: [{ id: 'logistics' }, { id: 'auto-center' }] },
+        { id: 'logistics', items: [{ id: 'logistics-cn' }, { id: 'logistics-intl' }] },
+        { id: 'ops', items: [{ id: 'data-upload' }, { id: 'today-todo' }, { id: 'collect' }, { id: 'listing-opt' }, { id: 'listing-pub' }] },
       ]
       for (const g of NAV_GROUPS) {
         if (g.items) for (const i of g.items) allItems[i.id] = g.id

@@ -1,115 +1,182 @@
+/* ===== 云帆跨境 Pro — Apple 玻璃质感风格 ===== */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* ===== 背景 ===== */
+  --bg-base: #F5F5F7;
+  --bg-card: rgba(255,255,255,0.72);
+  --bg-sidebar: rgba(250,250,252,0.85);
+  --bg-sidebar-hover: rgba(0,0,0,0.04);
+  --bg-topbar: rgba(255,255,255,0.55);
+
+  /* ===== 主色 ===== */
+  --accent-blue: #007AFF;
+  --accent-indigo: #5856D6;
+  --accent-purple: #7C3AED;
+  --accent-pink: #FF2D55;
+  --accent-orange: #FF9500;
+  --accent-green: #10B981;
+  --accent-teal: #06B6D4;
+  --accent-ops: #6366F1;
+
+  /* ===== 文字 ===== */
+  --text-primary: #1D1D1F;
+  --text-secondary: #8E8E93;
+  --text-tertiary: #C7C7CC;
+  --text-sidebar-item: #8E8E93;
+
+  /* ===== 边框 ===== */
+  --border-light: rgba(0,0,0,0.06);
+
+  /* ===== 圆角 ===== */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+
+  /* ===== 毛玻璃 ===== */
+  --glass-bg: rgba(255,255,255,0.65);
+  --glass-border: rgba(255,255,255,0.5);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.04);
+  --glass-blur: 24px;
+  --card-radius: 14px;
+  --sidebar-width: 240px;
+}
+
 @layer base {
-    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; }
-    .tnum { font-feature-settings: "tnum"; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.1); border-radius: 10px; }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.08) transparent;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
 }
 
+/* ===== 玻璃质感 ===== */
 @layer components {
-    .glass-effect { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(32px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.02); }
-    .solid-card { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-    .gradient-bg { background: radial-gradient(circle at top left, #f8fafc 0%, #e2e8f0 100%); }
-    
-    .tech-sidebar { background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%); position: relative; }
-    .tech-sidebar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent); }
-    
-    .risk-capsule { backdrop-filter: blur(12px); }
-    .risk-red { background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.25); }
-    .risk-yellow { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); }
-    .risk-purple { background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.25); }
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+  .glass-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    border-radius: var(--card-radius);
+  }
+  .glass-card:hover {
+    background: rgba(255,255,255,0.82);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+    transition: all 0.25s ease;
+  }
+  .glass-sidebar {
+    background: rgba(255,255,255,0.58);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
+    border-right: 1px solid rgba(255,255,255,0.7);
+  }
+  .glass-topbar {
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-bottom: 1px solid rgba(255,255,255,0.6);
+  }
+  .glass-panel {
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 12px;
+  }
 
-    /* Module Accents */
-    .accent-home { --accent-color: #2563eb; --accent-glow: rgba(37, 99, 235, 0.15); --accent-bg: rgba(37, 99, 235, 0.15); }
-    .accent-data { --accent-color: #6366f1; --accent-glow: rgba(99, 102, 241, 0.15); --accent-bg: rgba(99, 102, 241, 0.15); }
-    .accent-ops { --accent-color: #0d9488; --accent-glow: rgba(13, 148, 136, 0.15); --accent-bg: rgba(13, 148, 136, 0.15); }
-    .accent-optimize { --accent-color: #d97706; --accent-glow: rgba(217, 119, 6, 0.15); --accent-bg: rgba(217, 119, 6, 0.15); }
+  /* Apple 风格按钮 */
+  .btn-apple {
+    background: var(--accent-blue);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-apple:hover {
+    opacity: 0.85;
+  }
+  .btn-apple-secondary {
+    background: rgba(0,0,0,0.05);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-apple-secondary:hover {
+    background: rgba(0,0,0,0.08);
+  }
 
-    .bg-accent { background-color: var(--accent-color); }
-    .bg-accent-soft { background-color: var(--accent-bg); }
-    .text-accent { color: var(--accent-color); }
-    .border-accent { border-color: var(--accent-color); }
-    .btn-accent { background-color: var(--accent-color); box-shadow: 0 8px 20px var(--accent-glow); }
+  /* 指标数值 */
+  .metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-primary);
+  }
+  .metric-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  /* 文本层级 */
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+
+  /* 毛玻璃背景装饰 */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.015;
+    pointer-events: none;
+  }
+
+  /* 滚动条 */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* 分隔线 */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.06), transparent);
+  }
 }
 
-/* Animations */
-@keyframes popup-zoom { 0% { opacity:0; transform: scale(0.82); } 60% { opacity:1; transform: scale(1.06); } 80% { transform: scale(0.97); } 100% { opacity:1; transform: scale(1); } }
-.metric-pop { animation: popup-zoom 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; transform-origin: center center; transform: scale(0.88); }
-
-@keyframes metric-num { 0% { opacity:0; transform: scale(0.6); } 60% { opacity:1; transform: scale(1.15); } 100% { opacity:1; transform: scale(1); } }
-.metric-num { animation: metric-num 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity:0; }
-
-@keyframes card-in { 0% { opacity:0; transform: translateY(12px) scale(0.95); } 100% { opacity:1; transform: translateY(0) scale(1); } }
-.card-in { animation: card-in 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity:0; }
-
-@keyframes section-rise { 0% { opacity:0; transform: translateY(20px); } 100% { opacity:1; transform: translateY(0); } }
-.section-rise { animation: section-rise 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; opacity:0; }
-
-@keyframes glow-pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-.glow-pulse { animation: glow-pulse 1.8s ease-in-out infinite; }
-
-@keyframes label-float { 0%,100% { transform: translateY(0); opacity:0.6; } 50% { transform: translateY(-1px); opacity:0.9; } }
-
+/* 保留 marquee */
 @keyframes marquee-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 .animate-marquee { animation: marquee-left 30s linear infinite; }
 .animate-marquee:hover { animation-play-state: paused; }
 .marquee-track { overflow: hidden; }
-
-.custom-scrollbar::-webkit-scrollbar { width: 2px; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-@media (max-width: 768px) {
-    .no-scrollbar-on-mobile::-webkit-scrollbar { display: none; }
-    .no-scrollbar-on-mobile { -ms-overflow-style: none; scrollbar-width: none; }
-}
-
-/* Commander V8 Global Overrides */
-.no-round * { border-radius: 0 !important; }
-.force-round { border-radius: 9999px !important; }
-.capsule-round { border-radius: 12px !important; }
-
-/* Radar & Monitoring Animations */
-@keyframes radar-scan-line {
-    0% { top: 0; opacity: 0; }
-    5% { opacity: 1; }
-    95% { opacity: 1; }
-    100% { top: 100%; opacity: 0; }
-}
-.animate-radar-scan-line {
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(to right, transparent, #10b981, transparent);
-    box-shadow: 0 0 15px #10b981;
-    animation: radar-scan-line 4s linear infinite;
-    z-index: 5;
-}
-
-@keyframes log-eject {
-    0% { opacity: 0; transform: translateX(-10px) rotateX(20deg); }
-    100% { opacity: 1; transform: translateX(0) rotateX(0); }
-}
-.animate-log-eject {
-    animation: log-eject 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-@keyframes laser-move {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-.animate-laser-move {
-    position: absolute;
-    width: 50%;
-    height: 1px;
-    background: linear-gradient(to right, transparent, #ef4444, transparent);
-    animation: laser-move 2s linear infinite;
-}
-
-.perspective-1000 {
-    perspective: 1000px;
-}

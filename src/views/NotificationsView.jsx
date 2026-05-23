@@ -95,7 +95,7 @@ export default function NotificationsView() {
 
   useEffect(() => {
     fetch('/api/notifications')
-      .then(r => r.json())
+      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
         // API returns { logistics: [...], violation: [...], message: [...], cancelled: [...], reputation: [...] }
         const flat = Object.entries(data).flatMap(([type, list]) =>

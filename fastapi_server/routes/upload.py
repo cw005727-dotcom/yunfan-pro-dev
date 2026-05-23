@@ -8,9 +8,9 @@ import json
 import base64
 import sqlite3
 import openpyxl
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
-from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR, TOKEN_FILE_ENC, TOKEN_FILE_JSON
+from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR, TOKEN_FILE, KEY_FILE
 
 # 导入解析脚本
 import sys
@@ -49,7 +49,7 @@ async def upload_orders(file: UploadFile = File(...)):
 
 
 @router.post("/upload/links")
-async def upload_links(file: UploadFile = File(...), site_id: str = Form(None)):
+async def upload_links(file: UploadFile = File(...)):
     """上传商品性能Excel，解析入库到 product_performance 表，并拉取图片"""
     import requests
 
@@ -86,23 +86,22 @@ async def upload_links(file: UploadFile = File(...), site_id: str = Form(None)):
 
         # 加载 token（本地或服务器路径）
         tokens = None
-        for _token_file in [TOKEN_FILE_ENC, '/home/admin/data/ml_tokens.enc']:
-            if os.path.exists(_token_file):
-                for _key_file in [TOKEN_FILE_JSON, '/home/admin/.ml_token_key']:
-                    if os.path.exists(_key_file):
-                        try:
-                            key = open(_key_file).read().strip()
-                            enc = open(_token_file).read()
-                            data_bytes = base64.b64decode(enc.encode())
-                            result = bytearray()
-                            for i in range(len(data_bytes)):
-                                result.append(data_bytes[i] ^ key.encode()[i % len(key)])
-                            tokens = json.loads(result.decode())
-                            break
-                        except:
-                            continue
-            if tokens:
-                break
+        for _token_file, _key_file in [
+            (TOKEN_FILE, KEY_FILE),
+            ('/home/admin/data/ml_tokens.enc', '/home/admin/.ml_token_key'),
+        ]:
+            if os.path.exists(_token_file) and os.path.exists(_key_file):
+                try:
+                    key = open(_key_file).read().strip()
+                    enc = open(_token_file).read()
+                    data_bytes = base64.b64decode(enc.encode())
+                    result = bytearray()
+                    for i in range(len(data_bytes)):
+                        result.append(data_bytes[i] ^ key.encode()[i % len(key)])
+                    tokens = json.loads(result.decode())
+                    break
+                except:
+                    continue
 
         at = tokens.get('access_token', '') if tokens else ''
         h = {'Authorization': f'Bearer {at}'}
@@ -159,7 +158,6 @@ async def upload_links(file: UploadFile = File(...), site_id: str = Form(None)):
             data['pictures'] = pictures
             data['pictures_count'] = pics_count
             data['source_file'] = file.filename
-            data['site_id'] = site_id or 'MLB'
 
             # 写入数据库（UPSERT）
             try:
@@ -168,8 +166,8 @@ async def upload_links(file: UploadFile = File(...), site_id: str = Form(None)):
                     (item_id, sku, product_name, status, variation, unique_visits, order_count,
                      unique_buyers, units_sold, gross_sales_usd, share_percent, 
                      visitor_convert_rate, visitor_buy_convert_rate, thumbnail, pictures, 
-                     pictures_count, source_file, site_id, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+                     pictures_count, source_file, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
                     ON CONFLICT(item_id) DO UPDATE SET
                         sku=excluded.sku, product_name=excluded.product_name, status=excluded.status,
                         variation=excluded.variation, unique_visits=excluded.unique_visits,
@@ -179,7 +177,7 @@ async def upload_links(file: UploadFile = File(...), site_id: str = Form(None)):
                         visitor_buy_convert_rate=excluded.visitor_buy_convert_rate,
                         thumbnail=excluded.thumbnail, pictures=excluded.pictures,
                         pictures_count=excluded.pictures_count, source_file=excluded.source_file,
-                        site_id=excluded.site_id, updated_at=CURRENT_TIMESTAMP
+                        updated_at=CURRENT_TIMESTAMP
                 """, (
                     data.get('item_id'), data.get('sku'), data.get('product_name'),
                     data.get('status', ''), data.get('variation', ''),
@@ -187,7 +185,7 @@ async def upload_links(file: UploadFile = File(...), site_id: str = Form(None)):
                     data.get('unique_buyers', 0), data.get('units_sold', 0),
                     data.get('gross_sales_usd', 0), data.get('share_percent', ''),
                     data.get('visitor_convert_rate', ''), data.get('visitor_buy_convert_rate', ''),
-                    thumbnail, pictures, pics_count, file.filename, site_id or 'MLB'
+                    thumbnail, pictures, pics_count, file.filename
                 ))
                 imported += 1
             except Exception as e:
@@ -232,42 +230,3 @@ async def serve_upload(filename: str):
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(filepath)
-
-
-@router.get("/changes")
-async def get_changes(order_number: str = None, change_type: str = None, limit: int = 100):
-    """查询历史变化记录"""
-    import sqlite3
-    from ..config import DB_PATH
-    conn = sqlite3.connect(str(DB_PATH))
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS order_changes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_number TEXT,
-            change_type TEXT,
-            old_value TEXT,
-            new_value TEXT,
-            thumbnail TEXT,
-            site TEXT,
-            store_name TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    where = []
-    params = []
-    if order_number:
-        where.append("order_number = ?")
-        params.append(order_number)
-    if change_type:
-        where.append("change_type = ?")
-        params.append(change_type)
-    sql = "SELECT id, order_number, change_type, old_value, new_value, thumbnail, site, store_name, created_at FROM order_changes"
-    if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY id DESC LIMIT ?"
-    params.append(limit)
-    cursor.execute(sql, params)
-    rows = cursor.fetchall()
-    conn.close()
-    return [{"id": r[0], "order_number": r[1], "change_type": r[2], "old_value": r[3], "new_value": r[4], "thumbnail": r[5], "site": r[6], "store_name": r[7], "created_at": r[8]} for r in rows]

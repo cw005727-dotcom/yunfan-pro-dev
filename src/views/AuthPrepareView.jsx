@@ -1,67 +1,157 @@
 import { useState } from 'react'
 import Icon from '../components/Icon.jsx'
 
-// 大卡片（店铺授权/云仓授权/回款准备）
-function LargeCard({ accent, light, icon, label, desc, tip, ctaLabel, onCta }) {
+// 设计语言常量
+const BRAND_GREEN = '#1EAD6F'
+const BRAND_SOFT = '#1EAD6F15'
+
+// V5 增强版大卡片 (紧凑活泼版)
+function LargeCard({ accent, light, icon, label, desc, tip, ctaLabel, onCta, stepNumber }) {
+  const darkColor = accent === '#10B981' ? '#064E3B' : accent === '#0EA5E9' ? '#0C4A6E' : '#78350F';
+  
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60 group">
-      <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}40)` }} />
-      <div className="p-5 flex flex-col" style={{ minHeight: '148px' }}>
-        <div className="flex items-start mb-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: light }}>
-            <Icon name={icon} className="w-5 h-5" style={{ color: accent }} />
+    <div 
+      className="relative rounded-[28px] border-2 p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl group flex flex-col justify-between"
+      style={{ 
+        backgroundColor: `${accent}08`, 
+        borderColor: `${accent}20`,
+        minHeight: '220px'
+      }}
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: accent }}>
+            <Icon name={icon} className="w-5 h-5 text-white" />
           </div>
-          <div className="ml-3 flex-1 min-w-0">
-            <h3 className="text-[14px] font-bold text-slate-900 tracking-tight">{label}</h3>
-            <p className="text-[11px] text-slate-400 leading-relaxed mt-0.5">{desc}</p>
+          <div>
+            <h3 className="text-[17px] font-black tracking-tight leading-none" style={{ color: darkColor }}>{label}</h3>
+            <p className="text-[11px] font-bold opacity-50 mt-1" style={{ color: darkColor }}>{desc}</p>
           </div>
         </div>
+
         {tip && (
-          <div className="rounded-xl px-3 py-2.5 mb-4 leading-relaxed" style={{ background: `${accent}12` }}>
-            <p className="text-[11px] font-medium" style={{ color: accent }}>{tip}</p>
+          <div className="rounded-xl px-3 py-2.5 bg-white/40 border border-white/60 backdrop-blur-sm">
+            <p className="text-[11px] font-bold leading-tight opacity-70" style={{ color: darkColor }}>
+              {tip.replace('💡 ', '').replace('⚠️ ', '')}
+            </p>
           </div>
         )}
-        <div className="mb-2" />
-        <button
-          className="w-full py-2 rounded-xl text-[12px] font-bold transition-all duration-200 flex items-center justify-center gap-2"
-          style={{ background: light, color: accent }}
-          onMouseEnter={e => { e.currentTarget.style.background = accent; e.currentTarget.style.color = 'white' }}
-          onMouseLeave={e => { e.currentTarget.style.background = light; e.currentTarget.style.color = accent }}
-          onClick={onCta}
-        >
-          {ctaLabel}
-          <Icon name="arrow-right" className="w-3.5 h-3.5" />
-        </button>
       </div>
+
+      <button
+        onClick={onCta}
+        className="mt-4 w-full py-3 rounded-2xl text-[12px] font-black transition-all duration-300 flex items-center justify-center gap-2 group/btn shadow-sm"
+        style={{ background: accent, color: 'white' }}
+      >
+        <span>{ctaLabel}</span>
+        <Icon name="arrow-right" className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
+      </button>
     </div>
   )
 }
 
-// 小卡片（售前/售中/售后）
-function SmallCard({ accent, light, icon, label, desc }) {
+// V5 流程导向小卡片 (活力管道版)
+function SmallCard({ accent, light, icon, label, items, index, badge }) {
+  const darkColor = accent === '#10B981' ? '#064E3B' : accent === '#3B82F6' ? '#1E3A8A' : '#7F1D1D';
+  
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60">
-      <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}40)` }} />
-      <div className="p-5 flex flex-col" style={{ minHeight: '148px' }}>
-        <div className="flex items-start mb-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: light }}>
-            <Icon name={icon} className="w-5 h-5" style={{ color: accent }} />
+    <div 
+      className="relative flex-1 rounded-[28px] border-2 p-6 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] group"
+      style={{ 
+        backgroundColor: `${accent}05`, 
+        borderColor: `${accent}15`,
+      }}
+    >
+       {/* 顶部状态标签 */}
+       <div className="absolute top-0 right-6 transform -translate-y-1/2 z-20">
+          <div className="px-3.5 py-1.5 rounded-full text-[10px] font-black text-white shadow-md tracking-wider" style={{ background: accent }}>
+            {badge}
           </div>
-          <div className="ml-3 flex-1 min-w-0">
-            <h3 className="text-[14px] font-bold text-slate-900 tracking-tight mb-1">{label}</h3>
-            <p className="text-[11px] text-slate-400 leading-relaxed">{desc}</p>
+       </div>
+
+       <div className="flex items-center gap-3 mb-6">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner" style={{ background: `${accent}15` }}>
+            <Icon name={icon} className="w-4.5 h-4.5" style={{ color: accent }} />
           </div>
+          <span className="text-[15px] font-black tracking-tight" style={{ color: darkColor }}>{index}. {label}</span>
+       </div>
+
+       <div className="flex flex-wrap gap-2">
+          {items.map((item, i) => (
+            <div 
+              key={i} 
+              className="px-3 py-1.5 rounded-full border transition-all duration-300 group-hover:bg-white"
+              style={{ 
+                backgroundColor: `${accent}08`, 
+                borderColor: `${accent}15`,
+                color: darkColor
+              }}
+            >
+              <span className="text-[10px] font-black opacity-80">{item}</span>
+            </div>
+          ))}
+       </div>
+       
+       {/* 装饰线条 - 保持在容器内 */}
+       <div className="absolute bottom-0 left-6 right-6 h-1 opacity-20 rounded-full" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+    </div>
+  )
+}
+
+// 授权弹窗 (保持逻辑不变)
+function AuthModal({ onClose, handleConnect, shopId, setShopId, loading, error }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-white rounded-[40px] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-300">
+        <div className="flex justify-between items-start mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Icon name="key" className="w-6 h-6" />
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <Icon name="x" className="w-5 h-5 text-slate-400" />
+          </button>
         </div>
-        <div className="flex-1" />
+        
+        <h4 className="text-xl font-black text-slate-900 tracking-tight mb-2">店铺授权</h4>
+        <p className="text-[12px] text-slate-400 font-medium mb-6">输入美客多店铺内部数字编号（如 1024）</p>
+        
+        <div className="space-y-4 mb-6">
+          <input
+            type="text"
+            autoFocus
+            value={shopId}
+            onChange={e => setShopId(e.target.value.replace(/\D/g, ''))}
+            placeholder="例如: 1024"
+            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-[20px] text-xl font-black tracking-tight focus:outline-none focus:bg-white focus:border-emerald-500/20 transition-all"
+          />
+          {error && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-500 rounded-lg">
+              <Icon name="alert-circle" className="w-3 h-3" />
+              <span className="text-[11px] font-bold">{error}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl font-black text-[13px]">返回</button>
+          <button
+            onClick={handleConnect}
+            disabled={!shopId || loading}
+            className="flex-[2] py-3 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-[13px] transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? <Icon name="loader" className="w-4 h-4 animate-spin" /> : <Icon name="zap" className="w-4 h-4 text-emerald-400 fill-emerald-400" />}
+            开启授权
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
-// 授权弹窗
-function AuthModal({ onClose }) {
+export default function AuthPrepareView_V5() {
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [shopId, setShopId] = useState('')
-  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -79,8 +169,8 @@ function AuthModal({ onClose }) {
       const data = await resp.json()
       if (data.auth_url) {
         window.open(data.auth_url, '_blank')
-        setShowConfirm(false)
-        onClose()
+        setShowAuthModal(false)
+        setShopId('')
       } else {
         setError('生成授权链接失败')
       }
@@ -92,126 +182,107 @@ function AuthModal({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-300">
-        <div className="w-12 h-12 rounded-2xl bg-violet-50 text-violet-500 flex items-center justify-center mb-6">
-          <Icon name="key" className="w-6 h-6" />
-        </div>
-        <h4 className="text-xl font-black text-slate-900 tracking-tight mb-1">店铺授权</h4>
-        <p className="text-[12px] text-slate-400 font-medium mb-6">输入店铺备注名称，用于系统内唯一标识</p>
-        <div className="mb-6">
-          <input
-            type="text"
-            value={shopId}
-            onChange={e => setShopId(e.target.value.replace(/\D/g, ''))}
-            placeholder="例如: 1024"
-            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-black tracking-tight focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all"
-          />
-        </div>
-        {error && <p className="text-[12px] text-red-500 font-medium mb-4">{error}</p>}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl font-black text-[13px] transition-all"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleConnect}
-            disabled={!shopId || loading}
-            className="flex-1 py-3 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white rounded-xl font-black text-[13px] shadow-lg transition-all flex items-center justify-center gap-2"
-          >
-            {loading ? <Icon name="loader" className="w-4 h-4 animate-spin" /> : null}
-            确认授权
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+    <div className="h-full bg-white px-8 py-8 scrollbar-hide overflow-hidden">
+      {/* 装饰 */}
+      <div className="fixed top-0 right-0 w-[300px] h-[300px] bg-emerald-50/20 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2" />
 
-export default function AuthPrepareView() {
-  const [showAuthModal, setShowAuthModal] = useState(false)
-
-  return (
-    <div className="h-full overflow-y-auto p-8" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {/* 页面标题 */}
-      <div className="mb-8">
-        <h1 className="text-[20px] font-black text-slate-900 mb-1.5 tracking-tight">前期准备</h1>
-        <p className="text-[13px] text-slate-400 font-medium">配置店铺授权，开启跨境销售第一步</p>
+      {/* 标题区 (紧凑) */}
+      <div className="max-w-[1200px] mx-auto mb-8">
+        <h1 className="text-[26px] font-black text-slate-900 mb-1 tracking-tighter">首页</h1>
+        <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest">Setup Engine v5.1 / 跨境自动化引擎</p>
       </div>
 
-      {/* 6张卡片 - 前期准备 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        <LargeCard
-          accent="#7C3AED"
-          light="#F5F3FF"
-          icon="key"
-          label="店铺授权"
-          desc="连接 Mercado Libre 卖家账号，授权 API 访问权限"
-          tip="💡 请以数字来为店铺命名（如 1024）"
-          ctaLabel="立即授权"
-          onCta={() => setShowAuthModal(true)}
+      <div className="max-w-[1200px] mx-auto space-y-10">
+        {/* 第一阶段：核心配置 */}
+        <section>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <LargeCard
+              stepNumber="01"
+              accent="#10B981"
+              light="#10B98110"
+              icon="key"
+              label="店铺授权"
+              desc="连接 Mercado Libre API 权限"
+              tip="💡 请使用数字编号命名店铺"
+              ctaLabel="立即授权"
+              onCta={() => setShowAuthModal(true)}
+            />
+            <LargeCard
+              stepNumber="02"
+              accent="#0EA5E9"
+              light="#0EA5E910"
+              icon="server"
+              label="云仓授权"
+              desc="同步库存与物流对接"
+              tip="⚠️ 建议使用云仓注册名称"
+              ctaLabel="去配置"
+              onCta={() => window.open('https://pdkyc.com', '_blank')}
+            />
+            <LargeCard
+              stepNumber="03"
+              accent="#F59E0B"
+              light="#F59E0B10"
+              icon="credit-card"
+              label="回款准备"
+              desc="绑定 PingPong 收款账户"
+              tip="💡 满 500 美金每周五结算"
+              ctaLabel="立即启用"
+              onCta={() => window.open('https://us.pingpongx.com/entrance/signup?cb=true&inviteCode=Vf6Jre044', '_blank')}
+            />
+          </div>
+        </section>
+
+        {/* 第二阶段：销售流程 (活力管道版) */}
+        <section>
+           <h2 className="text-[13px] font-black text-slate-400 uppercase tracking-widest mb-8 px-1">销售流程全景图</h2>
+           <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+              <SmallCard 
+                index="01"
+                badge="开始"
+                accent="#10B981"
+                light="#10B98110"
+                icon="book-open"
+                label="售前准备"
+                items={["市场调研", "采集刊登", "策略制定"]}
+              />
+              <SmallCard 
+                index="02"
+                badge="核心"
+                accent="#3B82F6"
+                light="#3B82F610"
+                icon="trending-up"
+                label="售中运营"
+                items={["智能调价", "订单处理", "库存监控"]}
+              />
+              <SmallCard 
+                index="03"
+                badge="完成"
+                accent="#EF4444"
+                light="#EF444410"
+                icon="headphones"
+                label="售后保障"
+                items={["纠纷响应", "回款核销", "数据分析"]}
+              />
+           </div>
+        </section>
+        
+        {/* 底部小提示 */}
+        <div className="pt-4 flex items-center gap-2 text-slate-300">
+          <Icon name="info" className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-bold tracking-wider uppercase">安全加密环境 • 自动化引擎已就绪</span>
+        </div>
+      </div>
+
+      {showAuthModal && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+          handleConnect={handleConnect}
+          shopId={shopId}
+          setShopId={setShopId}
+          loading={loading}
+          error={error}
         />
-        <LargeCard
-          accent="#0EA5E9"
-          light="#F0F9FF"
-          icon="server"
-          label="云仓授权"
-          desc="绑定云仓服务，实现库存同步与物流对接"
-          tip="⚠️ 云仓仅支持中文名称注册，建议使用真实名称，便于后期对接"
-          ctaLabel="去配置"
-          onCta={() => window.open('https://pdkyc.com', '_blank')}
-        />
-        <LargeCard
-          accent="#10B981"
-          light="#ECFDF5"
-          icon="credit-card"
-          label="回款准备"
-          desc="配置回款账户与结算规则，保障资金安全"
-          tip="💡 单站点超过 500 美金，每周五自动转账"
-          ctaLabel="立即启用"
-          onCta={() => window.open('https://us.pingpongx.com/entrance/signup?cb=true&inviteCode=Vf6Jre044', '_blank')}
-        />
-      </div>
-
-      {/* 销售流程 - 3张卡片 */}
-      <div className="mt-10">
-        <h2 className="text-[20px] font-black text-slate-900 mb-5 tracking-tight">销售流程</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-          <SmallCard
-            accent="#F59E0B"
-            light="#FFFBEB"
-            icon="book-open"
-            label="售前准备"
-            desc="了解跨境电商，熟悉美客多平台，掌握运营风险点"
-          />
-          <SmallCard
-            accent="#6366F1"
-            light="#EEF2FF"
-            icon="trending-up"
-            label="售中技巧"
-            desc="选品，采集，上架，优化，订单处理等"
-          />
-          <SmallCard
-            accent="#EF4444"
-            light="#FEF2F2"
-            icon="headphones"
-            label="售后服务"
-            desc="处理客户投诉，退换货等"
-          />
-        </div>
-      </div>
-
-      {/* 底部说明 */}
-      <div className="mt-8 flex items-center gap-2 text-slate-400">
-        <Icon name="info" className="w-4 h-4 shrink-0" />
-        <span className="text-[12px] font-medium">授权过程安全加密，不会获取您的账户密码</span>
-      </div>
-
-      {/* 授权弹窗 */}
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      )}
     </div>
   )
 }

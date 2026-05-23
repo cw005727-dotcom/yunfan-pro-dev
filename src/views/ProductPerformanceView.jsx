@@ -46,6 +46,7 @@ export default function ProductPerformanceView() {
   const [order, setOrder] = useState('desc')
   const [statusFilter, setStatusFilter] = useState('全部')
   const [issueFilter, setIssueFilter] = useState('全部')
+  const [siteFilter, setSiteFilter] = useState('全部')
   const [selectedItem, setSelectedItem] = useState(null)
   const pageSize = 24
 
@@ -56,8 +57,9 @@ export default function ProductPerformanceView() {
       const params = new URLSearchParams({ sort, order, page, page_size: pageSize })
       if (statusFilter !== '全部') params.set('status', statusFilter)
       if (issueFilter !== '全部') params.set('issue', issueFilter)
+      if (siteFilter !== '全部') params.set('site_id', siteFilter)
       
-      const res = await fetch(`/api/product_performance?${params}`)
+      const res = await fetch(`/api/performance/list?${params}`)
       const data = await res.json()
       
       setItems(data.items || [])
@@ -178,6 +180,21 @@ export default function ProductPerformanceView() {
         </div>
 
         {/* 状态筛选 */}
+        {/* 站点筛选 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#6b7280' }}>站点：</span>
+          {['全部', 'MLB', 'MLM', 'MLA', 'MCO'].map(s => (
+            <button key={s} onClick={() => { setSiteFilter(s); setPage(1) }} style={{
+              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              background: siteFilter === s ? '#4f46e5' : '#f3f4f6',
+              color: siteFilter === s ? 'white' : '#374151',
+              fontSize: '13px', fontWeight: siteFilter === s ? '500' : '400'
+            }}>
+              {s === '全部' ? '全部' : s === 'MLB' ? '🇧🇷 巴西' : s === 'MLM' ? '🇲🇽 墨西哥' : s === 'MLA' ? '🇦🇷 阿根廷' : '🇨🇴 哥伦比亚'}
+            </button>
+          ))}
+        </div>
+
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '13px', color: '#6b7280' }}>状态：</span>
           {['全部', '激活', '未激活'].map(s => (

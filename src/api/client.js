@@ -19,7 +19,8 @@ export const apiClient = {
   },
 
   post: async (path, body = {}) => {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const url = new URL(`${window.location.origin}${API_BASE}${path}`);
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

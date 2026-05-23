@@ -20,9 +20,7 @@ DB_PATH = os.environ.get("DB_PATH", os.path.join(DATA_DIR, "mercadolibre.db"))
 API_PORT = int(os.environ.get("API_PORT", "8506"))
 API_HOST = os.environ.get("API_HOST", "0.0.0.0")
 
-# Token 文件路径（兼容旧代码）
-TOKEN_FILE = os.environ.get("TOKEN_FILE", str(Path.home() / ".ml_token_enc"))
-KEY_FILE = os.environ.get("KEY_FILE", str(Path.home() / ".ml_token_key"))
+# Token 文件路径
 TOKEN_FILE_ENC = os.environ.get("TOKEN_FILE_ENC", str(Path.home() / ".ml_token_enc"))
 TOKEN_FILE_JSON = os.environ.get("TOKEN_FILE_JSON", str(Path.home() / ".ml_token_json"))
 
@@ -39,11 +37,6 @@ MINIMAX_IMAGE_URL = "https://api.minimax.chat/v1/image_generation"
 ML_API_BASE = "https://api.mercadolibre.com"
 ML_APP_ID = os.environ.get("ML_APP_ID", "2853782117476515")
 ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ")
-
-# EchoTik TikTok API 配置
-ECHOTIK_APP_ID = os.environ.get("ECHOTIK_APP_ID", "240112436319631667")
-ECHOTIK_APP_SECRET = os.environ.get("ECHOTIK_APP_SECRET", "c92edb0e1a754306b7cc53311464fd46")
-ECHOTIK_API_BASE = "https://open.echotik.live/api/v3"
 
 # 日志配置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")

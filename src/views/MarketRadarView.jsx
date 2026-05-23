@@ -46,6 +46,7 @@ const MarketRadarView = () => {
                     site: activeSite
                 })
             });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setAiResult(data);
         } catch (error) {

@@ -14,15 +14,16 @@ export const useStatsOverview = () => {
 
     useEffect(() => {
         fetch(`${API_BASE}/stats_overview`)
-            .then(res => res.json())
+            .then(async res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
             .then(data => {
+                const m = data.metrics || {};
                 setStats({
-                    total_gmv: data.metrics.total_gmv,
-                    total_orders: data.metrics.total_units,
-                    gmv_trend: data.metrics.gmv_trend,
-                    units_trend: data.metrics.units_trend,
-                    expected_payout: data.metrics.expected_payout,
-                    actual_payout: data.metrics.actual_payout
+                    total_gmv: m.total_gmv ?? 0,
+                    total_orders: m.total_units ?? 0,
+                    gmv_trend: m.gmv_trend ?? 0,
+                    units_trend: m.units_trend ?? 0,
+                    expected_payout: m.expected_payout ?? 0,
+                    actual_payout: m.actual_payout ?? 0
                 });
                 setIsLoading(false);
             })
