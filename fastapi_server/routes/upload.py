@@ -210,7 +210,7 @@ async def upload_links(
 
 @router.post("/upload/logistics")
 async def upload_logistics(file: UploadFile = File(...)):
-    """上传物流追踪Excel，解析入库到 logistics_tracking 表"""
+    """上传物流追踪Excel"""
     if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="仅支持 .xlsx / .xls 文件")
 
@@ -242,7 +242,6 @@ async def upload_logistics(file: UploadFile = File(...)):
             '国际物流单号': 'international_tracking',
         }
 
-        # 表头索引
         col_idx = {}
         for i, h in enumerate(headers):
             if h and h in field_map:

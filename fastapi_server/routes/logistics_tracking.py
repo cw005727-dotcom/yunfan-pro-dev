@@ -41,7 +41,6 @@ def get_tracking(
 
     today = datetime.now().strftime('%Y-%m-%d')
 
-    # 构建查询条件
     where = "1=1"
     params = []
     if site:
@@ -55,8 +54,7 @@ def get_tracking(
         where += " AND order_number LIKE ?"
         params.append(f'%{search}%')
 
-    # 取全部（或按条件）
-    sql = f"""
+    cur.execute(f"""
         SELECT order_number, site, store_name, order_date,
                logistics_1688_order, logistics_1688_tracking,
                label_status, warehouse_in_date, international_tracking, is_ignored
@@ -64,11 +62,9 @@ def get_tracking(
         WHERE {where}
         ORDER BY order_date DESC
         LIMIT ?
-    """
-    cur.execute(sql, params + [limit])
+    """, params + [limit])
     rows = cur.fetchall()
 
-    # 关联 operational_orders 获取采购状态
     orders_list = []
     all_today = 0
     purchased_count = 0
@@ -77,16 +73,13 @@ def get_tracking(
         order_number, site_v, store_name, order_date, \
             ls1688, ls1688_t, label_status, wh_date, intl_tracking, is_ignored = r
 
-        # 忽略不计入统计
         if is_ignored:
             continue
 
-        # 今日订单统计
         order_day = order_date.replace('/', '-')[:10] if order_date else ''
         if order_day == today:
             all_today += 1
 
-        # 从 operational_orders 查采购状态
         is_purchased = bool(ls1688)
         if not is_purchased and order_number:
             try:
@@ -121,19 +114,16 @@ def get_tracking(
         t['stage_icon'] = stage_icon
         t['stage_name'] = stage_name
         t['stage_color'] = stage_color
-
         orders_list.append(t)
 
     conn.close()
 
-    # 按日期分组
     from collections import defaultdict
     orders_by_date = defaultdict(list)
     for o in orders_list:
         d = o['order_date'].replace('/', '-')[:10] if o['order_date'] else '未知'
         orders_by_date[d].append(o)
 
-    # 24H/48H/超48H统计（从下单时间算）
     now = datetime.now()
     stats_24h = {'shipped': 0, 'unshipped': 0}
     stats_48h = {'shipped': 0, 'unshipped': 0}
@@ -165,11 +155,18 @@ def get_tracking(
         elif hours > 48 and not has_shipped:
             over_48h_warning += 1
 
+    cloud_labeled = sum(1 for o in orders_list if o['label_status'] == '已贴单')
+    warehouse_received = sum(1 for o in orders_list if o['warehouse_in_date'])
+    air_shipped = sum(1 for o in orders_list if o['international_tracking'])
+
     return JSONResponse({
         'today_total': all_today,
         'purchased_count': purchased_count,
         'stats_24h': stats_24h,
         'stats_48h': stats_48h,
         'over_48h_warning': over_48h_warning,
+        'cloud_labeled': cloud_labeled,
+        'warehouse_received': warehouse_received,
+        'air_shipped': air_shipped,
         'orders_by_date': dict(sorted(orders_by_date.items(), reverse=True)),
     })
