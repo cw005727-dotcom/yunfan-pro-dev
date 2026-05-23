@@ -10,7 +10,9 @@ import sqlite3
 import openpyxl
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
-from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR, TOKEN_FILE, KEY_FILE
+from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR
+
+ACCESS_TOKEN = 'APP_USR-4507485641678982-051506-10e8e94fd7205a8a5acf2a0a5aac7f3e-3164139599'
 
 # 导入解析脚本
 import sys
@@ -85,26 +87,7 @@ async def upload_links(file: UploadFile = File(...)):
         }
 
         # 加载 token（本地或服务器路径）
-        tokens = None
-        for _token_file, _key_file in [
-            (TOKEN_FILE, KEY_FILE),
-            ('/home/admin/data/ml_tokens.enc', '/home/admin/.ml_token_key'),
-        ]:
-            if os.path.exists(_token_file) and os.path.exists(_key_file):
-                try:
-                    key = open(_key_file).read().strip()
-                    enc = open(_token_file).read()
-                    data_bytes = base64.b64decode(enc.encode())
-                    result = bytearray()
-                    for i in range(len(data_bytes)):
-                        result.append(data_bytes[i] ^ key.encode()[i % len(key)])
-                    tokens = json.loads(result.decode())
-                    break
-                except:
-                    continue
-
-        at = tokens.get('access_token', '') if tokens else ''
-        h = {'Authorization': f'Bearer {at}'}
+        h = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
 
         conn = sqlite3.connect(str(DB_PATH))
         imported = 0

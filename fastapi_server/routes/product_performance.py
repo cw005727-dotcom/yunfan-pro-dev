@@ -142,3 +142,70 @@ async def get_product_performance(
         'stats': stats,
         'items': items
     }
+
+
+@router.get("/performance/list")
+async def get_performance_list(
+    sort: str = Query("unique_visits"),
+    order: str = Query("desc"),
+    page: int = Query(1),
+    page_size: int = Query(24),
+    status: str = Query(None),
+    issue: str = Query(None),
+    site_id: str = Query(None),
+):
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    where = "1=1"
+    params = []
+    if status and status != '全部':
+        where += " AND status = ?"
+        params.append(status)
+    if issue and issue != '全部':
+        where += " AND ai_issue_type = ?"
+        params.append(issue)
+    if site_id and site_id != '全部':
+        where += " AND site_id = ?"
+        params.append(site_id)
+
+    c.execute(f"SELECT COUNT(*) as cnt FROM product_performance WHERE {where}", params)
+    total = c.fetchone()['cnt']
+
+    sort_map = {'unique_visits': 'unique_visits', 'visitor_convert_rate': 'visitor_convert_rate', 'order_count': 'order_count'}
+    sort_col = sort_map.get(sort, 'unique_visits')
+    sort_dir = 'DESC' if order == 'desc' else 'ASC'
+
+    offset = (page - 1) * page_size
+    c.execute(f"""
+        SELECT item_id, sku, product_name, status, variation,
+               unique_visits, order_count, unique_buyers, units_sold,
+               gross_sales_usd, share_percent, visitor_convert_rate,
+               visitor_buy_convert_rate, thumbnail, pictures_count,
+               ai_issue_type, ai_issue_desc, ai_suggestion, site_id
+        FROM product_performance
+        WHERE {where}
+        ORDER BY {sort_col} {sort_dir}
+        LIMIT ? OFFSET ?
+    """, params + [page_size, offset])
+
+    rows = c.fetchall()
+    conn.close()
+
+    items = [dict(r) for r in rows]
+    has_ai = any(p.get('ai_issue_type') for p in items)
+    if not has_ai and items:
+        items = ai_diagnose(items)
+
+    stats = {'⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈正常': 0}
+    for p in items:
+        t = p.get('ai_issue_type', '📈正常')
+        if t in stats:
+            stats[t] += 1
+
+    return {
+        'success': True, 'total': total, 'page': page,
+        'page_size': page_size, 'total_pages': (total + page_size - 1) // page_size,
+        'stats': stats, 'items': items
+    }

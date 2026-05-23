@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 from ..db import get_db_connection
 
 router = APIRouter(prefix="/api", tags=["统计"])
@@ -293,3 +294,17 @@ async def conversion_stats(
             "cart_rate": cart_rate,
             "period_days": days,
         }
+
+@router.get("/changes")
+def get_changes(
+    change_type: str = Query(...),
+    limit: int = Query(100, le=500),
+):
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        rows = cur.execute(
+            "SELECT id, order_number, change_type, old_value, new_value, thumbnail, site, store_name, created_at "
+            "FROM order_changes WHERE change_type = ? ORDER BY created_at DESC LIMIT ?",
+            [change_type, limit]
+        ).fetchall()
+        return JSONResponse({"changes": [{"id":r[0],"order_number":r[1],"change_type":r[2],"old_value":r[3],"new_value":r[4],"thumbnail":r[5],"site":r[6],"store_name":r[7],"created_at":r[8]} for r in rows]})
