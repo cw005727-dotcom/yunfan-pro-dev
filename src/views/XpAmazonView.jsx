@@ -298,53 +298,49 @@ export default function XpAmazonView_V5({ defaultMode }) {
       <div className="bg-gradient-to-b from-emerald-100/30 to-white border-b border-slate-200 border-t-[3px] border-t-emerald-600 px-5 py-4 shrink-0 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/5 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
         
-        {/* Row 1: 站点 + 模式 + 类目 */}
-        <div className="flex items-center gap-3 mb-2 flex-wrap">
-           <div className="w-[100px] shrink-0">
-              <h1 className="text-[14px] font-black text-emerald-800 tracking-tight">亚马逊实时探测</h1>
+        {/* Row 1: 站点 + 类目 + 操作按钮 */}
+        <div className="flex items-center gap-2">
+           {/* 标题 */}
+           <div className="flex items-center gap-2 pr-3 border-r border-slate-200 shrink-0">
+              <span className="text-[12px] font-black text-emerald-800 tracking-tight">亚马逊探测</span>
            </div>
            
-           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
+           {/* 站点 */}
+           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner shrink-0">
              {SITES.map(s => (
                <button key={s.id} onClick={() => setSite(s.id)}
-                 className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all duration-300 ${
+                 className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all duration-300 ${
                    site === s.id
-                     ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md scale-[1.02]'
+                     ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
                      : 'text-slate-500 hover:text-emerald-700 hover:bg-white/50'
                  }`}
                >{s.name}</button>
              ))}
            </div>
 
-           {/* 模式由 tab 切换控制，不重复展示 */}
-
-           {/* 一级类目选择 */}
-           <div className="flex-1 min-w-0 max-w-[200px]">
+           {/* 大类 */}
+           <div className="min-w-0 max-w-[160px]">
              <select
                value={selectedCat || ''}
                onChange={e => {
                  const val = e.target.value
-                 if (!val) {
-                   setSelectedCat('')
-                   setSelectedSub('')
-                   setSubCategories([])
-                   return
-                 }
+                 if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); return }
+                 setCatLoading(true)
                  handleTopCatChange(val)
-                 // 选大类后从数据库筛选
                  const catName = topCategories.find(c => c.id === val)?.name || ''
                  fetchByCategory(catName, val)
                }}
-               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+               className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
              >
-               <option value="">{catLoading ? '加载类目...' : '大类（不限）'}</option>
+               <option value="">{catLoading ? '加载中...' : '不限大类'}</option>
                {topCategories.map(cat => (
                  <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
                ))}
              </select>
            </div>
-           {/* 子类选择 */}
-           <div className="min-w-0 max-w-[200px]">
+           
+           {/* 子类 */}
+           <div className="min-w-0 max-w-[160px]">
              <select
                value={selectedSub || ''}
                onChange={e => {
@@ -356,38 +352,42 @@ export default function XpAmazonView_V5({ defaultMode }) {
                  }
                }}
                disabled={!selectedCat || subCategories.length === 0}
-               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+               className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
              >
-               <option value="">子类（不限）</option>
+               <option value="">不限子类</option>
                {subCategories.map(cat => (
                  <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
                ))}
              </select>
            </div>
+
+           {/* 右端：更新时间 + 按钮 */}
+           <div className="ml-auto flex items-center gap-2 shrink-0">
+             {updatedAt && (
+               <span className="text-[9px] font-bold text-slate-300">
+                 更新 {updatedAt}
+               </span>
+             )}
+             {loading ? (
+               <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-500 animate-pulse">更新中...</span>
+             ) : (
+               <button onClick={loadFromDb} className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition-all shadow-sm flex items-center gap-1">
+                 <Icon name="refresh-cw" size={10} /> 更新
+               </button>
+             )}
+             {products.length > 0 && (
+               <button onClick={handleExport} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
+                 <Icon name="download" size={10} /> 导出
+               </button>
+             )}
+           </div>
         </div>
 
-        {/* Row 2: 状态栏 + 更新信息 + 导出 */}
-        <div className="flex items-center gap-4 mt-1">
-           <span className="text-[10px] font-black text-emerald-600 shrink-0">
+        {/* Row 2: 状态栏 */}
+        <div className="flex items-center gap-2 mt-1.5 ml-1">
+           <span className="text-[9px] font-bold text-emerald-600">
              {products.length > 0 ? `${products.length} 条商品` : loading ? '加载中...' : '就绪'}
            </span>
-           {updatedAt && (
-             <span className="text-[9px] font-bold text-slate-300">
-               更新于 {updatedAt}
-             </span>
-           )}
-           {products.length > 0 && (
-             <button onClick={handleExport} className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
-               <Icon name="download" size={10} /> 导出 Excel
-             </button>
-           )}
-           {loading ? (
-             <span className="ml-auto text-[10px] font-black text-emerald-500 animate-pulse">正在更新...</span>
-           ) : (
-             <button onClick={loadFromDb} className="ml-auto px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black transition-all shadow-sm flex items-center gap-1">
-               <Icon name="refresh-cw" size={10} /> 更新
-             </button>
-           )}
         </div>
       </div>
 
