@@ -8,12 +8,6 @@ const SITES = [
   { id: 'BR', name: '🇧🇷 巴西站' },
 ]
 
-const MODES = [
-  { id: 'hot',       name: '热销爆品', icon: 'flame',       color: '#F43F5E' },
-  { id: 'potential', name: '潜力商品', icon: 'trending-up', color: '#F59E0B' },
-  { id: 'new',       name: '最近上新', icon: 'sparkles',    color: '#10B981' },
-]
-
 const STYLES = `
   @keyframes shimmer {
     0% { transform: translateX(-150%) skewX(-25deg); }
@@ -43,38 +37,27 @@ const STYLES = `
 
 const PLACEHOLDER_IMG = 'https://placehold.co/200x200/f1f5f9/cbd5e1?text=No+Image'
 
-// Amazon 图片 fallback 模板
-const AMAZON_IMG_TEMPLATE = (asin) => `https://images-na.ssl-images-amazon.com/images/I/${asin}._AC_UL600_SR600,400_.jpg`
-
-const ProductCard = React.memo(({ item, site }) => {
+const ProductCard = React.memo(({ item, site, currency }) => {
   const asin = item.asin || ''
-  const rawUrl = item.thumbnail_url || item.thumbnail || item.image_url || ''
-  const [imgSrc, setImgSrc] = useState(() => rawUrl.startsWith('http') ? rawUrl : '')
+  // Sorftime 返回的字段：主图, 标题, 品牌, 价格, 月销量, 星级, 评论数
+  const imgUrl = item.thumbnail_url || item.thumbnail || item.主图 || item.image_url || ''
 
   const amazonBase = site === 'US' ? 'amazon.com'
     : site === 'MX' ? 'amazon.com.mx'
     : 'amazon.com.br'
 
-  const handleImgError = useCallback(() => {
-    // 逐级 fallback: 原图 → 模板URL → placeholder
-    if (imgSrc !== rawUrl) return // 已经 fallback 过了
-    const templateUrl = AMAZON_IMG_TEMPLATE(asin)
-    if (templateUrl) setImgSrc(templateUrl)
-    else setImgSrc(PLACEHOLDER_IMG)
-  }, [imgSrc, rawUrl, asin])
-
   return (
     <div className="group relative bg-white rounded-xl border border-slate-100 hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden">
       <div className="relative pt-[100%] bg-slate-50/50 overflow-hidden cursor-pointer" onClick={() => window.open(`https://www.${amazonBase}/dp/${asin}`, '_blank')}>
-        {imgSrc ? (
+        {imgUrl ? (
           <img
-            src={imgSrc}
-            alt={item.title}
+            src={imgUrl}
+            alt={item.title || item.标题}
             loading="lazy"
             decoding="async"
             className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
             referrerPolicy="no-referrer"
-            onError={handleImgError}
+            onError={e => { e.target.src = PLACEHOLDER_IMG }}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-slate-200">
@@ -82,10 +65,10 @@ const ProductCard = React.memo(({ item, site }) => {
           </div>
         )}
         <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
-          {Number(item.monthly_sales || 0) >= 1000 && (
+          {Number(item.monthly_sales || item.月销量 || 0) >= 1000 && (
             <div className="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[9px] font-black flex items-center gap-0.5 shadow-sm tag-shimmer">
               <Icon name="flame" size={8} />
-              <span>{item.monthly_sales}</span>
+              <span>{item.monthly_sales || item.月销量}</span>
             </div>
           )}
         </div>
@@ -93,20 +76,20 @@ const ProductCard = React.memo(({ item, site }) => {
       <div className="p-2.5 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] font-bold text-slate-400 truncate max-w-[70%]">{item.brand || 'No Brand'}</span>
+            <span className="text-[9px] font-bold text-slate-400 truncate max-w-[70%]">{item.brand || item.品牌 || 'No Brand'}</span>
             <div className="flex items-center gap-0.5 text-amber-500">
               <Icon name="star" size={8} className="fill-current" />
-              <span className="text-[9px] font-bold">{item.rating || '0.0'}</span>
+              <span className="text-[9px] font-bold">{item.rating || item.星级 || '0.0'}</span>
             </div>
           </div>
-          <h3 className="text-[11px] font-bold text-slate-700 leading-tight line-clamp-2 mb-2" title={item.title}>{item.title}</h3>
+          <h3 className="text-[11px] font-bold text-slate-700 leading-tight line-clamp-2 mb-2" title={item.title || item.标题}>{item.title || item.标题}</h3>
           <div className="text-[14px] font-black text-rose-500 mb-1">
-             {site === 'US' ? '$' : site === 'MX' ? 'MX$' : 'R$'}{item.price || '0.00'}
+            {currency}{item.price || item.价格 || '0.00'}
           </div>
         </div>
         <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 border-t border-slate-50 pt-1.5">
-           <span>{item.review_count || 0} 评 {item.weight > 0 ? `· ${item.weight}kg` : ''}</span>
-           <span>{item.launch_date ? `上架 ${item.launch_date}` : `天数 ${item.listed_days || 0}`}</span>
+           <span>{item.review_count || item.评论数 || 0} 评</span>
+           <span>上架 {item.listed_days || item.上架天数 || 0}天</span>
         </div>
       </div>
     </div>
@@ -115,9 +98,8 @@ const ProductCard = React.memo(({ item, site }) => {
 
 export default function XpAmazonView_V5({ defaultMode }) {
   const [site, setSite] = useState('US')
-  const [topCategories, setTopCategories] = useState([])
-  const [updatedAt, setUpdatedAt] = useState(null)  // 一级类目列表
-  const [subCategories, setSubCategories] = useState([])    // 子类列表
+  const [categories, setCategories] = useState([])
+  const [categoryTree, setCategoryTree] = useState([])
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
   const mode = defaultMode || 'hot'
@@ -126,19 +108,19 @@ export default function XpAmazonView_V5({ defaultMode }) {
   const [catLoading, setCatLoading] = useState(false)
   const [error, setError] = useState('')
   const [visibleCount, setVisibleCount] = useState(40)
-  const abortRef = useRef(null)
-  const debounceRef = useRef(null)
+  const scrollRef = useRef(null)
 
-  // 加载类目树（站点切换时自动拉）
+  const currencyMap = { US: '$', MX: 'MX$', BR: 'R$' }
+
+  // 加载类目树
   useEffect(() => {
     setCatLoading(true)
     setSelectedCat('')
     setSelectedSub('')
-    setSubCategories([])
     fetch(`/api/amazon/categories/${site}`)
       .then(r => r.json())
       .then(tree => {
-        // 只保存一级类目
+        setCategoryTree(tree)
         const tops = tree.map(top => ({
           id: top.nodeId || top.id,
           name: top.类目名称 || top.name || top.id,
@@ -149,100 +131,73 @@ export default function XpAmazonView_V5({ defaultMode }) {
             emoji: sub.emoji || '📦',
           }))
         }))
-        setTopCategories(tops)
+        setCategories(tops)
         setCatLoading(false)
       })
       .catch(() => setCatLoading(false))
   }, [site])
 
-  // 选中一级类目时展开子类
-  const handleTopCatChange = useCallback((topId) => {
-    setSelectedCat(topId)
-    setSelectedSub('')
-    const top = topCategories.find(c => c.id === topId)
-    setSubCategories(top?.children || [])
-  }, [topCategories])
-
-  // 请求取消 + 防抖（从数据库读取，支持 site/mode/类目变化）
-  const loadFromDb = useCallback(async () => {
-    if (abortRef.current) abortRef.current.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
+  // 选类目后自动拉取 Sorftime 数据
+  const handlePull = useCallback(async (nodeId, catName) => {
+    if (!nodeId) return
     setLoading(true)
-    setError(null)
+    setError('')
+    setProducts([])
     try {
-      const body = { site, mode, limit: 500 }
-      if (selectedCat) {
-        // 用原始英文名搜索标题和类目字段
-        const catId = selectedSub || selectedCat
-        body.node_id = catId
-        // 查找类目的中文名，一起作为搜索词
-        const topCat = topCategories.find(c => c.id === catId || c.children?.some(ch => ch.id === catId))
-        const subCat = subCategories.find(c => c.id === catId)
-        const catName = subCat?.name || topCat?.name || catId
-        body.search = catName + ',' + catId
-      }
-      const res = await fetch('/api/amazon/list', {
+      const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
+      const endpoint = endpointMap[mode] || '/api/amazon/hot'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: controller.signal,
+        body: JSON.stringify({ site, node_id: nodeId, search: catName || nodeId, page: 1 }),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        setError(data.detail || '加载失败')
+        const errData = await res.json().catch(() => ({ detail: '拉取失败' }))
+        setError(errData.detail || errData.error || '拉取失败')
         return
       }
       const data = await res.json()
-      setProducts(data.products || [])
-      setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
+      setProducts(Array.isArray(data) ? data : data.products || [])
     } catch (err) {
-      if (err.name !== 'AbortError') setError('加载失败: ' + err.message)
+      setError('拉取失败: ' + err.message)
     } finally {
-      if (!controller.signal.aborted) setLoading(false)
+      setLoading(false)
     }
-  }, [site, mode, selectedCat, selectedSub])
+  }, [site, mode])
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(loadFromDb, 300)
-    setVisibleCount(40)
-    return () => {
-      if (abortRef.current) abortRef.current.abort()
-      if (debounceRef.current) clearTimeout(debounceRef.current)
+  const handleTopCatChange = (topId) => {
+    setSelectedCat(topId)
+    setSelectedSub('')
+    const top = categories.find(c => c.id === topId)
+    if (top?.children?.length) {
+      setSubCategories(top.children)
+    } else {
+      setSubCategories([])
+      // 没有子类，直接拉取
+      handlePull(topId, top.name)
     }
-  }, [loadFromDb])
+  }
 
-  const scrollRef = useRef(null)
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current
-    if (!el || visibleCount >= (products.length || 0)) return
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) {
-      setVisibleCount(prev => Math.min(prev + 40, products.length))
-    }
-  }, [visibleCount, products.length])
+  const [subCategories, setSubCategories] = useState([])
 
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.addEventListener('scroll', handleScroll, { passive: true })
-    return () => el.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
+  const handleSubCatChange = (subId) => {
+    setSelectedSub(subId)
+    const sub = subCategories.find(c => c.id === subId)
+    if (sub) handlePull(subId, sub.name)
+  }
 
   const handleExport = () => {
     if (products.length === 0) return
     const rows = products.map(p => ({
       '站点': site,
       'ASIN': p.asin,
-      '标题': p.title,
-      '品牌': p.brand,
-      '价格': p.price,
-      '月销量': p.monthly_sales || 0,
-      '评分': p.rating,
-      '评论数': p.review_count || 0,
-      '上架天数': p.listed_days || 0,
-      '潜力指数': p.potential_index || 0,
+      '标题': p.title || p.标题,
+      '品牌': p.brand || p.品牌,
+      '价格': p.price || p.价格,
+      '月销量': p.monthly_sales || p.月销量 || 0,
+      '评分': p.rating || p.星级,
+      '评论数': p.review_count || p.评论数 || 0,
+      '上架天数': p.listed_days || p.上架天数 || 0,
       '链接': `https://www.amazon.${site.toLowerCase() === 'us' ? 'com' : site.toLowerCase() === 'mx' ? 'com.mx' : 'br'}/dp/${p.asin}`
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
@@ -251,6 +206,19 @@ export default function XpAmazonView_V5({ defaultMode }) {
     XLSX.writeFile(wb, `Amazon_${site}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`)
   }
 
+  // 无限滚动
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const handler = () => {
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 400 && visibleCount < products.length) {
+        setVisibleCount(prev => Math.min(prev + 40, products.length))
+      }
+    }
+    el.addEventListener('scroll', handler, { passive: true })
+    return () => el.removeEventListener('scroll', handler)
+  }, [visibleCount, products.length])
+
   return (
     <div className="h-full bg-white flex flex-col overflow-hidden font-sans select-none">
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
@@ -258,14 +226,11 @@ export default function XpAmazonView_V5({ defaultMode }) {
       <div className="bg-gradient-to-b from-emerald-100/30 to-white border-b border-slate-200 border-t-[3px] border-t-emerald-600 px-5 py-4 shrink-0 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/5 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
         
-        {/* Row 1: 站点 + 类目 + 操作按钮 */}
         <div className="flex items-center gap-2">
-           {/* 标题 */}
            <div className="flex items-center gap-2 pr-3 border-r border-slate-200 shrink-0">
               <span className="text-[12px] font-black text-emerald-800 tracking-tight">亚马逊探测</span>
            </div>
            
-           {/* 站点 */}
            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner shrink-0">
              {SITES.map(s => (
                <button key={s.id} onClick={() => setSite(s.id)}
@@ -278,58 +243,46 @@ export default function XpAmazonView_V5({ defaultMode }) {
              ))}
            </div>
 
-           {/* 大类 */}
            <div className="min-w-0 max-w-[160px]">
              <select
                value={selectedCat || ''}
                onChange={e => {
                  const val = e.target.value
-                 if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); return }
+                 if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); setProducts([]); return }
                  handleTopCatChange(val)
                }}
                className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
              >
-               <option value="">{catLoading ? '加载中...' : '不限大类'}</option>
-               {topCategories.map(cat => (
+               <option value="">{catLoading ? '加载中...' : '选择大类'}</option>
+               {categories.map(cat => (
                  <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
                ))}
              </select>
            </div>
            
-           {/* 子类 */}
            <div className="min-w-0 max-w-[160px]">
              <select
                value={selectedSub || ''}
                onChange={e => {
                  const val = e.target.value
-                 setSelectedSub(val || '')
-                 if (val) {
-                   setSelectedSub(val || '')
-                 }
+                 if (!val) { setSelectedSub(''); return }
+                 handleSubCatChange(val)
                }}
                disabled={!selectedCat || subCategories.length === 0}
                className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
              >
-               <option value="">不限子类</option>
+               <option value="">选择子类</option>
                {subCategories.map(cat => (
                  <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
                ))}
              </select>
            </div>
 
-           {/* 右端：更新时间 + 按钮 */}
            <div className="ml-auto flex items-center gap-2 shrink-0">
-             {updatedAt && (
-               <span className="text-[9px] font-bold text-slate-300">
-                 更新 {updatedAt}
-               </span>
-             )}
              {loading ? (
-               <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-500 animate-pulse">更新中...</span>
+               <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-500 animate-pulse">拉取中...</span>
              ) : (
-               <button onClick={loadFromDb} className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition-all shadow-sm flex items-center gap-1">
-                 <Icon name="refresh-cw" size={10} /> 更新
-               </button>
+               <span className="text-[9px] font-bold text-slate-300">Sorftime 实时</span>
              )}
              {products.length > 0 && (
                <button onClick={handleExport} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
@@ -339,10 +292,9 @@ export default function XpAmazonView_V5({ defaultMode }) {
            </div>
         </div>
 
-        {/* Row 2: 状态栏 */}
         <div className="flex items-center gap-2 mt-1.5 ml-1">
            <span className="text-[9px] font-bold text-emerald-600">
-             {products.length > 0 ? `${products.length} 条商品` : loading ? '加载中...' : '就绪'}
+             {products.length > 0 ? `${products.length} 条商品 · Sorftime 实时` : loading ? '正在拉取...' : '请选择类目'}
            </span>
         </div>
       </div>
@@ -368,8 +320,8 @@ export default function XpAmazonView_V5({ defaultMode }) {
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-            {products.slice(0, visibleCount).map((item) => (
-              <ProductCard key={item.asin || item.id} item={item} site={site} />
+            {products.slice(0, visibleCount).map((item, idx) => (
+              <ProductCard key={item.asin || item.产品ASIN码 || idx} item={item} site={site} currency={currencyMap[site]} />
             ))}
             {visibleCount < products.length && (
               <div className="col-span-full flex justify-center py-6">
@@ -383,9 +335,9 @@ export default function XpAmazonView_V5({ defaultMode }) {
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[300px] opacity-10">
+          <div className="flex flex-col items-center justify-center h-[300px] opacity-20">
              <Icon name="search" size={48} className="mb-2" />
-             <p className="text-[14px] font-black tracking-widest uppercase">Awaiting Signal</p>
+             <p className="text-[14px] font-black tracking-widest uppercase">选择类目开始探测</p>
           </div>
         )}
       </div>
