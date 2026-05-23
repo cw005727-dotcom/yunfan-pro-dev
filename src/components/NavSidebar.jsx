@@ -8,11 +8,13 @@ const NAV_GROUPS = [
     { id: 'xp-amazon',  label: '亚马逊选品',  icon: 'globe'        },
     { id: 'xp-meli',   label: '美客多选品',  icon: 'shopping-bag' },
     { id: 'xp-holiday',label: '节假日选品',  icon: 'calendar'     },
+    { id: 'xp-tiktok', label: 'TikTok选品',  icon: 'video'        },
   ]},
   { id: 'data',     label: '数据中心', icon: 'pie-chart',   color: '#0EA5E9', light: '#F0F9FF', items: [
     { id: 'reputation',     label: '店铺声誉',   icon: 'shield'      },
     { id: 'store-data',     label: '店铺数据',   icon: 'bar-chart-2' },
     { id: 'product-report', label: '商品性能表', icon: 'package'     },
+    { id: 'data-upload',    label: '数据上传',   icon: 'upload-cloud' },
   ]},
   { id: 'optimize', label: '优化中心', icon: 'wand-2',     color: '#10B981', light: '#ECFDF5', items: null },
   { id: 'ops',      label: '运营中心', icon: 'settings',   color: '#6366F1', light: '#EEF2FF', items: [
@@ -21,8 +23,12 @@ const NAV_GROUPS = [
     { id: 'listing-pub',label: '上架',  icon: 'upload'        },
   ]},
   { id: 'logistics',label: '物流中心', icon: 'truck',      color: '#0EA5E9', light: '#F0F9FF', items: [
-    { id: 'auto-center', label: '自动化中心', icon: 'cpu' },
+    { id: 'auto-center',    label: '自动化中心', icon: 'cpu' },
+    { id: 'logistics-intl', label: '物流追踪',   icon: 'globe' },
   ]},
+
+  { id: 'personal', label: '个人中心', icon: 'user',       color: '#8B5CF6', light: '#F5F3FF', items: null },
+  { id: 'today-todo', label: '今日待办', icon: 'check-square', color: '#059669', light: '#ECFDF5', items: null },
 ]
 
 const ICON_MAP = {
@@ -31,6 +37,7 @@ const ICON_MAP = {
   settings: 'settings', 'download-cloud': 'download-cloud', 'edit-3': 'edit-3',
   upload: 'upload', truck: 'truck', cpu: 'cpu', globe: 'globe',
   'shopping-bag': 'shopping-bag', calendar: 'calendar', shield: 'shield',
+  video: 'video', 'upload-cloud': 'upload-cloud', user: 'user', 'check-square': 'check-square',
 }
 
 export default function NavSidebar({ topTab, sidebarItem, onTabChange, onItemChange, mobile, onClose }) {
