@@ -146,11 +146,7 @@ export default function XpAmazonView_V5() {
         return
       }
       const data = await res.json()
-      let sorted = data.products || []
-      if (mode === 'hot')    sorted = sorted.sort((a, b) => (b.monthly_sales || 0) - (a.monthly_sales || 0))
-      if (mode === 'new')   sorted = sorted.sort((a, b) => (a.listed_days || 999) - (b.listed_days || 999))
-      if (mode === 'potential') sorted = sorted.sort((a, b) => (b.potential_index || 0) - (a.potential_index || 0))
-      setProducts(sorted)
+      setProducts(data.products || [])
     } catch (err) {
       if (err.name !== 'AbortError') setError('加载失败: ' + err.message)
     } finally {
@@ -240,12 +236,12 @@ export default function XpAmazonView_V5() {
       '标题': p.title,
       '品牌': p.brand,
       '价格': p.price,
-      '月销量': p.sales,
+      '月销量': p.monthly_sales || 0,
       '评分': p.rating,
-      '评论数': p.reviews,
-      '上架天数': p.listed_days,
-      '潜力指数': p.potential_index || p.potential_score || 0,
-      '链接': `https://www.amazon.${site.toLowerCase() === 'us' ? 'com' : site.toLowerCase() === 'mx' ? 'com.mx' : 'com.br'}/dp/${p.asin}`
+      '评论数': p.review_count || 0,
+      '上架天数': p.listed_days || 0,
+      '潜力指数': p.potential_index || 0,
+      '链接': `https://www.amazon.${site.toLowerCase() === 'us' ? 'com' : site.toLowerCase() === 'mx' ? 'com.mx' : 'br'}/dp/${p.asin}`
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
@@ -306,11 +302,16 @@ export default function XpAmazonView_V5() {
            </div>
         </div>
 
-        {/* Row 2: 状态栏 */}
+        {/* Row 2: 状态栏 + 导出 */}
         <div className="flex items-center gap-4 mt-1">
            <span className="text-[10px] font-black text-emerald-600 w-[110px] shrink-0">
              {products.length > 0 ? `${products.length} 条商品` : loading ? '加载中...' : '就绪'}
            </span>
+           {products.length > 0 && (
+             <button onClick={handleExport} className="ml-auto px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
+               <Icon name="download" size={10} /> 导出 Excel
+             </button>
+           )}
         </div>
       </div>
 
