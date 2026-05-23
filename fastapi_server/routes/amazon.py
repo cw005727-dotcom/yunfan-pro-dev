@@ -1224,14 +1224,20 @@ async def list_products(req: ListReq):
         where_params.append(site)
 
     # 类目筛选：按 node_id 或 search 关键词
+    # 对每个关键词同时匹配 big_category、sub_category、title
+    search_terms = []
     if req.node_id:
-        where_parts.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
-        like = f'%{req.node_id}%'
-        where_params.extend([like, like, like])
-    if req.search:
-        where_parts.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
-        like = f'%{req.search}%'
-        where_params.extend([like, like, like])
+        search_terms.append(req.node_id)
+    if req.search and req.search != req.node_id:
+        search_terms.append(req.search)
+    
+    if search_terms:
+        like_clauses = []
+        for term in search_terms:
+            like_clauses.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
+            like = f'%{term}%'
+            where_params.extend([like, like, like])
+        where_parts.append("(" + " OR ".join(like_clauses) + ")")
 
     where = " AND ".join(where_parts)
     sql = f"SELECT * FROM amazon_products WHERE {where} ORDER BY {sort_field} {order} LIMIT ?"
