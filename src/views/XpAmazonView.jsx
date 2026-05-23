@@ -174,9 +174,14 @@ export default function XpAmazonView_V5({ defaultMode }) {
     try {
       const body = { site, mode, limit: 500 }
       if (selectedCat) {
-        body.node_id = selectedSub || selectedCat
-        // 同时传 search 按标题搜索类目名
-        body.search = selectedSub || selectedCat
+        // 用原始英文名搜索标题和类目字段
+        const catId = selectedSub || selectedCat
+        body.node_id = catId
+        // 查找类目的中文名，一起作为搜索词
+        const topCat = topCategories.find(c => c.id === catId || c.children?.some(ch => ch.id === catId))
+        const subCat = subCategories.find(c => c.id === catId)
+        const catName = subCat?.name || topCat?.name || catId
+        body.search = catName + ',' + catId
       }
       const res = await fetch('/api/amazon/list', {
         method: 'POST',

@@ -1223,21 +1223,25 @@ async def list_products(req: ListReq):
         where_parts.append("asin NOT IN (SELECT asin FROM amazon_products WHERE site=? AND mode='new')")
         where_params.append(site)
 
-    # 类目筛选：按 node_id 或 search 关键词
-    # 对每个关键词同时匹配 big_category、sub_category、title
-    search_terms = []
-    if req.node_id:
-        search_terms.append(req.node_id)
-    if req.search and req.search != req.node_id:
-        search_terms.append(req.search)
-    
-    if search_terms:
-        like_clauses = []
-        for term in search_terms:
-            like_clauses.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
-            like = f'%{term}%'
-            where_params.extend([like, like, like])
-        where_parts.append("(" + " OR ".join(like_clauses) + ")")
+    # 类目筛选：search 可能包含逗号分隔的多个词，分别 OR 匹配
+    # 类目筛选：按 node_id 或 search 关键词匹配
+    had_category_filter = bool(req.node_id or req.search)
+    if had_category_filter:
+        terms = []
+        if req.node_id:
+            terms.append(req.node_id)
+        if req.search:
+            for part in req.search.split(','):
+                part = part.strip()
+                if part and part not in terms:
+                    terms.append(part)
+        if terms:
+            clauses = []
+            for term in terms:
+                clauses.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
+                like = f'%{term}%'
+                where_params.extend([like, like, like])
+            where_parts.append("(" + " OR ".join(clauses) + ")")
 
     where = " AND ".join(where_parts)
     sql = f"SELECT * FROM amazon_products WHERE {where} ORDER BY {sort_field} {order} LIMIT ?"
@@ -1245,8 +1249,15 @@ async def list_products(req: ListReq):
 
     cur.execute(sql, where_params)
     rows = cur.fetchall()
-    conn.close()
     products = [dict(r) for r in rows]
+
+    # 如果加了类目筛选但结果为空，自动降级返回全部数据
+    if had_category_filter and len(products) == 0:
+        fallback_sql = f"SELECT * FROM amazon_products WHERE site=? AND mode=? ORDER BY {sort_field} {order} LIMIT ?"
+        cur.execute(fallback_sql, (site, mode, limit))
+        products = [dict(r) for r in cur.fetchall()]
+
+    conn.close()
     return {'products': products, 'total': len(products), 'site': site, 'mode': mode}
 
 
