@@ -115,8 +115,8 @@ const ProductCard = React.memo(({ item, site }) => {
 
 export default function XpAmazonView_V5({ defaultMode }) {
   const [site, setSite] = useState('US')
-  const [categories, setCategories] = useState([])
-  const [categoryTree, setCategoryTree] = useState([])
+  const [topCategories, setTopCategories] = useState([])  // 一级类目列表
+  const [subCategories, setSubCategories] = useState([])    // 子类列表
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
   const [mode, setMode] = useState(defaultMode || 'hot')
@@ -133,33 +133,62 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setCatLoading(true)
     setSelectedCat('')
     setSelectedSub('')
+    setSubCategories([])
     fetch(`/api/amazon/categories/${site}`)
       .then(r => r.json())
       .then(tree => {
-        setCategoryTree(tree)
-        const flat = []
-        tree.forEach(top => {
-          flat.push({
-            id: top.nodeId || top.id,
-            name: top.类目名称 || top.name || top.id,
-            emoji: top.emoji || '📦',
-            isSub: false
-          })
-          ;(top.子类 || []).forEach(sub => {
-            flat.push({
-              id: sub.nodeId || sub.id,
-              name: `  ${sub.类目名称 || sub.name || sub.id}`,
-              emoji: sub.emoji || '📦',
-              isSub: true,
-              parentId: top.nodeId || top.id
-            })
-          })
-        })
-        setCategories(flat)
+        // 只保存一级类目
+        const tops = tree.map(top => ({
+          id: top.nodeId || top.id,
+          name: top.类目名称 || top.name || top.id,
+          emoji: top.emoji || '📦',
+          children: (top.子类 || []).map(sub => ({
+            id: sub.nodeId || sub.id,
+            name: sub.类目名称 || sub.name || sub.id,
+            emoji: sub.emoji || '📦',
+          }))
+        }))
+        setTopCategories(tops)
         setCatLoading(false)
       })
       .catch(() => setCatLoading(false))
   }, [site])
+
+  // 选中一级类目时展开子类
+  const handleTopCatChange = useCallback((topId) => {
+    setSelectedCat(topId)
+    setSelectedSub('')
+    const top = topCategories.find(c => c.id === topId)
+    setSubCategories(top?.children || [])
+  }, [topCategories])
+
+  // 从 Sorftime 拉取类目数据
+  const fetchSorftime = useCallback(async (catName) => {
+    if (!catName) return
+    setLoading(true)
+    setError(null)
+    try {
+      const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
+      const endpoint = endpointMap[mode] || '/api/amazon/hot'
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ site, search: catName, page: 1 }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: '拉取失败' }))
+        setError(errData.detail || errData.error || '拉取失败')
+        return
+      }
+      const products = Array.isArray(data) ? data : (data.products || [])
+      setProducts(products)
+    } catch (err) {
+      setError('同步失败: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [site, mode])
 
   // 请求取消 + 防抖（只加载数据库数据，类目选择走 Sorftime 拉取）
   const loadFromDb = useCallback(async () => {
@@ -276,57 +305,49 @@ export default function XpAmazonView_V5({ defaultMode }) {
              ))}
            </div>
 
-           {/* 类目选择下拉 */}
-           <div className="flex-1 min-w-0">
+           {/* 一级类目选择 */}
+           <div className="flex-1 min-w-0 max-w-[200px]">
              <select
-               value={selectedSub || selectedCat || ''}
-               onChange={async e => {
+               value={selectedCat || ''}
+               onChange={e => {
                  const val = e.target.value
-                 if (!val) { setSelectedCat(''); setSelectedSub(''); return }
-                 const item = categories.find(c => c.id === val)
-                 const nodeId = item?.isSub ? val : (item?.id || val)
-                 const catName = item?.name?.replace(/^\s+/, '') || ''
-
-                 if (item?.isSub) {
-                   setSelectedCat(item.parentId)
-                   setSelectedSub(val)
-                 } else {
-                   setSelectedCat(val)
+                 if (!val) {
+                   setSelectedCat('')
                    setSelectedSub('')
+                   setSubCategories([])
+                   return
                  }
-
-                 // 选类目后自动从 Sorftime 拉取数据
-                 setLoading(true)
-                 setError(null)
-                 try {
-                   const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
-                   const endpoint = endpointMap[mode] || '/api/amazon/hot'
-                   const res = await fetch(endpoint, {
-                     method: 'POST',
-                     headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ site, search: catName, page: 1 }),
-                   })
-                   const data = await res.json()
-                   if (!res.ok) {
-                     const errData = await res.json().catch(() => ({ detail: '拉取失败' }))
-                     setError(errData.detail || errData.error || '拉取失败')
-                     return
-                   }
-                   const products = Array.isArray(data) ? data : (data.products || [])
-                   setProducts(products)
-                 } catch (err) {
-                   setError('同步失败: ' + err.message)
-                 } finally {
-                   setLoading(false)
-                 }
+                 handleTopCatChange(val)
+                 // 选大类后自动拉取
+                 const catName = topCategories.find(c => c.id === val)?.name || ''
+                 fetchSorftime(catName)
                }}
                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
              >
-               <option value="">{catLoading ? '加载类目...' : '全部类目（不限）'}</option>
-               {categories.map(cat => (
-                 <option key={cat.id} value={cat.id} style={{ fontWeight: cat.isSub ? 400 : 700 }}>
-                   {cat.emoji} {cat.name}
-                 </option>
+               <option value="">{catLoading ? '加载类目...' : '大类（不限）'}</option>
+               {topCategories.map(cat => (
+                 <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
+               ))}
+             </select>
+           </div>
+           {/* 子类选择 */}
+           <div className="min-w-0 max-w-[200px]">
+             <select
+               value={selectedSub || ''}
+               onChange={e => {
+                 const val = e.target.value
+                 setSelectedSub(val || '')
+                 if (val) {
+                   const catName = subCategories.find(c => c.id === val)?.name || ''
+                   fetchSorftime(catName)
+                 }
+               }}
+               disabled={!selectedCat || subCategories.length === 0}
+               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+             >
+               <option value="">子类（不限）</option>
+               {subCategories.map(cat => (
+                 <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
                ))}
              </select>
            </div>
