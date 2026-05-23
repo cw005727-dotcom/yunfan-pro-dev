@@ -115,7 +115,8 @@ const ProductCard = React.memo(({ item, site }) => {
 
 export default function XpAmazonView_V5({ defaultMode }) {
   const [site, setSite] = useState('US')
-  const [topCategories, setTopCategories] = useState([])  // 一级类目列表
+  const [topCategories, setTopCategories] = useState([])
+  const [updatedAt, setUpdatedAt] = useState(null)  // 一级类目列表
   const [subCategories, setSubCategories] = useState([])    // 子类列表
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
@@ -165,11 +166,13 @@ export default function XpAmazonView_V5({ defaultMode }) {
   // 选类目：先 seed 拉取写入数据库，再从数据库读取
   const fetchByCategory = useCallback(async (catName, catNodeId) => {
     if (!catName && !catNodeId) return
+    console.log('[fetchByCategory] start', catName, catNodeId, site, mode)
     setLoading(true)
-    setError(null)
+    setError('')
     setProducts([])
     try {
       // 第一步：seed 拉取并写入数据库
+      console.log('[fetchByCategory] seeding...')
       const seedRes = await fetch('/api/amazon/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,12 +184,14 @@ export default function XpAmazonView_V5({ defaultMode }) {
         return
       }
       const seedData = await seedRes.json()
+      console.log('[fetchByCategory] seed done:', seedData.products_saved, '条')
 
-      // 第二步：从数据库读取（含去重逻辑）
+      // 第二步：从数据库读取，按类目名筛选
+      console.log('[fetchByCategory] loading from db...')
       const listRes = await fetch('/api/amazon/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site, mode, limit: 500 }),
+        body: JSON.stringify({ site, mode, limit: 500, search: catName }),
       })
       if (!listRes.ok) {
         const err = await listRes.json().catch(() => ({ detail: '读取失败' }))
@@ -194,11 +199,15 @@ export default function XpAmazonView_V5({ defaultMode }) {
         return
       }
       const listData = await listRes.json()
+      console.log('[fetchByCategory] db data:', listData.total, '条')
       setProducts(listData.products || [])
+      setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
     } catch (err) {
+      console.error('[fetchByCategory] error:', err)
       setError('操作失败: ' + err.message)
     } finally {
       setLoading(false)
+      console.log('[fetchByCategory] done')
     }
   }, [site, mode])
 
@@ -225,6 +234,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
       }
       const data = await res.json()
       setProducts(data.products || [])
+      setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
     } catch (err) {
       if (err.name !== 'AbortError') setError('加载失败: ' + err.message)
     } finally {
@@ -356,14 +366,26 @@ export default function XpAmazonView_V5({ defaultMode }) {
            </div>
         </div>
 
-        {/* Row 2: 状态栏 + 导出 */}
+        {/* Row 2: 状态栏 + 更新信息 + 导出 */}
         <div className="flex items-center gap-4 mt-1">
-           <span className="text-[10px] font-black text-emerald-600 w-[110px] shrink-0">
-             {products.length > 0 ? `${products.length} 条商品(v2.1)` : loading ? '加载中...' : '就绪'}
+           <span className="text-[10px] font-black text-emerald-600 shrink-0">
+             {products.length > 0 ? `${products.length} 条商品` : loading ? '加载中...' : '就绪'}
            </span>
+           {updatedAt && (
+             <span className="text-[9px] font-bold text-slate-300">
+               更新于 {updatedAt}
+             </span>
+           )}
            {products.length > 0 && (
-             <button onClick={handleExport} className="ml-auto px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
+             <button onClick={handleExport} className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
                <Icon name="download" size={10} /> 导出 Excel
+             </button>
+           )}
+           {loading ? (
+             <span className="ml-auto text-[10px] font-black text-emerald-500 animate-pulse">正在更新...</span>
+           ) : (
+             <button onClick={loadFromDb} className="ml-auto px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black transition-all shadow-sm flex items-center gap-1">
+               <Icon name="refresh-cw" size={10} /> 更新
              </button>
            )}
         </div>

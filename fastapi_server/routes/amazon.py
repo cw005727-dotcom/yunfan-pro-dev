@@ -1119,17 +1119,21 @@ async def seed_category(req: SeedReq):
 
     all_products = []
     for page in range(1, page_limit + 1):
-        if mode == 'hot':
-            tool = 'category_report'
-        elif mode == 'potential':
-            tool = 'potential_product' if site == 'US' else 'product_search'
-        else:
+        if search:
+            # 有搜索词时用 product_search（通用搜索）
             tool = 'product_search'
+        else:
+            if mode == 'hot':
+                tool = 'category_report'
+            elif mode == 'potential':
+                tool = 'potential_product' if site == 'US' else 'product_search'
+            else:
+                tool = 'product_search'
 
         args = {'amzSite': site, 'page': page}
         if search:
             args['searchName'] = search
-        if mode == 'potential' and site != 'US':
+        if mode == 'potential' and site != 'US' and not search:
             args['sortby_potential_index'] = True
 
         raw = mcp_call(tool, args)
