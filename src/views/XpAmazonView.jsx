@@ -163,34 +163,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setSubCategories(top?.children || [])
   }, [topCategories])
 
-  // 选类目：seed 拉取，直接用返回的数据展示
-  const fetchByCategory = useCallback(async (catName, catNodeId, originalName) => {
-    if (!catName && !catNodeId) return
-    setLoading(true)
-    setError('')
-    setProducts([])
-    try {
-      const seedRes = await fetch('/api/amazon/seed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site, mode, category_name: originalName || catName, pages: 5 }),
-      })
-      if (!seedRes.ok) {
-        const err = await seedRes.json().catch(() => ({ detail: '拉取失败' }))
-        setError(err.detail || '拉取失败')
-        return
-      }
-      const seedData = await seedRes.json()
-      setProducts(seedData.products || [])
-      setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
-    } catch (err) {
-      setError('操作失败: ' + err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [site, mode])
-
-  // 请求取消 + 防抖（只加载数据库数据，类目选择走 Sorftime 拉取）
+  // 请求取消 + 防抖（从数据库读取，支持 site/mode/类目变化）
   const loadFromDb = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
@@ -200,6 +173,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setError(null)
     try {
       const body = { site, mode, limit: 500 }
+      if (selectedCat) body.node_id = selectedSub || selectedCat
       const res = await fetch('/api/amazon/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -219,10 +193,9 @@ export default function XpAmazonView_V5({ defaultMode }) {
     } finally {
       if (!controller.signal.aborted) setLoading(false)
     }
-  }, [site, mode])
+  }, [site, mode, selectedCat, selectedSub])
 
   useEffect(() => {
-    // 仅在 site/mode 变化时从数据库加载，类目选择走 Sorftime 拉取
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(loadFromDb, 300)
     setVisibleCount(40)
@@ -230,8 +203,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
       if (abortRef.current) abortRef.current.abort()
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [site, mode])
+  }, [loadFromDb])
 
   const scrollRef = useRef(null)
   const handleScroll = useCallback(() => {
@@ -304,10 +276,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
                onChange={e => {
                  const val = e.target.value
                  if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); return }
-                 setCatLoading(true)
                  handleTopCatChange(val)
-                 const cat = topCategories.find(c => c.id === val) || {}
-                 fetchByCategory(cat.name || '', val, cat.originalName)
                }}
                className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
              >
@@ -326,8 +295,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
                  const val = e.target.value
                  setSelectedSub(val || '')
                  if (val) {
-                   const subCat = subCategories.find(c => c.id === val) || {}
-                   fetchByCategory(subCat.name || '', val, subCat.originalName)
+                   setSelectedSub(val || '')
                  }
                }}
                disabled={!selectedCat || subCategories.length === 0}
