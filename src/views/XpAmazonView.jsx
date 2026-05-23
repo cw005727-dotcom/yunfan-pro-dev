@@ -119,7 +119,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
   const [subCategories, setSubCategories] = useState([])    // 子类列表
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
-  const [mode, setMode] = useState(defaultMode || 'hot')
+  const mode = defaultMode || 'hot'
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [catLoading, setCatLoading] = useState(false)
@@ -294,16 +294,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
              ))}
            </div>
 
-           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
-             {MODES.map(m => (
-               <button key={m.id} onClick={() => setMode(m.id)}
-                 className={`px-2 py-1 rounded-md text-[11px] font-black transition-all duration-200 ${
-                   mode === m.id ? 'text-white shadow-md scale-[1.02]' : 'text-slate-400 hover:text-slate-600'
-                 }`}
-                 style={{ backgroundColor: mode === m.id ? m.color : 'transparent' }}
-               >{m.name.slice(0, 2)}</button>
-             ))}
-           </div>
+           {/* 模式由 tab 切换控制，不重复展示 */}
 
            {/* 一级类目选择 */}
            <div className="flex-1 min-w-0 max-w-[200px]">
@@ -386,7 +377,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
              <p className="text-[12px] font-black text-emerald-600 tracking-[0.3em] uppercase animate-breath">深度探测扫描中...</p>
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
             {products.slice(0, visibleCount).map((item) => (
               <ProductCard key={item.asin || item.id} item={item} site={site} />
             ))}
