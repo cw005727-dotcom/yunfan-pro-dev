@@ -40,6 +40,11 @@ ML_API_BASE = "https://api.mercadolibre.com"
 ML_APP_ID = os.environ.get("ML_APP_ID", "2853782117476515")
 ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ")
 
+# EchoTik TikTok API 配置
+ECHOTIK_APP_ID = os.environ.get("ECHOTIK_APP_ID", "240112436319631667")
+ECHOTIK_APP_SECRET = os.environ.get("ECHOTIK_APP_SECRET", "c92edb0e1a754306b7cc53311464fd46")
+ECHOTIK_API_BASE = "https://open.echotik.live/api/v3"
+
 # 日志配置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FILE = BASE_DIR / "api_server.log"

@@ -87,6 +87,7 @@ from .routes import (
 )
 from .routes.notifications import router as notifications_router
 from .routes.auto_center import router as auto_center_router
+from .routes.tiktok import router as tiktok_router
 
 app.include_router(stores.router)
 app.include_router(orders.router)
@@ -112,6 +113,7 @@ app.include_router(product_performance.router)
 app.include_router(notifications_router)
 app.include_router(admin.router)
 app.include_router(auto_center_router)
+app.include_router(tiktok_router)
 app.include_router(amazon.router)
 app.include_router(operational.router)
 

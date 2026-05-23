@@ -32,6 +32,11 @@ const lazyMap = {
   keyword:              () => import('./views/KeywordIntelView'),
   auth:                 () => import('./views/AuthPrepareView'),
   prepare:              () => import('./views/AuthPrepareView'),
+  'data-upload':       () => import('./views/DataUploadView'),
+  'personal':          () => import('./views/PersonalCenterView'),
+  'today-todo':        () => import('./views/TodayTodoView'),
+  'xp-tiktok':         () => import('./views/XpTikTokShopView'),
+  'logistics-intl':    () => import('./views/LogisticsIntlView'),
 }
 
 const routeLabels = {
@@ -44,6 +49,8 @@ const routeLabels = {
   'data-overview': '数据大盘', radar: '爆品雷达', research: '选品研究',
   'price-check': '智能核价', title: '标题优化', image: '视觉图生图', keyword: '关键词衍生',
   optimize: '标题优化', auth: '前期准备', prepare: '前期准备',
+  'data-upload': '数据上传', 'personal': '个人中心', 'today-todo': '今日待办',
+  'xp-tiktok': 'TikTok选品', 'logistics-intl': '物流追踪',
 }
 
 function SkeletonView({ title }) {
