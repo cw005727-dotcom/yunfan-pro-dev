@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo } from 'react';
 import Icon from './Icon';
 import { NAV_GROUPS } from '../config/navigation';
 
@@ -30,7 +30,7 @@ const SIDEBAR_STYLES = `
   }
 `;
 
-export default function NavSidebar({ topTab, sidebarItem, onTabChange, onItemChange, mobile, onClose }) {
+const NavSidebar = memo(function NavSidebar({ topTab, sidebarItem, onTabChange, onItemChange, mobile, onClose }) {
   const navigate = (group, itemId) => {
     onTabChange(group.id);
     onItemChange(itemId);
@@ -170,4 +170,6 @@ export default function NavSidebar({ topTab, sidebarItem, onTabChange, onItemCha
       </div>
     </div>
   );
-}
+});
+
+export default NavSidebar;

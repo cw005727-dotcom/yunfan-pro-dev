@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DollarSign, ShoppingCart, Box, Wallet } from 'lucide-react';
 import { Card, Row, Col, Statistic, Select, Segmented, Spin, Tag, Typography, Space, Empty } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
@@ -133,22 +133,32 @@ export default function DataOverviewView() {
       .catch(() => setLoading(false));
   }, [dateRange, filter]);
 
-  // 自动刷新：每30秒
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const params = new URLSearchParams();
-      if (filter !== 'ALL') params.append('group', filter);
-      params.append('days', dateRange);
-      params.append('_t', Date.now());
-      fetch(`${API_BASE}/stats_overview?${params.toString()}`, {
-        headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' }
-      })
-        .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-        .then(d => setData(d))
-        .catch(() => {});
-    }, 30000);
-    return () => clearInterval(timer);
+  // 自动刷新：每60秒（之前30秒）
+  const abortPollRef = useRef(null);
+  const fetchPoll = useCallback(() => {
+    if (abortPollRef.current) abortPollRef.current.abort();
+    const ctrl = new AbortController();
+    abortPollRef.current = ctrl;
+    const params = new URLSearchParams();
+    if (filter !== 'ALL') params.append('group', filter);
+    params.append('days', dateRange);
+    fetch(`${API_BASE}/stats_overview?${params.toString()}`, {
+      headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' },
+      signal: ctrl.signal,
+    })
+      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(d => { if (!ctrl.signal.aborted) setData(d); })
+      .catch(() => {});
   }, [dateRange, filter]);
+
+  useEffect(() => {
+    fetchPoll();
+    const timer = setInterval(fetchPoll, 60000);
+    return () => {
+      clearInterval(timer);
+      if (abortPollRef.current) abortPollRef.current.abort();
+    };
+  }, [fetchPoll]);
 
   const metrics = data?.metrics || {};
   const gmv = metrics.total_gmv || 0;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE } from '../api/client';
 
 /**
@@ -10,45 +10,59 @@ export const useReputation = (group = null) => {
   const [dailyAlerts, setDailyAlerts] = useState({ complaints: '00', violations: '00', messages: '00' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const abortRef = useRef(null);
 
   const fetchData = useCallback(async () => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      setLoading(true);
       const repParams = group ? `?group=${encodeURIComponent(group)}` : '';
-      const statsParams = group ? `?group=${encodeURIComponent(group)}` : '';
       const [repRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/shop_reputation${repParams}`),
-        fetch(`${API_BASE}/stats${statsParams}`)
+        fetch(`${API_BASE}/shop_reputation${repParams}`, { signal: controller.signal }),
+        fetch(`${API_BASE}/stats${repParams}`, { signal: controller.signal })
       ]);
       
       if (!repRes.ok) throw new Error('Failed to fetch reputation');
       
       const repData = await repRes.json();
-      setReputation(Array.isArray(repData) ? repData : []);
+      if (!controller.signal.aborted) {
+        setReputation(Array.isArray(repData) ? repData : []);
+      }
       
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         const d = statsData.daily_alerts || {};
-        setDailyAlerts({
-          complaints: String(d.complaints ?? statsData.alerts ?? 0).padStart(2, '0'),
-          violations: String(d.violations ?? 0).padStart(2, '0'),
-          messages: String(d.messages ?? 0).padStart(2, '0'),
-        });
+        if (!controller.signal.aborted) {
+          setDailyAlerts({
+            complaints: String(d.complaints ?? statsData.alerts ?? 0).padStart(2, '0'),
+            violations: String(d.violations ?? 0).padStart(2, '0'),
+            messages: String(d.messages ?? 0).padStart(2, '0'),
+          });
+        }
       }
       
-      setError(null);
+      if (!controller.signal.aborted) {
+        setError(null);
+      }
     } catch (err) {
-      setError(err.message);
+      if (err.name !== 'AbortError' && !controller.signal.aborted) {
+        setError(err.message);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [group]);
 
   useEffect(() => {
     fetchData();
-    // 💡 开启 10 秒高频轮询，确保前端指标与后端同步实时
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+    // 从 10 秒降到 30 秒
+    const interval = setInterval(fetchData, 30000);
+    return () => {
+      clearInterval(interval);
+      if (abortRef.current) abortRef.current.abort();
+    };
   }, [fetchData]);
 
   return { reputation, dailyAlerts, loading, error, refresh: fetchData };

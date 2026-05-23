@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from './Icon';
 
 const TYPE_CONFIG = {
@@ -68,14 +68,18 @@ function HeartbeatLine() {
 export default function TopMonitoringBar({ pageTitle }) {
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
-  const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
-  const [unix, setUnix] = useState(Math.floor(Date.now() / 1000));
+  // 时钟不 setInterval，用被动 Date 渲染（页面 re-render 时自然更新）
+  const nowRef = useRef(new Date());
+  const [time, setTime] = useState(() => new Date().toLocaleTimeString('en-US', { hour12: false }));
+  const [unix, setUnix] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
+    // 时钟改为 10 秒一次，不再 1 秒触发 re-render
     const timer = setInterval(() => {
-      setTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
-      setUnix(Math.floor(Date.now() / 1000));
-    }, 1000);
+      nowRef.current = new Date();
+      setTime(nowRef.current.toLocaleTimeString('en-US', { hour12: false }));
+      setUnix(Math.floor(nowRef.current.getTime() / 1000));
+    }, 10000);
     
     const loadAlerts = () => {
       try {
@@ -88,7 +92,8 @@ export default function TopMonitoringBar({ pageTitle }) {
       } catch (e) {}
     };
     loadAlerts();
-    const interval = setInterval(loadAlerts, 8000);
+    // 告警读取从 8 秒降到 15 秒
+    const interval = setInterval(loadAlerts, 15000);
     return () => { clearInterval(timer); clearInterval(interval); };
   }, []);
 

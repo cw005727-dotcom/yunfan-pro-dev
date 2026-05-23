@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE } from '../api/client';
 
 /**
@@ -13,27 +13,32 @@ export const useMarketRadar = (site = 'MLM', platform = 'mercado_libre') => {
   const [error, setError] = useState(null);
   const [platformReason, setPlatformReason] = useState(null);
   const [platformMessage, setPlatformMessage] = useState(null);
+  const abortRef = useRef(null);
 
   const fetchRadar = useCallback(async (keyword = null) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       setLoading(true);
-      
+
       let radarUrl = `${API_BASE}/market_radar?site=${site}&platform=${platform}`;
       if (keyword) radarUrl += `&keyword=${encodeURIComponent(keyword)}`;
 
-      // Fetch both Radar Items and Trends in parallel
       const [radarRes, trendsRes] = await Promise.all([
-        fetch(radarUrl),
-        fetch(`${API_BASE}/trends?site=${site}`)
+        fetch(radarUrl, { signal: controller.signal }),
+        fetch(`${API_BASE}/trends?site=${site}`, { signal: controller.signal })
       ]);
-      
+
+      if (controller.signal.aborted) return;
       if (!radarRes.ok) throw new Error('Failed to fetch market radar');
       if (!trendsRes.ok) throw new Error('Failed to fetch trends');
-      
+
       const radarData = await radarRes.json();
       const trendsData = await trendsRes.json();
-      
-      // Handle both array response (normal) and object response (platform_unsupported)
+
+      if (controller.signal.aborted) return;
       if (Array.isArray(radarData)) {
         setItems(radarData);
         setPlatformReason(null);
@@ -46,14 +51,15 @@ export const useMarketRadar = (site = 'MLM', platform = 'mercado_libre') => {
       setTrends(prev => ({ ...prev, [site]: trendsData }));
       setError(null);
     } catch (err) {
-      setError(err.message);
+      if (err.name !== 'AbortError') setError(err.message);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [site, platform]);
 
   useEffect(() => {
     fetchRadar();
+    return () => { if (abortRef.current) abortRef.current.abort(); };
   }, [fetchRadar]);
 
   return { items, trends, loading, error, platformReason, platformMessage, refresh: fetchRadar };
@@ -66,24 +72,33 @@ export const useListingDoctor = () => {
   const [diagnosis, setDiagnosis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const abortRef = useRef(null);
 
   const diagnose = async (myItem, compItem) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/listing_doctor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ my_item: myItem, comp_item: compItem })
+        body: JSON.stringify({ my_item: myItem, comp_item: compItem }),
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       if (!response.ok) throw new Error('AI Diagnosis failed');
       const result = await response.json();
-      setDiagnosis(result);
+      if (!controller.signal.aborted) {
+        setDiagnosis(result);
+      }
       return result;
     } catch (err) {
-      setError(err.message);
+      if (err.name !== 'AbortError') setError(err.message);
       throw err;
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 import DiagnosticModal from './DiagnosticModal.jsx';
 import { useMarketRadar, useListingDoctor } from '../hooks/useMarketRadar';
@@ -32,7 +32,14 @@ const MarketRadarView = () => {
     const { items: marketProducts = [], loading, refresh, platformReason, platformMessage } = useMarketRadar(activeSite, activePlatform);
     const safeMarketProducts = Array.isArray(marketProducts) ? marketProducts : [];
 
+    const analyzeAbortRef = useRef(null);
+
     const handleCardClick = async (item) => {
+        if (isAnalyzing) return;
+        if (analyzeAbortRef.current) analyzeAbortRef.current.abort();
+        const controller = new AbortController();
+        analyzeAbortRef.current = controller;
+
         setSelectedItem(item);
         setIsAnalyzing(true);
         setAiResult(null);
@@ -44,15 +51,17 @@ const MarketRadarView = () => {
                     title: item.title,
                     price: item.price,
                     site: activeSite
-                })
+                }),
+                signal: controller.signal,
             });
+            if (controller.signal.aborted) return;
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            setAiResult(data);
+            if (!controller.signal.aborted) setAiResult(data);
         } catch (error) {
-            console.error('Analysis failed:', error);
+            if (error.name !== 'AbortError') console.error('Analysis failed:', error);
         } finally {
-            setIsAnalyzing(false);
+            if (!controller.signal.aborted) setIsAnalyzing(false);
         }
     };
 

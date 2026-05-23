@@ -1,44 +1,44 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react'
 import NavSidebar from './components/NavSidebar'
 import TopMonitoringBar from './components/TopMonitoringBar'
 import Icon from './components/Icon'
 import { useAppContext } from './context/AppContext'
 
-// Lazy page views
+// React.lazy 替代手动 import
 const lazyMap = {
-  'xp-amazon-hot':       () => import('./views/XpAmazonView'),
-  'xp-amazon-potential': () => import('./views/XpAmazonView'),
-  'xp-amazon-new':       () => import('./views/XpAmazonView'),
-  'xp-holiday':         () => import('./views/XpHolidayView'),
-  notify:               () => import('./views/NotificationsView'),
-  notifications:        () => import('./views/NotificationsView'),
-  reputation:           () => import('./views/ShopReputationView'),
-  'store-data':         () => import('./views/StoreDataView'),
-  'product-report':     () => import('./views/ProductPerformanceView'),
-  collect:              () => import('./views/ProductCollectView'),
-  'listing-opt':        () => import('./views/ListingOptimizeView'),
-  'listing-pub':        () => import('./views/ListingPublishView'),
-  logistics:            () => import('./views/LogisticsAlertsView'),
-  'logistics-cn':       () => import('./views/LogisticsAlertsView'),
-  'logistics-intl':     () => import('./views/LogisticsIntlView'),
-  'data-upload':        () => import('./views/DataUploadView'),
-  'today-todo':         () => import('./views/TodayTodoView'),
-  'xp-tiktok':          () => import('./views/XpTikTokShopView'),
-  personal:             () => import('./views/PersonalCenterView'),
-  'auto-center':        () => import('./views/AutoCenterView'),
-  news:                 () => import('./views/NewsView'),
-  intro:                () => import('./views/BusinessIntroView'),
-  activity:             () => import('./views/ActivityCenterView'),
-  'data-overview':      () => import('./views/DataOverviewView'),
-  radar:                () => import('./views/MarketRadarView'),
-  research:             () => import('./views/ProductResearchView'),
-  'price-check':        () => import('./views/SmartPriceCheckView'),
-  maintain:             () => import('./views/ProductMaintainView'),
-  optimize:             () => import('./views/OptimizeTitleView'),
-  image:                () => import('./views/ImageLabView'),
-  keyword:              () => import('./views/KeywordIntelView'),
-  auth:                 () => import('./views/AuthPrepareView'),
-  prepare:              () => import('./views/AuthPrepareView'),
+  'xp-amazon-hot':       lazy(() => import('./views/XpAmazonView')),
+  'xp-amazon-potential': lazy(() => import('./views/XpAmazonView')),
+  'xp-amazon-new':       lazy(() => import('./views/XpAmazonView')),
+  'xp-holiday':         lazy(() => import('./views/XpHolidayView')),
+  notify:               lazy(() => import('./views/NotificationsView')),
+  notifications:        lazy(() => import('./views/NotificationsView')),
+  reputation:           lazy(() => import('./views/ShopReputationView')),
+  'store-data':         lazy(() => import('./views/StoreDataView')),
+  'product-report':     lazy(() => import('./views/ProductPerformanceView')),
+  collect:              lazy(() => import('./views/ProductCollectView')),
+  'listing-opt':        lazy(() => import('./views/ListingOptimizeView')),
+  'listing-pub':        lazy(() => import('./views/ListingPublishView')),
+  logistics:            lazy(() => import('./views/LogisticsAlertsView')),
+  'logistics-cn':       lazy(() => import('./views/LogisticsAlertsView')),
+  'logistics-intl':     lazy(() => import('./views/LogisticsIntlView')),
+  'data-upload':        lazy(() => import('./views/DataUploadView')),
+  'today-todo':         lazy(() => import('./views/TodayTodoView')),
+  'xp-tiktok':          lazy(() => import('./views/XpTikTokShopView')),
+  personal:             lazy(() => import('./views/PersonalCenterView')),
+  'auto-center':        lazy(() => import('./views/AutoCenterView')),
+  news:                 lazy(() => import('./views/NewsView')),
+  intro:                lazy(() => import('./views/BusinessIntroView')),
+  activity:             lazy(() => import('./views/ActivityCenterView')),
+  'data-overview':      lazy(() => import('./views/DataOverviewView')),
+  radar:                lazy(() => import('./views/MarketRadarView')),
+  research:             lazy(() => import('./views/ProductResearchView')),
+  'price-check':        lazy(() => import('./views/SmartPriceCheckView')),
+  maintain:             lazy(() => import('./views/ProductMaintainView')),
+  optimize:             lazy(() => import('./views/OptimizeTitleView')),
+  image:                lazy(() => import('./views/ImageLabView')),
+  keyword:              lazy(() => import('./views/KeywordIntelView')),
+  auth:                 lazy(() => import('./views/AuthPrepareView')),
+  prepare:              lazy(() => import('./views/AuthPrepareView')),
 }
 
 const routeLabels = {
@@ -77,22 +77,26 @@ export default function App() {
   const [sidebarItem, setSidebarItem] = useState('xp-amazon-hot')
   const [topTab, setTopTab] = useState('xuanpin')
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [DynamicView, setDynamicView] = useState(null)
+  // 从 navigation.js 里获取导航结构（避免重复定义）
+  const [allItems] = useState(() => {
+    const map = {}
+    const { NAV_GROUPS } = window.__NAV_GROUPS__ || {}
+    if (NAV_GROUPS) {
+      for (const g of NAV_GROUPS) {
+        if (g.items) for (const i of g.items) map[i.id] = g.id
+      }
+    }
+    return map
+  })
 
   useEffect(() => {
     const hash = window.location.hash.replace('#/', '')
     if (hash) {
+      const { NAV_GROUPS } = window.__NAV_GROUPS__ || {}
       const allItems = {}
-      const NAV_GROUPS = [
-        { id: 'prepare', items: [{ id: 'auth' }, { id: 'personal' }] },
-        { id: 'notify', items: [{ id: 'notify' }] },
-        { id: 'xuanpin', items: [{ id: 'xp-amazon-hot' }, { id: 'xp-amazon-potential' }, { id: 'xp-amazon-new' }] },
-        { id: 'data', items: [{ id: 'reputation' }, { id: 'store-data' }, { id: 'product-report' }] },
-        { id: 'logistics', items: [{ id: 'logistics-cn' }, { id: 'logistics-intl' }] },
-        { id: 'ops', items: [{ id: 'data-upload' }, { id: 'today-todo' }, { id: 'collect' }, { id: 'listing-opt' }, { id: 'listing-pub' }] },
-      ]
-      for (const g of NAV_GROUPS) {
-        if (g.items) for (const i of g.items) allItems[i.id] = g.id
+      if (NAV_GROUPS) {
+        for (const g of NAV_GROUPS)
+          if (g.items) for (const i of g.items) allItems[i.id] = g.id
       }
       if (allItems[hash]) {
         setTopTab(allItems[hash])
@@ -101,33 +105,20 @@ export default function App() {
     }
   }, [])
 
-  useEffect(() => {
-    const loader = lazyMap[sidebarItem]
-    if (loader) {
-      loader().then(m => {
-        const Comp = m.default
-        setDynamicView(() => Comp)
-      }).catch(() => {
-        setDynamicView(() => () => (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-slate-400 text-sm">该模块正在开发中...</div>
-          </div>
-        ))
-      })
-    } else {
-      setDynamicView(null)
-    }
-  }, [sidebarItem])
+  // 当前页面组件（React.lazy）
+  const View = useMemo(() => lazyMap[sidebarItem], [sidebarItem])
 
-  const handleTabChange = (tabId) => setTopTab(tabId)
-  const handleItemChange = (itemId) => {
-    setSidebarItem(itemId)
+  const handleTabChange = useCallback((tabId) => setTopTab(tabId), [])
+  const handleItemChange = useCallback((itemId) => {
+    setSidebarItem(prev => {
+      if (prev === itemId) return prev  // 相同 item 不触发重渲染
+      return itemId
+    })
     window.location.hash = '#/' + itemId
     setMobileOpen(false)
-  }
+  }, [])
 
   const label = routeLabels[sidebarItem] || '云帆跨境 Pro'
-  const View = DynamicView || (() => <SkeletonView title={label} />)
 
   return (
     <div
@@ -168,7 +159,13 @@ export default function App() {
 
           {/* View content */}
           <div className="flex-1 overflow-auto">
-            <View />
+            <Suspense fallback={<SkeletonView title={label} />}>
+              {View ? <View /> : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-slate-400 text-sm">该模块正在开发中...</div>
+                </div>
+              )}
+            </Suspense>
           </div>
         </div>
       </div>

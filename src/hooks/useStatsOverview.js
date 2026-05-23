@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE } from '../api/client';
 
 export const useStatsOverview = () => {
@@ -11,11 +11,20 @@ export const useStatsOverview = () => {
         actual_payout: 0
     });
     const [isLoading, setIsLoading] = useState(true);
+    const abortRef = useRef(null);
 
     useEffect(() => {
-        fetch(`${API_BASE}/stats_overview`)
-            .then(async res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+        if (abortRef.current) abortRef.current.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        fetch(`${API_BASE}/stats_overview`, { signal: controller.signal })
+            .then(async res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
             .then(data => {
+                if (controller.signal.aborted) return;
                 const m = data.metrics || {};
                 setStats({
                     total_gmv: m.total_gmv ?? 0,
@@ -28,9 +37,11 @@ export const useStatsOverview = () => {
                 setIsLoading(false);
             })
             .catch(err => {
-                console.error("Stats Overview fetch error:", err);
-                setIsLoading(false);
+                if (err.name !== 'AbortError') console.error("Stats Overview fetch error:", err);
+                if (!controller.signal.aborted) setIsLoading(false);
             });
+
+        return () => { if (abortRef.current) abortRef.current.abort(); };
     }, []);
 
     return { stats, isLoading };

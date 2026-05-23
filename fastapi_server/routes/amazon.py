@@ -17,7 +17,8 @@ MCP_KEY = "znfbzeq3wwfgahdzzeznmfhxtzljqt09"
 MCP_URL = "https://mcp.sorftime.com"
 
 # ── 数据库路径─────────────────────────────────────────────────────────────
-DB_PATH = "/Users/chensan/Library/CloudStorage/OneDrive-个人/Mac 资料/YunfanV2/mercadolibre.db"
+from pathlib import Path
+DB_PATH = str(Path(__file__).resolve().parent.parent.parent / "mercadolibre.db")
 
 # ── 数据库初始化─────────────────────────────────────────────────────────
 def _ensure_amazon_table():

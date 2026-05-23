@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // 图标组件
 const Icon = ({ name, size = 16 }) => {
@@ -51,27 +51,35 @@ export default function ProductPerformanceView() {
   const pageSize = 24
 
   // 加载数据
+  const abortRef = useRef(null)
+
   const loadData = useCallback(async () => {
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setLoading(true)
     try {
       const params = new URLSearchParams({ sort, order, page, page_size: pageSize })
       if (statusFilter !== '全部') params.set('status', statusFilter)
       if (issueFilter !== '全部') params.set('issue', issueFilter)
       if (siteFilter !== '全部') params.set('site_id', siteFilter)
-      
-      const res = await fetch(`/api/performance/list?${params}`)
+
+      const res = await fetch(`/api/performance/list?${params}`, { signal: controller.signal })
+      if (controller.signal.aborted) return
       const data = await res.json()
-      
+      if (controller.signal.aborted) return
+
       setItems(data.items || [])
       setStats(data.stats || { '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈正常': 0 })
       setTotal(data.total || 0)
       setTotalPages(data.total_pages || 1)
     } catch (err) {
-      console.error('加载失败:', err)
+      if (err.name !== 'AbortError') console.error('加载失败:', err)
     } finally {
-      setLoading(false)
+      if (!controller.signal.aborted) setLoading(false)
     }
-  }, [sort, order, page, statusFilter, issueFilter])
+  }, [sort, order, page, statusFilter, issueFilter, siteFilter])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -250,10 +258,10 @@ export default function ProductPerformanceView() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     overflow: 'hidden'
                   }}>
-                    {item.thumbnail ? (
-                      <img src={item.thumbnail} alt={item.product_name}
+                    {item.pictures?.[0] || item.thumbnail ? (
+                      <img src={item.pictures?.[0] || item.thumbnail} alt={item.product_name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={e => e.target.style.display = 'none'} />
+                        onError={e => { e.target.src = item.thumbnail; e.target.onError = null; }} />
                     ) : (
                       <Icon name="image" size={32} />
                     )}
@@ -351,8 +359,8 @@ export default function ProductPerformanceView() {
 
             {/* 左侧图片 + 右侧数据 */}
             <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-              {selectedItem.thumbnail && (
-                <img src={selectedItem.thumbnail} alt="" style={{
+              {(selectedItem.pictures?.[0] || selectedItem.thumbnail) && (
+                <img src={selectedItem.pictures?.[0] || selectedItem.thumbnail} alt="" style={{
                   width: '180px', height: '180px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0
                 }} />
               )}
