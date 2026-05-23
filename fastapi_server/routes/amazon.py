@@ -733,6 +733,13 @@ def list_categories_by_site(site: str):
             return name
         return name
 
+    # 原始名映射（Sorftime 英文名，用于搜索）
+    _ORIGINAL_NAMES = {}
+    for node in tree:
+        _ORIGINAL_NAMES[node.get("nodeId", "")] = node.get("类目名称", "") or node.get("name", "")
+        for sub in node.get("子类", []):
+            _ORIGINAL_NAMES[sub.get("nodeId", "")] = sub.get("类目名称", "") or sub.get("name", "")
+
     result = []
     for node in tree:
         node_id = node.get("nodeId", "")
@@ -760,6 +767,7 @@ def list_categories_by_site(site: str):
                 "类目名称": cn,
                 "name": cn,
                 "emoji": emoji,
+                "originalName": _ORIGINAL_NAMES.get(sub_id, ""),
             })
         emoji = _cn_emoji(top_cn)
         result.append({
@@ -769,6 +777,7 @@ def list_categories_by_site(site: str):
             "name": top_cn,
             "emoji": emoji,
             "子类": subs,
+            "originalName": _ORIGINAL_NAMES.get(node_id, ""),
         })
     return result
 

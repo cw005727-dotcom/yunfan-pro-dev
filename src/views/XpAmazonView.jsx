@@ -164,7 +164,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
   }, [topCategories])
 
   // 选类目：先 seed 拉取写入数据库，再从数据库读取
-  const fetchByCategory = useCallback(async (catName, catNodeId) => {
+  const fetchByCategory = useCallback(async (catName, catNodeId, originalName) => {
     if (!catName && !catNodeId) return
     console.log('[fetchByCategory] start', catName, catNodeId, site, mode)
     setLoading(true)
@@ -176,7 +176,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
       const seedRes = await fetch('/api/amazon/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site, mode, category_name: catName, pages: 5 }),
+        body: JSON.stringify({ site, mode, category_name: originalName || catName, pages: 5 }),
       })
       if (!seedRes.ok) {
         const err = await seedRes.json().catch(() => ({ detail: '拉取失败' }))
@@ -327,8 +327,8 @@ export default function XpAmazonView_V5({ defaultMode }) {
                  if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); return }
                  setCatLoading(true)
                  handleTopCatChange(val)
-                 const catName = topCategories.find(c => c.id === val)?.name || ''
-                 fetchByCategory(catName, val)
+                 const cat = topCategories.find(c => c.id === val) || {}
+                 fetchByCategory(cat.name || '', val, cat.originalName)
                }}
                className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
              >
@@ -347,8 +347,8 @@ export default function XpAmazonView_V5({ defaultMode }) {
                  const val = e.target.value
                  setSelectedSub(val || '')
                  if (val) {
-                   const catName = subCategories.find(c => c.id === val)?.name || ''
-                   fetchByCategory(catName, val)
+                   const subCat = subCategories.find(c => c.id === val) || {}
+                   fetchByCategory(subCat.name || '', val, subCat.originalName)
                  }
                }}
                disabled={!selectedCat || subCategories.length === 0}
