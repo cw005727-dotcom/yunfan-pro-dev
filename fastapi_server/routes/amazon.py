@@ -1053,7 +1053,10 @@ def _normalize_for_db(p: dict, site: str) -> dict:
     seller_country = p.get('seller_country') or p.get('卖家国籍') or ''
     node_id = p.get('node_id') or p.get('nodeId') or ''
     node_name = p.get('node_name') or p.get('类目名称') or ''
-    big_cat = p.get('big_category') or p.get('所属大类') or ''
+    raw_big = p.get('big_category') or p.get('所属大类') or ''
+    # 提取干净类目名（去掉（排名:xx）后缀和多余空格）
+    import re
+    big_cat = re.sub(r'[\s]*[（(]排名[:：][^）)]*[）)]', '', raw_big).strip()
     sub_cat = p.get('sub_category') or p.get('所属细分类目') or ''
     listed_raw = p.get('listed_days') or p.get('上架天数') or p.get('上架时间') or 0
     try: listed_days = int(float(listed_raw))
@@ -1222,8 +1225,9 @@ async def list_products(req: ListReq):
 
     # 类目筛选：按 node_id 或 search 关键词
     if req.node_id:
-        where_parts.append("(node_id=? OR big_category=? OR sub_category=?)")
-        where_params.extend([req.node_id, req.node_id, req.node_id])
+        where_parts.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
+        like = f'%{req.node_id}%'
+        where_params.extend([like, like, like])
     if req.search:
         where_parts.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
         like = f'%{req.search}%'

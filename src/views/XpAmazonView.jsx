@@ -173,7 +173,11 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setError(null)
     try {
       const body = { site, mode, limit: 500 }
-      if (selectedCat) body.node_id = selectedSub || selectedCat
+      if (selectedCat) {
+        body.node_id = selectedSub || selectedCat
+        // 同时传 search 按标题搜索类目名
+        body.search = selectedSub || selectedCat
+      }
       const res = await fetch('/api/amazon/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
