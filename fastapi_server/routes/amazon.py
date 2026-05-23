@@ -688,29 +688,86 @@ def list_categories_by_site(site: str):
         tree = _load_category_tree(site.upper())
     except Exception as e:
         raise HTTPException(500, f"加载类目树失败: {e}")
+    def _cn_emoji(name):
+        """根据中文类目名匹配 emoji"""
+        if not name: return "📦"
+        emoji_map = [
+            (["电子", "手机", "电脑", "相机", "摄影", "平板", "音箱"], "📱"),
+            (["美妆", "护肤", "彩妆", "香水", "美甲", "护发"], "💄"),
+            (["母婴", "婴儿", "宝宝", "辅食", "尿布", "玩具"], "👶"),
+            (["家居", "厨房", "餐饮", "浴室", "床上", "灯具", "收纳", "清洁", "家具"], "🏠"),
+            (["汽车", "车载", "摩托"], "🚗"),
+            (["运动", "体育", "健身", "跑步", "户外"], "⚽"),
+            (["宠物", "狗", "猫"], "🐶"),
+            (["玩具", "游戏", "积木", "桌游", "卡牌"], "🎮"),
+            (["服装", "服饰", "鞋", "箱包", "配饰", "女装", "男装", "童装"], "👕"),
+            (["食品", "饮料", "零食", "酒", "咖啡", "茶"], "🍎"),
+            (["图书", "书", "音乐"], "📚"),
+            (["健康", "个护", "口腔", "营养", "医疗", "药品"], "💊"),
+            (["办公", "文具"], "✏️"),
+            (["工具", "五金"], "🔧"),
+            (["园艺", "庭院", "花园"], "🌱"),
+            (["珠宝", "首饰", "手表"], "💍"),
+            (["乐器"], "🎵"),
+            (["工业"], "🏭"),
+            (["软件", "游戏"], "💻"),
+            (["设备", "配件"], "🔌"),
+        ]
+        for keywords, e in emoji_map:
+            if any(kw in name for kw in keywords):
+                return e
+        return "📦"
+
+    def _cn_filter(name):
+        """过滤掉亚马逊品牌相关类目名"""
+        if not name: return name
+        import re
+        # 去掉 "Amazon" 开头或 "& Accessories" "Devices" 等英文
+        name = re.sub(r'^Amazon\s*', '', name)
+        name = re.sub(r'\s*&\s*Accessories$', '', name)
+        name = re.sub(r'\s*Devices?$', '', name)
+        name = re.sub(r'\s*Subscriptions?$', '', name)
+        name = name.strip()
+        # 如果去掉后空了，保留原始中文翻译
+        if not name:
+            return name
+        return name
+
     result = []
     for node in tree:
         node_id = node.get("nodeId", "")
         top_info = _get_category_info(site.upper(), node_id)
+        top_cn = _translate_cat(site.upper(), node_id, node.get("类目名称", "") or node.get("name", ""))
+        top_cn = _cn_filter(top_cn or top_info.get("name", node.get("类目名称", "")))
+        # 跳过亚马逊品牌相关、翻新、纯英文名（未翻译的）
+        top_lower = (top_cn or '').lower()
+        if not top_cn or 'amazon' in top_lower or '亚马逊' in top_cn or '翻新' in top_lower or (len(top_cn) > 8 and all(ord(c) < 128 for c in top_cn.strip())):
+            continue
+
         subs = []
         for sub in node.get("子类", []):
             sub_id = sub.get("nodeId", "")
             sub_info = _get_category_info(site.upper(), sub_id)
             cn = _translate_cat(site.upper(), sub_id, sub.get("类目名称", "") or sub.get("name", ""))
+            cn = _cn_filter(cn or sub_info.get("name", sub.get("类目名称", "")))
+            cn_lower = (cn or '').lower()
+            if not cn or 'amazon' in cn_lower or '亚马逊' in cn or '翻新' in cn_lower:
+                continue
+            emoji = _cn_emoji(cn)
             subs.append({
                 "nodeId": sub_id,
                 "id": sub_id,
-                "类目名称": cn or sub_info.get("name", sub.get("类目名称", "")),
-                "name": cn or sub_info.get("name", sub.get("类目名称", "")),
-                "emoji": sub_info.get("emoji", "📦"),
+                "类目名称": cn,
+                "name": cn,
+                "emoji": emoji,
             })
-        top_cn = _translate_cat(site.upper(), node_id, node.get("类目名称", "") or node.get("name", ""))
+        emoji = _cn_emoji(top_cn)
         result.append({
             "nodeId": node_id,
             "id": node_id,
-            "类目名称": top_cn or top_info.get("name", node.get("类目名称", "")),
-            "name": top_cn or top_info.get("name", node.get("类目名称", "")),
-            "emoji": top_info.get("emoji", "📦"),
+            "类目名称": top_cn,
+            "name": top_cn,
+            "emoji": emoji,
             "子类": subs,
         })
     return result
