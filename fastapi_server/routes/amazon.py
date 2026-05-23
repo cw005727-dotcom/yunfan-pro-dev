@@ -1175,6 +1175,7 @@ class ListReq(BaseModel):
     order: str = "desc"
     limit: int = 500
     node_id: Optional[str] = None
+    search: Optional[str] = None
 
 @router.post("/list")
 async def list_products(req: ListReq):
@@ -1205,10 +1206,14 @@ async def list_products(req: ListReq):
         where_parts.append("asin NOT IN (SELECT asin FROM amazon_products WHERE site=? AND mode='new')")
         where_params.append(site)
 
-    # 类目筛选
+    # 类目筛选：按 node_id 或 search 关键词
     if req.node_id:
         where_parts.append("(node_id=? OR big_category=? OR sub_category=?)")
         where_params.extend([req.node_id, req.node_id, req.node_id])
+    if req.search:
+        where_parts.append("(big_category LIKE ? OR sub_category LIKE ? OR title LIKE ?)")
+        like = f'%{req.search}%'
+        where_params.extend([like, like, like])
 
     where = " AND ".join(where_parts)
     sql = f"SELECT * FROM amazon_products WHERE {where} ORDER BY {sort_field} {order} LIMIT ?"
@@ -1219,6 +1224,62 @@ async def list_products(req: ListReq):
     conn.close()
     products = [dict(r) for r in rows]
     return {'products': products, 'total': len(products), 'site': site, 'mode': mode}
+
+
+@router.post("/seed-all")
+async def seed_all():
+    """
+    全量拉取：遍历所有站点×模式×类目，批量写入数据库。
+    供定时任务调用（每周一三五 8:00）。
+    """
+    import logging, time, asyncio
+    logger = logging.getLogger("uvicorn.error")
+
+    sites = ['US', 'MX', 'BR']
+    modes = ['hot', 'potential', 'new']
+    total_saved = 0
+
+    _load_category_tree('US')
+    _load_category_tree('MX')
+    _load_category_tree('BR')
+
+    for site in sites:
+        for mode in modes:
+            await asyncio.sleep(0.5)
+            logger.warning(f'[SEED-ALL] site={site} mode={mode} start')
+            try:
+                seed_result = await seed_category(SeedReq(site=site, mode=mode, pages=25))
+                total_saved += seed_result.get('products_saved', 0)
+                logger.warning(f'[SEED-ALL] site={site} mode={mode} OK: {seed_result.get("products_saved", 0)}条')
+            except Exception as e:
+                logger.warning(f'[SEED-ALL] site={site} mode={mode} FAIL: {e}')
+
+            # 每个站点取前20个大类名做 category_report 补数据
+            tree = _load_category_tree(site.upper())
+            top_names = []
+            for node in tree[:20]:
+                cn = _translate_cat(site.upper(), node.get("nodeId", ""), node.get("类目名称", "") or node.get("name", ""))
+                top_names.append(cn or node.get("类目名称", "") or node.get("name", ""))
+
+            for cat_name in top_names:
+                if not cat_name:
+                    continue
+                await asyncio.sleep(0.3)
+                try:
+                    seed_result = await seed_category(SeedReq(
+                        site=site, mode=mode,
+                        category_name=cat_name,
+                        pages=5
+                    ))
+                    total_saved += seed_result.get('products_saved', 0)
+                    logger.warning(f'[SEED-ALL] site={site} mode={mode} cat={cat_name[:20]} OK: {seed_result.get("products_saved", 0)}条')
+                except Exception as e:
+                    logger.warning(f'[SEED-ALL] site={site} mode={mode} cat={cat_name[:20]} FAIL: {e}')
+
+            logger.warning(f'[SEED-ALL] site={site} mode={mode} 完成')
+
+    logger.warning(f'[SEED-ALL] 全量完成，共拉取 {total_saved} 条')
+    return {"success": True, "total_saved": total_saved, "message": f"全量拉取完成，共 {total_saved} 条"}
 
 
 @router.get("/stats")

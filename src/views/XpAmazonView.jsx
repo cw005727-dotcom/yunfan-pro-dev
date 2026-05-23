@@ -162,29 +162,41 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setSubCategories(top?.children || [])
   }, [topCategories])
 
-  // 从 Sorftime 拉取类目数据
-  const fetchSorftime = useCallback(async (catName) => {
-    if (!catName) return
+  // 选类目：先 seed 拉取写入数据库，再从数据库读取
+  const fetchByCategory = useCallback(async (catName, catNodeId) => {
+    if (!catName && !catNodeId) return
     setLoading(true)
     setError(null)
+    setProducts([])
     try {
-      const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
-      const endpoint = endpointMap[mode] || '/api/amazon/hot'
-      const res = await fetch(endpoint, {
+      // 第一步：seed 拉取并写入数据库
+      const seedRes = await fetch('/api/amazon/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site, search: catName, page: 1 }),
+        body: JSON.stringify({ site, mode, category_name: catName, pages: 5 }),
       })
-      const data = await res.json()
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ detail: '拉取失败' }))
-        setError(errData.detail || errData.error || '拉取失败')
+      if (!seedRes.ok) {
+        const err = await seedRes.json().catch(() => ({ detail: '拉取失败' }))
+        setError(err.detail || '拉取失败')
         return
       }
-      const products = Array.isArray(data) ? data : (data.products || [])
-      setProducts(products)
+      const seedData = await seedRes.json()
+
+      // 第二步：从数据库读取（含去重逻辑）
+      const listRes = await fetch('/api/amazon/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ site, mode, limit: 500 }),
+      })
+      if (!listRes.ok) {
+        const err = await listRes.json().catch(() => ({ detail: '读取失败' }))
+        setError(err.detail || '读取失败')
+        return
+      }
+      const listData = await listRes.json()
+      setProducts(listData.products || [])
     } catch (err) {
-      setError('同步失败: ' + err.message)
+      setError('操作失败: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -309,9 +321,9 @@ export default function XpAmazonView_V5({ defaultMode }) {
                    return
                  }
                  handleTopCatChange(val)
-                 // 选大类后自动拉取
+                 // 选大类后从数据库筛选
                  const catName = topCategories.find(c => c.id === val)?.name || ''
-                 fetchSorftime(catName)
+                 fetchByCategory(catName, val)
                }}
                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
              >
@@ -330,7 +342,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
                  setSelectedSub(val || '')
                  if (val) {
                    const catName = subCategories.find(c => c.id === val)?.name || ''
-                   fetchSorftime(catName)
+                   fetchByCategory(catName, val)
                  }
                }}
                disabled={!selectedCat || subCategories.length === 0}
