@@ -1117,6 +1117,7 @@ class ListReq(BaseModel):
     sort: str = "monthly_sales"
     order: str = "desc"
     limit: int = 500
+    node_id: Optional[str] = None
 
 @router.post("/list")
 async def list_products(req: ListReq):
@@ -1135,10 +1136,28 @@ async def list_products(req: ListReq):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute(
-        f"SELECT * FROM amazon_products WHERE site=? AND mode=? ORDER BY {sort_field} {order} LIMIT ?",
-        (site, mode, limit)
-    )
+    # 构建 WHERE 条件
+    where_parts = ["site=?", "mode=?"]
+    where_params = [site, mode]
+
+    # 去重：new 和 potential 排除同时存在于 hot 的商品
+    if mode in ('new', 'potential'):
+        where_parts.append("asin NOT IN (SELECT asin FROM amazon_products WHERE site=? AND mode='hot')")
+        where_params.append(site)
+    if mode == 'potential':
+        where_parts.append("asin NOT IN (SELECT asin FROM amazon_products WHERE site=? AND mode='new')")
+        where_params.append(site)
+
+    # 类目筛选
+    if req.node_id:
+        where_parts.append("(node_id=? OR big_category=? OR sub_category=?)")
+        where_params.extend([req.node_id, req.node_id, req.node_id])
+
+    where = " AND ".join(where_parts)
+    sql = f"SELECT * FROM amazon_products WHERE {where} ORDER BY {sort_field} {order} LIMIT ?"
+    where_params.append(limit)
+
+    cur.execute(sql, where_params)
     rows = cur.fetchall()
     conn.close()
     products = [dict(r) for r in rows]

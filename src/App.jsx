@@ -160,7 +160,7 @@ export default function App() {
           {/* View content */}
           <div className="flex-1 overflow-auto">
             <Suspense fallback={<SkeletonView title={label} />}>
-              {View ? <View key={sidebarItem} /> : (
+              {View ? <View key={sidebarItem} defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : sidebarItem === 'xp-amazon-potential' ? 'potential' : 'new'} /> : (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-slate-400 text-sm">该模块正在开发中...</div>
                 </div>

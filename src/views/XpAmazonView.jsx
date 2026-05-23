@@ -28,56 +28,59 @@ const STYLES = `
     0%, 100% { opacity: 0.4; transform: scale(0.98); }
     50% { opacity: 1; transform: scale(1.02); }
   }
-  .animate-breath {
-    animation: breath 2s ease-in-out infinite;
-  }
-  .tag-shimmer {
-    position: relative;
-    overflow: hidden;
-  }
+  .animate-breath { animation: breath 2s ease-in-out infinite; }
+  .tag-shimmer { position: relative; overflow: hidden; }
   .tag-shimmer::after {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
     animation: shimmer 2.5s infinite;
   }
   .radar-ring {
-    position: absolute;
-    border: 2px solid #10B981;
-    border-radius: 50%;
+    position: absolute; border: 2px solid #10B981; border-radius: 50%;
     animation: radar-pulse 3s infinite cubic-bezier(0.23, 1, 0.32, 1);
   }
 `;
 
 const PLACEHOLDER_IMG = 'https://placehold.co/200x200/f1f5f9/cbd5e1?text=No+Image'
 
-// 使用 React.memo 防止大量卡片无谓重绘
+// Amazon 图片 fallback 模板
+const AMAZON_IMG_TEMPLATE = (asin) => `https://images-na.ssl-images-amazon.com/images/I/${asin}._AC_UL600_SR600,400_.jpg`
+
 const ProductCard = React.memo(({ item, site }) => {
   const asin = item.asin || ''
   const rawUrl = item.thumbnail_url || item.thumbnail || item.image_url || ''
-  
-  // 直连 Amazon CDN（不走后端 proxy，加 referrerpolicy 绕过防盗链）
-  const imgUrl = useMemo(() => {
-    return rawUrl.startsWith('http') ? rawUrl : PLACEHOLDER_IMG
-  }, [rawUrl])
+  const [imgSrc, setImgSrc] = useState(() => rawUrl.startsWith('http') ? rawUrl : '')
 
   const amazonBase = site === 'US' ? 'amazon.com'
     : site === 'MX' ? 'amazon.com.mx'
     : 'amazon.com.br'
 
+  const handleImgError = useCallback(() => {
+    // 逐级 fallback: 原图 → 模板URL → placeholder
+    if (imgSrc !== rawUrl) return // 已经 fallback 过了
+    const templateUrl = AMAZON_IMG_TEMPLATE(asin)
+    if (templateUrl) setImgSrc(templateUrl)
+    else setImgSrc(PLACEHOLDER_IMG)
+  }, [imgSrc, rawUrl, asin])
+
   return (
     <div className="group relative bg-white rounded-xl border border-slate-100 hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden">
       <div className="relative pt-[100%] bg-slate-50/50 overflow-hidden cursor-pointer" onClick={() => window.open(`https://www.${amazonBase}/dp/${asin}`, '_blank')}>
-        <img 
-          src={imgUrl} 
-          alt={item.title} 
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" 
-          referrerPolicy="no-referrer"
-          onError={e => { e.target.src = PLACEHOLDER_IMG }} 
-        />
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={item.title}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+            onError={handleImgError}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-slate-200">
+            <Icon name="image" size={32} />
+          </div>
+        )}
         <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
           {Number(item.monthly_sales || 0) >= 1000 && (
             <div className="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[9px] font-black flex items-center gap-0.5 shadow-sm tag-shimmer">
@@ -110,22 +113,55 @@ const ProductCard = React.memo(({ item, site }) => {
   )
 })
 
-export default function XpAmazonView_V5() {
+export default function XpAmazonView_V5({ defaultMode }) {
   const [site, setSite] = useState('US')
   const [categories, setCategories] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
-  const [mode, setMode] = useState('hot')
+  const [mode, setMode] = useState(defaultMode || 'hot')
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [catLoading, setCatLoading] = useState(false)
   const [error, setError] = useState('')
-  const [visibleCount, setVisibleCount] = useState(40)  // 分页渲染
+  const [visibleCount, setVisibleCount] = useState(40)
   const abortRef = useRef(null)
   const debounceRef = useRef(null)
 
-  // 请求取消 + 防抖
+  // 加载类目树（站点切换时自动拉）
+  useEffect(() => {
+    setCatLoading(true)
+    setSelectedCat('')
+    setSelectedSub('')
+    fetch(`/api/amazon/categories/${site}`)
+      .then(r => r.json())
+      .then(tree => {
+        setCategoryTree(tree)
+        const flat = []
+        tree.forEach(top => {
+          flat.push({
+            id: top.nodeId || top.id,
+            name: top.类目名称 || top.name || top.id,
+            emoji: top.emoji || '📦',
+            isSub: false
+          })
+          ;(top.子类 || []).forEach(sub => {
+            flat.push({
+              id: sub.nodeId || sub.id,
+              name: `  ${sub.类目名称 || sub.name || sub.id}`,
+              emoji: sub.emoji || '📦',
+              isSub: true,
+              parentId: top.nodeId || top.id
+            })
+          })
+        })
+        setCategories(flat)
+        setCatLoading(false)
+      })
+      .catch(() => setCatLoading(false))
+  }, [site])
+
+  // 请求取消 + 防抖（只加载数据库数据，类目选择走 Sorftime 拉取）
   const loadFromDb = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
@@ -134,10 +170,11 @@ export default function XpAmazonView_V5() {
     setLoading(true)
     setError(null)
     try {
+      const body = { site, mode, limit: 500 }
       const res = await fetch('/api/amazon/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site, mode, limit: 500 }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       })
       if (!res.ok) {
@@ -154,8 +191,8 @@ export default function XpAmazonView_V5() {
     }
   }, [site, mode])
 
-  // 防抖加载 + 滚动加载更多
   useEffect(() => {
+    // 仅在 site/mode 变化时从数据库加载，类目选择走 Sorftime 拉取
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(loadFromDb, 300)
     setVisibleCount(40)
@@ -163,9 +200,9 @@ export default function XpAmazonView_V5() {
       if (abortRef.current) abortRef.current.abort()
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [loadFromDb])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [site, mode])
 
-  // 无限滚动：滚动到底部加载更多
   const scrollRef = useRef(null)
   const handleScroll = useCallback(() => {
     const el = scrollRef.current
@@ -181,52 +218,6 @@ export default function XpAmazonView_V5() {
     el.addEventListener('scroll', handleScroll, { passive: true })
     return () => el.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
-
-  const currentSubcats = useMemo(() => {
-    if (!selectedCat || !categoryTree.length) return []
-    const cat = categoryTree.find(c => (c.nodeId || c.id) === selectedCat)
-    return cat?.子类 ? cat.子类.map(s => ({
-      id: s.nodeId || s.id,
-      name: s.类目名称 || s.name || s.id,
-    })) : []
-  }, [selectedCat, categoryTree])
-
-  const handlePull = async () => {
-    if (!selectedCat) { setError('请先选择类目'); return }
-    setLoading(true); setError(null); setProducts([])
-    try {
-      const nodeId = selectedSub || selectedCat
-      const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
-      const endpoint = endpointMap[mode] || '/api/amazon/hot'
-      
-      const reqBody = { site, node_id: nodeId, page: 1 }
-      const catObj = categories.find(c => c.id === selectedCat)
-      if (catObj?.name) reqBody.search = catObj.name
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqBody),
-      })
-      const data = await res.json()
-      
-      if (!res.ok) {
-        setError(data.detail || data.error || '获取失败')
-        return
-      }
-      
-      let sorted = data.products || []
-      if (mode === 'hot')    sorted = sorted.sort((a, b) => (b.sales || 0) - (a.sales || 0))
-      if (mode === 'new')   sorted = sorted.sort((a, b) => (a.listed_days || 999) - (b.listed_days || 999))
-      if (mode === 'potential') sorted = sorted.sort((a, b) => (b.potential_index || 0) - (a.potential_index || 0))
-      
-      setProducts(sorted)
-    } catch (err) {
-      setError('同步失败: ' + err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleExport = () => {
     if (products.length === 0) return
@@ -253,59 +244,98 @@ export default function XpAmazonView_V5() {
     <div className="h-full bg-white flex flex-col overflow-hidden font-sans select-none">
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       
-      {/* 极简网格对齐控制台 - 强化背景显眼度与对比度 */}
       <div className="bg-gradient-to-b from-emerald-100/30 to-white border-b border-slate-200 border-t-[3px] border-t-emerald-600 px-5 py-4 shrink-0 shadow-sm relative overflow-hidden">
-        {/* 背景装饰光晕 */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/5 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
         
-        {/* Row 1 */}
-        <div className="flex items-center gap-4 mb-2">
-           <div className="w-[110px] shrink-0">
+        {/* Row 1: 站点 + 模式 + 类目 */}
+        <div className="flex items-center gap-3 mb-2 flex-wrap">
+           <div className="w-[100px] shrink-0">
               <h1 className="text-[14px] font-black text-emerald-800 tracking-tight">亚马逊实时探测</h1>
            </div>
            
-           <div className="flex-1 flex gap-2">
-              <div className="flex-1 flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
-                {SITES.map(s => (
-                  <button 
-                    key={s.id} 
-                    onClick={() => setSite(s.id)} 
-                    className={`flex-1 py-1 rounded-md text-[11px] font-black transition-all duration-300 ${
-                      site === s.id 
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-200 scale-[1.02]' 
-                        : 'text-slate-500 hover:text-emerald-700 hover:bg-white/50'
-                    }`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
+           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
+             {SITES.map(s => (
+               <button key={s.id} onClick={() => setSite(s.id)}
+                 className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all duration-300 ${
+                   site === s.id
+                     ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md scale-[1.02]'
+                     : 'text-slate-500 hover:text-emerald-700 hover:bg-white/50'
+                 }`}
+               >{s.name}</button>
+             ))}
            </div>
 
-           <div className="w-[220px] shrink-0">
-              <div className="flex w-full bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
-                {MODES.map(m => (
-                  <button 
-                    key={m.id} 
-                    onClick={() => setMode(m.id)} 
-                    className={`flex-1 py-1 rounded-md text-[11px] font-black transition-all duration-200 flex items-center justify-center gap-1 ${
-                      mode === m.id ? 'text-white shadow-md scale-[1.02]' : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                    style={{ 
-                      backgroundColor: mode === m.id ? m.color : 'transparent',
-                    }}
-                  >
-                    {m.name.slice(0, 2)}
-                  </button>
-                ))}
-              </div>
+           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
+             {MODES.map(m => (
+               <button key={m.id} onClick={() => setMode(m.id)}
+                 className={`px-2 py-1 rounded-md text-[11px] font-black transition-all duration-200 ${
+                   mode === m.id ? 'text-white shadow-md scale-[1.02]' : 'text-slate-400 hover:text-slate-600'
+                 }`}
+                 style={{ backgroundColor: mode === m.id ? m.color : 'transparent' }}
+               >{m.name.slice(0, 2)}</button>
+             ))}
+           </div>
+
+           {/* 类目选择下拉 */}
+           <div className="flex-1 min-w-0">
+             <select
+               value={selectedSub || selectedCat || ''}
+               onChange={async e => {
+                 const val = e.target.value
+                 if (!val) { setSelectedCat(''); setSelectedSub(''); return }
+                 const item = categories.find(c => c.id === val)
+                 const nodeId = item?.isSub ? val : (item?.id || val)
+                 const catName = item?.name?.replace(/^\s+/, '') || ''
+
+                 if (item?.isSub) {
+                   setSelectedCat(item.parentId)
+                   setSelectedSub(val)
+                 } else {
+                   setSelectedCat(val)
+                   setSelectedSub('')
+                 }
+
+                 // 选类目后自动从 Sorftime 拉取数据
+                 setLoading(true)
+                 setError(null)
+                 try {
+                   const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
+                   const endpoint = endpointMap[mode] || '/api/amazon/hot'
+                   const res = await fetch(endpoint, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ site, search: catName, page: 1 }),
+                   })
+                   const data = await res.json()
+                   if (!res.ok) {
+                     const errData = await res.json().catch(() => ({ detail: '拉取失败' }))
+                     setError(errData.detail || errData.error || '拉取失败')
+                     return
+                   }
+                   const products = Array.isArray(data) ? data : (data.products || [])
+                   setProducts(products)
+                 } catch (err) {
+                   setError('同步失败: ' + err.message)
+                 } finally {
+                   setLoading(false)
+                 }
+               }}
+               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+             >
+               <option value="">{catLoading ? '加载类目...' : '全部类目（不限）'}</option>
+               {categories.map(cat => (
+                 <option key={cat.id} value={cat.id} style={{ fontWeight: cat.isSub ? 400 : 700 }}>
+                   {cat.emoji} {cat.name}
+                 </option>
+               ))}
+             </select>
            </div>
         </div>
 
         {/* Row 2: 状态栏 + 导出 */}
         <div className="flex items-center gap-4 mt-1">
            <span className="text-[10px] font-black text-emerald-600 w-[110px] shrink-0">
-             {products.length > 0 ? `${products.length} 条商品` : loading ? '加载中...' : '就绪'}
+             {products.length > 0 ? `${products.length} 条商品(v2.1)` : loading ? '加载中...' : '就绪'}
            </span>
            {products.length > 0 && (
              <button onClick={handleExport} className="ml-auto px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
@@ -315,7 +345,6 @@ export default function XpAmazonView_V5() {
         </div>
       </div>
 
-      {/* 内容展示区 */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-slate-50/30 p-4">
         {error && (
           <div className="mb-4 p-3 bg-white border border-rose-100 rounded-xl text-rose-500 text-[11px] font-bold flex items-center gap-2 shadow-sm animate-pulse">
