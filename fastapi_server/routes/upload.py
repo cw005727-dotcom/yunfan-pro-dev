@@ -235,6 +235,9 @@ async def upload_logistics(file: UploadFile = File(...)):
             '站点': 'site',
             '自定义店铺名': 'store_name',
             '下单时间': 'order_date',
+            '订单状态': 'status',
+            'listing ID': 'listing_id',
+            'SKU': 'sku',
             '1688订单号': 'logistics_1688_order',
             '物流单号': 'logistics_1688_tracking',
             '贴单状态': 'label_status',
@@ -271,13 +274,15 @@ async def upload_logistics(file: UploadFile = File(...)):
 
                 conn.execute("""
                     INSERT INTO logistics_tracking
-                    (order_number, site, store_name, order_date, logistics_1688_order,
-                     logistics_1688_tracking, label_status, warehouse_in_date,
-                     international_tracking, is_ignored)
-                    VALUES (?,?,?,?,?,?,?,?,?,0)
+                    (order_number, site, store_name, order_date, status,
+                     listing_id, sku,
+                     logistics_1688_order, logistics_1688_tracking, label_status,
+                     warehouse_in_date, international_tracking, is_ignored)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0)
                     ON CONFLICT(order_number) DO UPDATE SET
                         site=excluded.site, store_name=excluded.store_name,
-                        order_date=excluded.order_date,
+                        order_date=excluded.order_date, status=excluded.status,
+                        listing_id=excluded.listing_id, sku=excluded.sku,
                         logistics_1688_order=excluded.logistics_1688_order,
                         logistics_1688_tracking=excluded.logistics_1688_tracking,
                         label_status=excluded.label_status,
@@ -286,7 +291,9 @@ async def upload_logistics(file: UploadFile = File(...)):
                         is_ignored=excluded.is_ignored
                 """, (
                     data.get('order_number'), data.get('site'), data.get('store_name'),
-                    data.get('order_date'), data.get('logistics_1688_order'),
+                    data.get('order_date'), data.get('status'),
+                    data.get('listing_id'), data.get('sku'),
+                    data.get('logistics_1688_order'),
                     data.get('logistics_1688_tracking'), data.get('label_status'),
                     data.get('warehouse_in_date'), data.get('international_tracking'),
                 ))

@@ -23,15 +23,16 @@ function UploadCard({ icon: Icon, title, accept, endpoint, onUpload }) {
     try {
       const r = await fetch(`${API}${endpoint}`, { method: 'POST', body: formData });
       const d = await r.json();
-      if (!r.ok) { message.error(d.detail || '上传失败'); return; }
-      onUpload(d);
-      message.success(`导入成功：${d.imported} 条`);
+      if (!r.ok) { message.error(d.detail || '上传失败'); setUploading(false); return false; }
+      setUploading(false);
+      message.success(`导入成功 ${d.imported} 条，跳过 ${d.skipped || 0} 条`);
+      setTimeout(() => window.location.reload(), 1500);
+      return false;
     } catch (e) {
       message.error('上传失败：' + e.message);
-    } finally {
       setUploading(false);
+      return false;
     }
-    return false;
   }, [endpoint, onUpload]);
 
   return (
@@ -168,14 +169,14 @@ export default function DataUploadView() {
           title="业务数据上传"
           accept=".xlsx,.xls"
           endpoint="/upload/business"
-          onUpload={() => message.info('功能开发中')}
+          onUpload={() => { message.success('上传成功'); window.location.reload(); }}
         />
         <UploadCard
           icon={Truck}
           title="物流数据上传"
           accept=".xlsx,.xls"
           endpoint="/upload/logistics"
-          onUpload={() => message.info('功能开发中')}
+          onUpload={() => { message.success('上传成功'); window.location.reload(); }}
         />
       </div>
 

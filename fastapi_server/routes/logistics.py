@@ -1,14 +1,110 @@
 """
 物流相关路由
 Batch 1 - 数据 AI 负责
-GET  /api/logistics/stats   - 物流统计（4类订单数量）
-GET  /api/logistics/detail   - 物流明细（单个订单详情）
+GET  /api/logistics/dashboard - 物流看板卡片数据（国内物流链路）
+GET  /api/logistics/stats     - 物流统计（4类订单数量）
+GET  /api/logistics/detail    - 物流明细（单个订单详情）
+GET  /api/logistics/tracking  - 物流追踪统计（旧接口，保留兼容）
 """
 from fastapi import APIRouter, Query
 from datetime import datetime, timedelta
 from ..db import get_db_connection
 
 router = APIRouter(prefix="/api", tags=["物流"])
+
+
+@router.get("/logistics/dashboard")
+async def get_logistics_dashboard():
+    """物流看板 - 大盘+时效卡片数据"""
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        ign = "(is_ignored IS NULL OR is_ignored = 0) AND (status IS NULL OR status NOT IN ('已取消','取消'))"
+
+        # --- 今日大盘 ---
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date >= ? AND order_date < ? AND ' + ign,
+            (today_start.isoformat(), today_end.isoformat())
+        )
+        today_orders = cursor.fetchone()[0]
+
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date >= ? AND order_date < ? '
+            'AND IFNULL(logistics_1688_tracking, "") != "" '
+            'AND ' + ign,
+            (today_start.isoformat(), today_end.isoformat())
+        )
+        today_shipped = cursor.fetchone()[0]
+
+        # --- 24h时效 ---
+        t_24h_ago = (now - timedelta(hours=24)).isoformat()
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date >= ? AND order_date < ? AND ' + ign,
+            (t_24h_ago, today_end.isoformat())
+        )
+        h24_orders = cursor.fetchone()[0]
+
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date >= ? AND order_date < ? '
+            'AND IFNULL(logistics_1688_tracking, "") != "" '
+            'AND ' + ign,
+            (t_24h_ago, today_end.isoformat())
+        )
+        h24_shipped = cursor.fetchone()[0]
+
+        # --- 24~48h时效 ---
+        t_48h_ago = (now - timedelta(hours=48)).isoformat()
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date >= ? AND order_date < ? AND ' + ign,
+            (t_48h_ago, t_24h_ago)
+        )
+        h48_orders = cursor.fetchone()[0]
+
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date >= ? AND order_date < ? '
+            'AND IFNULL(logistics_1688_tracking, "") != "" '
+            'AND ' + ign,
+            (t_48h_ago, t_24h_ago)
+        )
+        h48_shipped = cursor.fetchone()[0]
+
+        # --- >48h预警 ---
+        cursor.execute(
+            'SELECT COUNT(*) FROM logistics_tracking '
+            'WHERE order_date < ? '
+            'AND IFNULL(logistics_1688_tracking, "") = "" '
+            'AND ' + ign
+        , (t_48h_ago,))
+        overdue_alert = cursor.fetchone()[0]
+
+    return {
+        "today": {
+            "orders": today_orders,
+            "shipped": today_shipped,
+            "pending": today_orders - today_shipped
+        },
+        "h24": {
+            "orders": h24_orders,
+            "shipped": h24_shipped,
+            "pending": h24_orders - h24_shipped
+        },
+        "h48": {
+            "orders": h48_orders,
+            "shipped": h48_shipped,
+            "pending": h48_orders - h48_shipped
+        },
+        "overdue_alert": overdue_alert,
+        "stats_at": datetime.now().isoformat()
+    }
 
 
 @router.get("/logistics/stats")

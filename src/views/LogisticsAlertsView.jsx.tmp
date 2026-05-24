@@ -101,7 +101,7 @@ function MainLogisticsCard({ stats, day, title, delay = 0 }) {
   return (
     <div 
       className="h-full bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-2xl p-6 relative overflow-hidden shadow-lg shadow-emerald-200/50"
-      style={{ animation: 'slideUp 0.5s ease-out 0ms both' }}
+      style={{ animation: `slideUp 0.5s ease-out 0ms both` }}
     >
       <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-3xl -mr-24 -mt-24" />
       <div className="relative z-10 flex flex-col justify-between h-full">
@@ -128,7 +128,6 @@ function MainLogisticsCard({ stats, day, title, delay = 0 }) {
     </div>
   );
 }
-
 
 function WarningCard({ stats }) {
   const over48 = stats?.over_48h_warning || 0;
@@ -195,98 +194,33 @@ function LifecycleTimeline({ currentStep }) {
   );
 }
 
-
 export default function LogisticsAlertsView_V5() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
-  
+  const [selectedSalesperson, setSelectedSalesperson] = useState(null);
   const [selectedSite, setSelectedSite] = useState(null);
-  
+  const [salespersons, setSalespersons] = useState([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [currentOrder, setCurrentOrder] = useState(null);
-  const [activeCard, setActiveCard] = useState('yesterday');
 
   const fetchData = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
+    if (selectedSalesperson) params.append('salesperson', selectedSalesperson);
     if (selectedSite) params.append('site', selectedSite);
 
-    fetch(`${API}/logistics/tracking?${params.toString()}`)
-      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(data => {
-        const allOrders = [];
-        if (data.orders_by_date) {
-          Object.keys(data.orders_by_date).sort().reverse().forEach(date => {
-            data.orders_by_date[date].forEach(o => {
-              allOrders.push({
-                order_number: o.order_number,
-                order_date: o.order_date,
-                site: o.site,
-                store_name: o.store_name,
-                salesperson: o.salesperson || '',
-                status: o.stage_name,
-                purchase_order_no: o.logistics_1688_order,
-                purchase_tracking: o.logistics_1688_tracking,
-                waybill_no: o.logistics_1688_tracking,
-                prepare_time: o.warehouse_in_date,
-                delivery_time: o.international_tracking ? o.order_date : '',
-                amount_usd: 0,
-                profit: 0,
-                buyer_name: '',
-                city: '',
-                carrier: '',
-                tracking_no: o.international_tracking,
-                thumbnail: o.thumbnail || '',
-                created_at: o.order_date,
-                stage_code: o.stage_code,
-                stage_icon: o.stage_icon,
-                stage_name: o.stage_name,
-                label_status: o.label_status,
-                warehouse_in_date: o.warehouse_in_date,
-                logistics_1688_tracking: o.logistics_1688_tracking,
-                international_tracking: o.international_tracking,
-              });
-            });
-          });
-        }
-        setStats({
-          cloud_labeled: data.cloud_labeled || 0,
-          warehouse_received: data.warehouse_received || 0,
-          yesterday_date: data.yesterday_date,
-          yesterday_total: data.yesterday_total,
-          yesterday_h12_shipped: data.yesterday_h12_shipped,
-          yesterday_h24_shipped: data.yesterday_h24_shipped,
-          yesterday_over24_unshipped: data.yesterday_over24_unshipped,
-          daybefore_date: data.daybefore_date,
-          daybefore_total: data.daybefore_total,
-          daybefore_h12_shipped: data.daybefore_h12_shipped,
-          daybefore_h24_shipped: data.daybefore_h24_shipped,
-          daybefore_over24_unshipped: data.daybefore_over24_unshipped,
-          thirdday_date: data.thirdday_date,
-          thirdday_total: data.thirdday_total,
-          thirdday_h12_shipped: data.thirdday_h12_shipped,
-          thirdday_h24_shipped: data.thirdday_h24_shipped,
-          thirdday_over24_unshipped: data.thirdday_over24_unshipped,
-          today_total: data.today_total,
-          today_purchased: data.purchased_count || data.purchased_count_today || 0,
-          today_inbound: allOrders.filter(o => o.stage_code >= 3).length,
-          today_labeled: allOrders.filter(o => o.stage_code >= 4).length,
-          today_shipped: allOrders.filter(o => o.stage_code >= 5).length,
-          today_shipped_rate: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 5).length / allOrders.length * 100) : 0,
-          today_issues: data.over_48h_warning,
-          rate_48h: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 2).length / allOrders.length * 100) : 0,
-          stats_24h: data.stats_24h,
-          stats_48h: data.stats_48h,
-          over_48h_warning: data.over_48h_warning,
-        });
-        setOrders(allOrders);
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
-  }, [selectedSite]);
+    Promise.all([
+      fetch(`${API}/operational/logistics-stats?${params.toString()}`).then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch(`${API}/operational/logistics-list?${params.toString()}`).then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+    ]).then(([s, l]) => {
+      setStats(s);
+      setOrders(l.orders || []);
+    }).catch(err => console.error(err)).finally(() => setLoading(false));
+  }, [selectedSalesperson, selectedSite]);
 
   useEffect(() => {
+    fetch(`${API}/operational/salespersons`).then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => setSalespersons(d.salespersons || []));
     fetchData();
   }, [fetchData]);
 
@@ -299,18 +233,8 @@ export default function LogisticsAlertsView_V5() {
     return 0;
   };
 
-  const filteredOrders = React.useMemo(() => {
-    if (!orders.length) return [];
-    switch (activeCard) {
-      case 'yesterday': return orders.filter(o => o.order_date && o.order_date.startsWith(stats?.yesterday_date || ''));
-      case 'daybefore': return orders.filter(o => o.order_date && o.order_date.startsWith(stats?.daybefore_date || ''));
-      case 'thirdday': return orders.filter(o => o.order_date && o.order_date.startsWith(stats?.thirdday_date || ''));
-      case 'labeled': return orders.filter(o => o.label_status === '已贴单');
-      case 'warehouse': return orders.filter(o => o.warehouse_in_date && o.warehouse_in_date.trim() !== '');
-      case 'warning': return orders.filter(o => { try { return (new Date() - new Date(o.order_date.replace(/\//g, '-')))/(1000*60*60) > 48 && !o.logistics_1688_tracking; } catch { return false; } });
-      default: return orders;
-    }
-  }, [orders, activeCard, stats]);
+    return 0;
+  };
 
   const getRiskLevel = (order) => {
     if (!order.order_date) return null;
@@ -336,55 +260,42 @@ export default function LogisticsAlertsView_V5() {
         
         <div className="flex items-center gap-3">
           <div className="flex flex-col"><div className="premium-filter-label">站点 / SITE</div><Select allowClear placeholder="全部站点" className="w-[140px]" size="small" variant="filled" value={selectedSite} onChange={setSelectedSite} options={Object.keys(SITE_MAP).map(s => ({ label: SITE_MAP[s], value: s }))} /></div>
-
+          <div className="flex flex-col"><div className="premium-filter-label">运营 / STAFF</div><Select allowClear placeholder="全部运营" className="w-[110px]" size="small" variant="filled" value={selectedSalesperson} onChange={setSelectedSalesperson} options={salespersons.map(s => ({ label: s, value: s }))} /></div>
           <button onClick={fetchData} className="h-[36px] px-5 bg-emerald-600 text-white rounded-lg flex items-center gap-2 text-[11px] font-black hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-200/50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />巡检实时链路</button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 premium-scrollbar-hide">
-        {/* KPI 矩阵 */}
+        {/* KPI 矩阵 (1+2x2+1) */}
         <div className="grid grid-cols-12 gap-5">
-          <div className={'col-span-12 xl:col-span-4 cursor-pointer transition-all ' + (activeCard === 'yesterday' ? 'ring-2 ring-emerald-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('yesterday')}><MainLogisticsCard stats={stats} day="yesterday" title="昨日物流追踪" /></div>
+          <div className="col-span-12 xl:col-span-4"><MainLogisticsCard stats={stats} /></div>
           <div className="col-span-12 xl:col-span-5 grid grid-cols-2 gap-4">
-             <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'daybefore' ? 'ring-2 ring-blue-400' : 'opacity-80 hover:opacity-100') + ' bg-blue-50 border-blue-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 100ms both' }} onClick={() => setActiveCard('daybefore')}>
-                <div className="text-[10px] font-black text-blue-700 opacity-60 uppercase tracking-widest leading-none">前天物流追踪 <span className="text-[9px]">({stats?.daybefore_date || ''})</span></div>
-                <div className="mt-2">
-                  <div className="text-[20px] font-black text-blue-700 tracking-tight leading-none">{stats?.daybefore_total || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
-                  <div className="mt-1.5 flex justify-between text-[11px] font-bold">
-                    <span className="text-emerald-600">12h已发 {stats?.daybefore_h12_shipped || 0}</span>
-                    <span className="text-blue-600">24h已发 {stats?.daybefore_h24_shipped || 0}</span>
-                    <span className="text-amber-600">未发 {stats?.daybefore_over24_unshipped || 0}</span>
-                  </div>
-                </div>
-             </div>
-             <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'thirdday' ? 'ring-2 ring-violet-400' : 'opacity-80 hover:opacity-100') + ' bg-violet-50 border-violet-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 200ms both' }} onClick={() => setActiveCard('thirdday')}>
-                <div className="text-[10px] font-black text-violet-700 opacity-60 uppercase tracking-widest leading-none">三天前物流追踪 <span className="text-[9px]">({stats?.thirdday_date || ''})</span></div>
-                <div className="mt-2">
-                  <div className="text-[20px] font-black text-violet-700 tracking-tight leading-none">{stats?.thirdday_total || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
-                  <div className="mt-1.5 flex justify-between text-[11px] font-bold">
-                    <span className="text-emerald-600">12h已发 {stats?.thirdday_h12_shipped || 0}</span>
-                    <span className="text-blue-600">24h已发 {stats?.thirdday_h24_shipped || 0}</span>
-                    <span className="text-amber-600">未发 {stats?.thirdday_over24_unshipped || 0}</span>
-                  </div>
-                </div>
-             </div>
-             <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'labeled' ? 'ring-2 ring-indigo-400' : 'opacity-80 hover:opacity-100') + ' bg-indigo-50 border-indigo-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 300ms both' }} onClick={() => setActiveCard('labeled')}>
-                <div className="text-[10px] font-black text-indigo-700 opacity-60 uppercase tracking-widest leading-none">已贴单</div>
-                <div className="mt-2">
-                  <div className="text-[20px] font-black text-indigo-700 tracking-tight leading-none">{stats?.cloud_labeled || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
-                  <div className="mt-1 text-[10px] font-bold text-indigo-500/60 uppercase tracking-wider">已贴单</div>
-                </div>
-             </div>
-             <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'warehouse' ? 'ring-2 ring-amber-400' : 'opacity-80 hover:opacity-100') + ' bg-amber-50 border-amber-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 400ms both' }} onClick={() => setActiveCard('warehouse')}>
-                <div className="text-[10px] font-black text-amber-700 opacity-60 uppercase tracking-widest leading-none">官方仓已接收</div>
-                <div className="mt-2">
-                  <div className="text-[20px] font-black text-amber-700 tracking-tight leading-none">{stats?.warehouse_received || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
-                  <div className="mt-1 text-[10px] font-bold text-amber-500/60 uppercase tracking-wider">官方仓</div>
-                </div>
-             </div>
+              <KPIBlockMini label="48小时发货率" value={`${stats?.rate_48h || 0}%`} sub="48H SHIP RATE" colorClass="bg-blue-50 border-blue-100 text-blue-700" delay={100} icon={Activity} />
+              <KPIBlockMini label="今日入库" value={`${stats?.today_inbound || 0} 单`} sub="INBOUND" colorClass="bg-indigo-50 border-indigo-100 text-indigo-700" delay={200} icon={Package} />
+              <KPIBlockMini label="今日贴单打印" value={`${stats?.today_labeled || 0} 单`} sub="PRINTED" colorClass="bg-purple-50 border-purple-100 text-purple-700" delay={300} icon={Printer} />
+              <KPIBlockMini label="今日异常拦截" value={`${stats?.today_issues || 0} 单`} sub="EXCEPTION" colorClass="bg-amber-50 border-amber-100 text-amber-700" delay={400} icon={AlertCircle} />
           </div>
-          <div className={'col-span-12 xl:col-span-3 cursor-pointer transition-all ' + (activeCard === 'warning' ? 'ring-2 ring-rose-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('warning')}>
-             <WarningCard stats={stats} />
+          <div className="col-span-12 xl:col-span-3">
+              <div className="h-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">红区预警监控 (48H/72H) <AntTooltip title="下单后超过 48H/72H 仍未入库的订单数量"><AlertCircle size={12} /></AntTooltip></div>
+                  <div className="flex items-baseline gap-4 mt-2">
+                    <div className="flex flex-col">
+                      <span className="text-[32px] font-black text-rose-600 leading-none">{stats?.red_zone_72h || 0}</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase mt-1 tracking-tighter">72H DEADLINE</span>
+                    </div>
+                    <div className="w-[1px] h-8 bg-slate-100" />
+                    <div className="flex flex-col">
+                      <span className="text-[32px] font-black text-amber-500 leading-none">{stats?.red_zone_48h || 0}</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase mt-1 tracking-tighter">48H WARNING</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                  <div className="text-[12px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-tighter">拦截状态 <Activity size={14} className="text-rose-500 animate-pulse" /></div>
+                  <Tag color="error" className="m-0 text-[10px] font-black border-none bg-rose-100 text-rose-600">CRITICAL</Tag>
+                </div>
+              </div>
           </div>
         </div>
 
@@ -396,7 +307,7 @@ export default function LogisticsAlertsView_V5() {
               <h3 className="text-[14px] font-black text-slate-800 uppercase tracking-tight">物流详情</h3>
             </div>
             <div className="flex items-center gap-2">
-               <div className="px-3 py-1 bg-slate-100 rounded-lg text-[11px] font-black text-slate-500 flex items-center gap-2"><ShoppingCart size={14} />{filteredOrders.length} ACTIVE UNITS</div>
+               <div className="px-3 py-1 bg-slate-100 rounded-lg text-[11px] font-black text-slate-500 flex items-center gap-2"><ShoppingCart size={14} />{orders.length} ACTIVE UNITS</div>
             </div>
           </div>
           
@@ -413,7 +324,7 @@ export default function LogisticsAlertsView_V5() {
               <tbody className="divide-y divide-slate-100">
                 {orders.length === 0 ? (
                   <tr><td colSpan={4}><Empty className="py-20" description="暂无链路数据" /></td></tr>
-                ) : filteredOrders.map((order, i) => {
+                ) : orders.map((order, i) => {
                   const risk = getRiskLevel(order);
                   return (
                     <tr 
@@ -476,7 +387,7 @@ export default function LogisticsAlertsView_V5() {
 
       {/* 侧边透视抽屉 */}
       <Drawer
-        title={<div className="flex flex-col"><span className="text-slate-800 font-black">订单全链路诊断</span><span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest"></span></div>}
+        title={<div className="flex flex-col"><span className="text-slate-800 font-black">订单全链路诊断</span></div>}
         placement="right"
         width={480}
         onClose={() => setDrawerVisible(false)}
@@ -541,8 +452,8 @@ export default function LogisticsAlertsView_V5() {
                 <Button block type="primary" size="large" className="rounded-xl bg-emerald-600 border-none font-black text-[12px] uppercase tracking-widest shadow-lg shadow-emerald-100">一键催发货</Button>
              </div>
           </div>
-        )}
-      </Drawer>
-    </div>
-  );
+          </Drawer>
+        </div>
+      );
+    }
 }
