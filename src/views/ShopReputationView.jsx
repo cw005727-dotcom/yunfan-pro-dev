@@ -119,7 +119,7 @@ function SiteStatusBlock({ siteData, config }) {
 }
 
 export default function ShopReputationView_V5() {
-  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus } = useReputation();
+  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus, syncResult } = useReputation();
 
   // 根据同步阶段返回显示文字
   const syncLabel = (() => {
@@ -184,6 +184,18 @@ export default function ShopReputationView_V5() {
             {lastUpdated && (
               <span className="text-[10px] font-bold text-slate-400">
                 最新更新于：{formatTime(lastUpdated)}
+              </span>
+            )}
+            {syncResult === 'success' && (
+              <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                已同步
+              </span>
+            )}
+            {syncResult === 'error' && (
+              <span className="text-[10px] font-black text-rose-500 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                同步失败
               </span>
             )}
             <button

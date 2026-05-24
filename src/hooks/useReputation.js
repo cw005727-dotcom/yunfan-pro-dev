@@ -12,8 +12,9 @@ export const useReputation = (group = null) => {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   // syncStatus: 'idle' | 'syncing' | 'fetching' | 'done'
-  // done 会在 2 秒后变回 'idle'，让 UI 有个短暂确认
   const [syncStatus, setSyncStatus] = useState('idle');
+  // syncResult: null | 'success' | 'error'
+  const [syncResult, setSyncResult] = useState(null);
   const abortRef = useRef(null);
 
   const fetchData = useCallback(async (fromRefresh = false) => {
@@ -63,7 +64,10 @@ export const useReputation = (group = null) => {
         setLoading(false);
         if (fromRefresh) {
           setSyncStatus('done');
-          setTimeout(() => setSyncStatus('idle'), 2000);
+          setTimeout(() => {
+            setSyncStatus('idle');
+            setSyncResult(null);
+          }, 3000);
         }
       }
     }
@@ -73,10 +77,13 @@ export const useReputation = (group = null) => {
   const refresh = useCallback(async () => {
     setLoading(true);
     setSyncStatus('syncing');
+    setSyncResult(null);
     try {
-      await fetch(`${API_BASE}/shop_reputation/refresh`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/shop_reputation/refresh`, { method: 'POST' });
+      const data = await res.json();
+      setSyncResult(data.success !== false ? 'success' : 'error');
     } catch (e) {
-      // 即使同步请求失败，也继续拉最新数据
+      setSyncResult('error');
     }
     await fetchData(true);
   }, [fetchData]);
@@ -90,5 +97,5 @@ export const useReputation = (group = null) => {
     };
   }, [fetchData]);
 
-  return { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus };
+  return { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus, syncResult };
 };
