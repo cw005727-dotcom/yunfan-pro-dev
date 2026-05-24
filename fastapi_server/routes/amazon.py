@@ -637,7 +637,7 @@ def normalize_product(p: dict, site: str) -> dict:
         "volume": dims["volume"] if dims else None,
         "dimensions": dims,
         "fulfillment": fulfillment,
-        "thumbnail": thumbnail,
+        "thumbnail_url": thumbnail,
     }
 
 # ── 请求模型─────────────────────────────────────────────────────────────
@@ -655,7 +655,7 @@ class NewReq(BaseModel):
     node_id: str = ""
     search: Optional[str] = None       # 类目中文名，用于 product_search searchName
     page: int = 1
-    max_listed_days: Optional[int] = None
+    max_listed_days: Optional[int] = 365  # 默认只返回上架1年内的商品(Sorftime数据源限制，缺乏真正新品)
 
 # ── 路由─────────────────────────────────────────────────────────────────
 @router.get("/categories")
@@ -932,7 +932,8 @@ async def pull_potential_products(req: NewReq):
 @router.post("/new")
 async def pull_new_products(req: NewReq):
     """
-    新品模式：调用 product_search（MCP 返回图片），
+    新品模式：调用 potential_product（MCP 按潜力排序返回较新商品），
+    支持 searchName 按类目筛选，
     前端按上架时间(listed_days)升序排列（越新越前）。
     """
     import logging
@@ -942,30 +943,13 @@ async def pull_new_products(req: NewReq):
     if site not in ("US", "MX", "BR"):
         raise HTTPException(400, "站点仅支持 US / MX / BR")
 
-    args = {
-        "amzSite": site,
-        "page": req.page,
-    }
-    if req.search:
-        args["searchName"] = req.search
-
-    raw = mcp_call("product_search", args)
-    try:
-        products_raw = json.loads(raw) if isinstance(raw, str) else raw
-    except Exception:
-        products_raw = []
-    products_raw = products_raw if isinstance(products_raw, list) else []
-
     all_products = []
-    # 每次20条，5次=100条
-    for page in range(1, 6):
-        args = {
-            "amzSite": site,
-            "page": page,
-        }
+    # potential_product 支持 searchName 按类目筛选
+    for page in range(1, 4):  # 3次=60条
+        args = {"amzSite": site, "page": page}
         if req.search:
             args["searchName"] = req.search
-        raw = mcp_call("product_search", args)
+        raw = mcp_call("potential_product", args)
         try:
             chunk = json.loads(raw) if isinstance(raw, str) else raw
         except Exception:
@@ -983,6 +967,11 @@ async def pull_new_products(req: NewReq):
             except: norm["weight"] = 0
             if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
                 continue
+            # 类目标题过滤：确保商品属于所选类目
+            if req.search and norm.get("big_category"):
+                cat = norm["big_category"].lower()
+                if req.search.lower() not in cat:
+                    continue
             all_products.append(norm)
 
     return {"products": all_products, "total": len(all_products), "errors": []}

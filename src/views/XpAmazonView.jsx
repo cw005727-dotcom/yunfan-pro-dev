@@ -110,6 +110,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
   const [visibleCount, setVisibleCount] = useState(40)
   const scrollRef = useRef(null)
 
+  const [exporting, setExporting] = useState(false)
   const currencyMap = { US: '$', MX: 'MX$', BR: 'R$' }
 
   // 加载类目树
@@ -187,23 +188,44 @@ export default function XpAmazonView_V5({ defaultMode }) {
   }
 
   const handleExport = () => {
-    if (products.length === 0) return
-    const rows = products.map(p => ({
-      '站点': site,
-      'ASIN': p.asin,
-      '标题': p.title || p.标题,
-      '品牌': p.brand || p.品牌,
-      '价格': p.price || p.价格,
-      '月销量': p.monthly_sales || p.月销量 || 0,
-      '评分': p.rating || p.星级,
-      '评论数': p.review_count || p.评论数 || 0,
-      '上架天数': p.listed_days || p.上架天数 || 0,
-      '链接': `https://www.amazon.${site.toLowerCase() === 'us' ? 'com' : site.toLowerCase() === 'mx' ? 'com.mx' : 'br'}/dp/${p.asin}`
-    }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Amazon_V5_Data')
-    XLSX.writeFile(wb, `Amazon_${site}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`)
+    if (products.length === 0 || exporting) return
+    setExporting(true)
+    // 立刻构建导出，完成后保持导出中状态1秒再恢复
+    try {
+      const rows = products.map(p => ({
+        '站点': site,
+        'ASIN': p.asin,
+        '标题': p.title || p.标题,
+        '品牌': p.brand || p.品牌,
+        '价格': p.price || p.价格,
+        '月销量': p.monthly_sales || p.月销量 || 0,
+        '评分': p.rating || p.星级,
+        '评论数': p.review_count || p.评论数 || 0,
+        '上架天数': p.listed_days || p.上架天数 || 0,
+        '链接': `https://www.amazon.${site.toLowerCase() === 'us' ? 'com' : site.toLowerCase() === 'mx' ? 'com.mx' : 'br'}/dp/${p.asin}`
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Amazon_V5_Data')
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([wbout], { type: 'application/octet-stream' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Amazon_${site}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('导出失败:', err)
+    }
+    // 够1.5秒再恢复，不管导出多快
+    var t0 = Date.now()
+    ;(function check() {
+      if (Date.now() - t0 < 1500) setTimeout(check, 100)
+      else setExporting(false)
+    })()
   }
 
   // 无限滚动
@@ -285,8 +307,8 @@ export default function XpAmazonView_V5({ defaultMode }) {
                <span className="text-[9px] font-bold text-slate-300">Sorftime 实时</span>
              )}
              {products.length > 0 && (
-               <button onClick={handleExport} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1">
-                 <Icon name="download" size={10} /> 导出
+               <button onClick={handleExport} disabled={exporting} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                 <Icon name="download" size={10} /> {exporting ? '导出中...' : '导出'}
                </button>
              )}
            </div>

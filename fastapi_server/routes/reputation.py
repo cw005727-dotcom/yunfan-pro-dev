@@ -116,50 +116,11 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
 
 @router.post("/shop_reputation/refresh")
 async def refresh_reputation():
-    """强制触发声誉数据同步（调用 sync_reputation.py）"""
-    import subprocess, os
-    
-    script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "scripts", "sync", "sync_reputation.py")
-    
+    """强制触发声誉数据同步（调服务器 API）"""
+    import requests
     try:
-        result = subprocess.run(
-            ["python3", script_path],
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-        return {
-            "success": True,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode
-        }
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "脚本执行超时"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-@router.post("/refresh")
-async def force_refresh_reputation():
-    """强制触发声誉数据同步（异步，不阻塞 API）"""
-    import asyncio
-
-    async def run_sync():
-        proc = await asyncio.create_subprocess_exec(
-            "python3", "/home/admin/yunfan-pro-dev/scripts/sync/sync_reputation.py",
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        try:
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=20)
-            return stdout.decode()[-500:], stderr.decode()[-200:], proc.returncode
-        except asyncio.TimeoutExpired:
-            proc.kill()
-            await proc.wait()
-            return "", "Killed after 20s timeout", -1
-
-    try:
-        stdout, stderr, code = await run_sync()
-        return {"status": "ok" if code == 0 else "error", "output": stdout, "error": stderr}
+        r = requests.post("http://47.76.179.242:8506/api/shop_reputation/refresh", timeout=30)
+        return r.json()
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
