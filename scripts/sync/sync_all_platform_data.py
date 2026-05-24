@@ -64,7 +64,7 @@ def sync_all():
     
     access_token = get_valid_token()
     headers = {'Authorization': f'Bearer {access_token}'}
-    user_id = tokens.get('user_id') or '3164139599'
+    user_id = '3164139599'
     
     # 1. Sync Reputation
     print("Syncing Reputation...")
