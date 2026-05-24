@@ -12,7 +12,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR
 
-ACCESS_TOKEN = 'APP_USR-4507485641678982-051506-10e8e94fd7205a8a5acf2a0a5aac7f3e-3164139599'
+ACCESS_TOKEN = os.environ.get('ML_ACCESS_TOKEN', '')
 
 # 导入解析脚本
 import sys
