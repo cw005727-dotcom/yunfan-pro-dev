@@ -57,6 +57,12 @@ class Article(BaseModel):
     updated_at: Optional[str] = None
 
 
+class OfficialNewsSyncResponse(BaseModel):
+    status: str = "ok"
+    synced: int = 0
+    message: str = ""
+
+
 class SystemStats(BaseModel):
     db_size_mb: float
     orders_count: int
@@ -274,115 +280,6 @@ async def deploy_service(req: DeployRequest = None):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/cms/articles")
-async def get_articles(
-    category: Optional[str] = None,
-    status: Optional[str] = None,
-    limit: int = Query(20, ge=1, le=100)
-):
-    """获取文章列表"""
-    query = "SELECT * FROM cms_articles WHERE 1=1"
-    params = []
-
-    if category:
-        query += " AND category = ?"
-        params.append(category)
-    if status:
-        query += " AND status = ?"
-        params.append(status)
-
-    query += " ORDER BY updated_at DESC LIMIT ?"
-    params.append(limit)
-
-    try:
-        with get_db_connection() as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute(query, params)
-            rows = [dict(r) for r in cursor.fetchall()]
-        return {"articles": rows, "count": len(rows)}
-    except sqlite3.OperationalError:
-        # 表不存在
-        return {"articles": [], "count": 0}
-
-
-@router.post("/cms/articles")
-async def create_article(article: Article):
-    """创建文章"""
-    now = datetime.now().isoformat()
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """INSERT INTO cms_articles (title, content, category, status, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (article.title, article.content, article.category, article.status, now, now)
-            )
-            conn.commit()
-            article_id = cursor.lastrowid
-        return {"id": article_id, "status": "created"}
-    except sqlite3.OperationalError:
-        # 表不存在，创建表
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS cms_articles (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT NOT NULL,
-                    content TEXT,
-                    category TEXT DEFAULT 'general',
-                    status TEXT DEFAULT 'draft',
-                    created_at TEXT,
-                    updated_at TEXT
-                )
-            """)
-            cursor.execute(
-                """INSERT INTO cms_articles (title, content, category, status, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (article.title, article.content, article.category, article.status, now, now)
-            )
-            conn.commit()
-            article_id = cursor.lastrowid
-        return {"id": article_id, "status": "created"}
-
-
-@router.put("/cms/articles/{article_id}")
-async def update_article(article_id: int, article: Article):
-    """更新文章"""
-    now = datetime.now().isoformat()
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """UPDATE cms_articles SET title=?, content=?, category=?, status=?, updated_at=?
-               WHERE id=?""",
-            (article.title, article.content, article.category, article.status, now, article_id)
-        )
-        conn.commit()
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="文章不存在")
-    return {"status": "updated"}
-
-
-@router.delete("/cms/articles/{article_id}")
-async def delete_article(article_id: int):
-    """删除文章"""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM cms_articles WHERE id=?", (article_id,))
-        conn.commit()
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="文章不存在")
-    return {"status": "deleted"}
-
-
-# ==================== 官网同步 & 数据看板（续）====================
-
-class OfficialNewsSyncResponse(BaseModel):
-    status: str
-    synced: int = 0
-    message: str
 
 
 @router.get("/admin/official-news")
