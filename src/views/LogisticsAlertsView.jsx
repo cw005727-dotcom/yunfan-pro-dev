@@ -77,12 +77,12 @@ function KPIBlockMini({ label, value, sub, colorClass, delay = 0, icon: IconComp
       style={{ animation: `slideUp 0.5s ease-out ${delay}ms both` }}
     >
       <div className="flex justify-between items-start">
-        <div className="text-[10px] font-black opacity-60 uppercase tracking-widest leading-none">{label}</div>
+        <div className="text-[10px] font-black opacity-90 uppercase tracking-widest leading-none font-black">{label}</div>
         {IconComp && <IconComp size={14} className="opacity-40" />}
       </div>
       <div className="mt-3">
         <div className="text-[20px] font-black tracking-tight leading-none">{value}</div>
-        {sub && <div className="text-[10px] font-bold opacity-40 mt-1 leading-none">{sub}</div>}
+        {sub && <div className="text-[10px] font-bold opacity-70 mt-1 leading-none">{sub}</div>}
       </div>
     </div>
   );
@@ -113,7 +113,7 @@ function MainLogisticsCard({ stats, day, title, delay = 0 }) {
           <div className="space-y-1">
             <div className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between">
-                <span className="text-white text-4xl font-black">{total}<span className="text-xl opacity-60 ml-1">单</span></span>
+                <span className="text-white text-4xl font-black">{total}<span className="text-xl opacity-80 ml-1">单</span></span>
                 <span className="text-emerald-200 text-[10px] font-bold tracking-wider">总订单</span>
               </div>
               <div className="flex justify-between text-[13px] font-black">
@@ -347,9 +347,9 @@ export default function LogisticsAlertsView_V5() {
           <div className={'col-span-12 xl:col-span-4 cursor-pointer transition-all ' + (activeCard === 'yesterday' ? 'ring-2 ring-emerald-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('yesterday')}><MainLogisticsCard stats={stats} day="yesterday" title="昨日物流追踪" /></div>
           <div className="col-span-12 xl:col-span-5 grid grid-cols-2 gap-4">
              <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'daybefore' ? 'ring-2 ring-blue-400' : 'opacity-80 hover:opacity-100') + ' bg-blue-50 border-blue-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 100ms both' }} onClick={() => setActiveCard('daybefore')}>
-                <div className="text-[10px] font-black text-blue-700 opacity-60 uppercase tracking-widest leading-none">前天物流追踪 <span className="text-[9px]">({stats?.daybefore_date || ''})</span></div>
+                <div className="text-[10px] font-black text-blue-700 opacity-90 uppercase tracking-widest leading-none font-black">前天物流追踪 <span className="text-[9px]">({stats?.daybefore_date || ''})</span></div>
                 <div className="mt-2">
-                  <div className="text-[20px] font-black text-blue-700 tracking-tight leading-none">{stats?.daybefore_total || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
+                  <div className="text-[20px] font-black text-blue-700 tracking-tight leading-none">{stats?.daybefore_total || 0}<span className="text-[12px] opacity-80 ml-1">单</span></div>
                   <div className="mt-1.5 flex justify-between text-[11px] font-bold">
                     <span className="text-emerald-600">12h已发 {stats?.daybefore_h12_shipped || 0}</span>
                     <span className="text-blue-600">24h已发 {stats?.daybefore_h24_shipped || 0}</span>
@@ -358,9 +358,9 @@ export default function LogisticsAlertsView_V5() {
                 </div>
              </div>
              <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'thirdday' ? 'ring-2 ring-violet-400' : 'opacity-80 hover:opacity-100') + ' bg-violet-50 border-violet-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 200ms both' }} onClick={() => setActiveCard('thirdday')}>
-                <div className="text-[10px] font-black text-violet-700 opacity-60 uppercase tracking-widest leading-none">三天前物流追踪 <span className="text-[9px]">({stats?.thirdday_date || ''})</span></div>
+                <div className="text-[10px] font-black text-violet-700 opacity-90 uppercase tracking-widest leading-none font-black">三天前物流追踪 <span className="text-[9px]">({stats?.thirdday_date || ''})</span></div>
                 <div className="mt-2">
-                  <div className="text-[20px] font-black text-violet-700 tracking-tight leading-none">{stats?.thirdday_total || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
+                  <div className="text-[20px] font-black text-violet-700 tracking-tight leading-none">{stats?.thirdday_total || 0}<span className="text-[12px] opacity-80 ml-1">单</span></div>
                   <div className="mt-1.5 flex justify-between text-[11px] font-bold">
                     <span className="text-emerald-600">12h已发 {stats?.thirdday_h12_shipped || 0}</span>
                     <span className="text-blue-600">24h已发 {stats?.thirdday_h24_shipped || 0}</span>
@@ -369,16 +369,16 @@ export default function LogisticsAlertsView_V5() {
                 </div>
              </div>
              <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'labeled' ? 'ring-2 ring-indigo-400' : 'opacity-80 hover:opacity-100') + ' bg-indigo-50 border-indigo-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 300ms both' }} onClick={() => setActiveCard('labeled')}>
-                <div className="text-[10px] font-black text-indigo-700 opacity-60 uppercase tracking-widest leading-none">已贴单</div>
+                <div className="text-[10px] font-black text-indigo-700 opacity-90 uppercase tracking-widest leading-none font-black">已贴单</div>
                 <div className="mt-2">
-                  <div className="text-[20px] font-black text-indigo-700 tracking-tight leading-none">{stats?.cloud_labeled || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
+                  <div className="text-[20px] font-black text-indigo-700 tracking-tight leading-none">{stats?.cloud_labeled || 0}<span className="text-[12px] opacity-80 ml-1">单</span></div>
                   <div className="mt-1 text-[10px] font-bold text-indigo-500/60 uppercase tracking-wider">已贴单</div>
                 </div>
              </div>
              <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'warehouse' ? 'ring-2 ring-amber-400' : 'opacity-80 hover:opacity-100') + ' bg-amber-50 border-amber-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 400ms both' }} onClick={() => setActiveCard('warehouse')}>
-                <div className="text-[10px] font-black text-amber-700 opacity-60 uppercase tracking-widest leading-none">官方仓已接收</div>
+                <div className="text-[10px] font-black text-amber-700 opacity-90 uppercase tracking-widest leading-none font-black">官方仓已接收</div>
                 <div className="mt-2">
-                  <div className="text-[20px] font-black text-amber-700 tracking-tight leading-none">{stats?.warehouse_received || 0}<span className="text-[12px] opacity-60 ml-1">单</span></div>
+                  <div className="text-[20px] font-black text-amber-700 tracking-tight leading-none">{stats?.warehouse_received || 0}<span className="text-[12px] opacity-80 ml-1">单</span></div>
                   <div className="mt-1 text-[10px] font-bold text-amber-500/60 uppercase tracking-wider">官方仓</div>
                 </div>
              </div>

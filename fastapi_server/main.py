@@ -88,6 +88,7 @@ from .routes import (
 from .routes.notifications import router as notifications_router
 from .routes.auto_center import router as auto_center_router
 from .routes.logistics_tracking import router as logistics_tracking_router
+from .routes.logistics_intl import router as logistics_intl_router
 
 app.include_router(stores.router)
 app.include_router(orders.router)
@@ -116,6 +117,7 @@ app.include_router(auto_center_router)
 app.include_router(amazon.router)
 app.include_router(operational.router)
 app.include_router(logistics_tracking_router)
+app.include_router(logistics_intl_router)
 
 
 @app.get("/api/proxy/image")
