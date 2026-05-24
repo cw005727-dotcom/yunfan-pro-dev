@@ -81,7 +81,8 @@ export const useReputation = (group = null) => {
     try {
       const res = await fetch(`${API_BASE}/shop_reputation/refresh`, { method: 'POST' });
       const data = await res.json();
-      setSyncResult(data.success !== false ? 'success' : 'error');
+      // 后端返回 { status: 'ok' | 'error', ... }
+      setSyncResult(data.status === 'ok' ? 'success' : 'error');
     } catch (e) {
       setSyncResult('error');
     }
