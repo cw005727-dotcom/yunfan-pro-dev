@@ -119,8 +119,17 @@ function SiteStatusBlock({ siteData, config }) {
 }
 
 export default function ShopReputationView_V5() {
-  const { reputation, dailyAlerts, loading, error, refresh } = useReputation();
-  
+  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated } = useReputation();
+
+  const formatTime = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
+
   const groupedData = useMemo(() => {
     const rawList = reputation || [];
     if (!Array.isArray(rawList)) return [];
@@ -163,14 +172,21 @@ export default function ShopReputationView_V5() {
                )}
             </div>
           </div>
-          <button 
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-            <Icon name="refresh-cw" size={12} className={loading ? 'animate-spin' : ''} />
-            {loading ? '同步中' : '刷新数据'}
-          </button>
+          <div className="flex items-center gap-3">
+            {lastUpdated && (
+              <span className="text-[10px] font-bold text-slate-400">
+                最新更新于：{formatTime(lastUpdated)}
+              </span>
+            )}
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+              <Icon name="refresh-cw" size={12} className={loading ? 'animate-spin' : ''} />
+              {loading ? '同步中' : '刷新数据'}
+            </button>
+          </div>
         </div>
       </div>
 

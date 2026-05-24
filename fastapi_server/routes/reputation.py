@@ -112,3 +112,29 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
         })
 
     return data
+
+
+@router.post("/shop_reputation/refresh")
+async def refresh_reputation():
+    """强制触发声誉数据同步（调用 sync_reputation.py）"""
+    import subprocess, os
+    
+    script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "scripts", "sync", "sync_reputation.py")
+    
+    try:
+        result = subprocess.run(
+            ["python3", script_path],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        return {
+            "success": True,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode
+        }
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "脚本执行超时"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

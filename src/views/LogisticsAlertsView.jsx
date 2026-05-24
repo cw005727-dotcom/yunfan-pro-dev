@@ -292,8 +292,8 @@ export default function LogisticsAlertsView_V5() {
 
   // 国内物流链路步骤：0下单 1平台发货 2已贴单 3已入仓 4已上飞机
   const getStep = (order) => {
-    if (order.international_tracking) return 4;
-    if (order.warehouse_in_date) return 3;
+    if (order.international_tracking && order.warehouse_in_date) return 4;  // 已入仓 + 国际单号 = 已上飞机
+    if (order.warehouse_in_date) return 3;       // 已入仓
     if (order.label_status === '已贴单') return 2;
     if (order.logistics_1688_tracking) return 1;
     return 0;
@@ -404,10 +404,10 @@ export default function LogisticsAlertsView_V5() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">订单详情 / ORDER INFO</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">国内物流链路</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">采购情报 / PROCUREMENT</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">风险监测 / RISK</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">订单详情</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">国内物流链路</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">采购情报</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">风险监测</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -421,7 +421,7 @@ export default function LogisticsAlertsView_V5() {
                       className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                       onClick={() => { setCurrentOrder(order); setDrawerVisible(true); }}
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <img src={order.thumbnail || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
                           <div className="flex flex-col">
@@ -433,10 +433,10 @@ export default function LogisticsAlertsView_V5() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <LifecycleTimeline currentStep={getStep(order)} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex flex-col gap-1">
                           {order.purchase_order_no ? (
                             <div className="flex items-center gap-1.5">
@@ -452,7 +452,7 @@ export default function LogisticsAlertsView_V5() {
                           <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><User size={10} /> {order.salesperson || '系统自动'}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         {risk ? (
                           <div className={`px-3 py-1.5 rounded-xl border flex flex-col ${risk.color}`}>
                             <span className="text-[10px] font-black uppercase leading-tight">{risk.level} CRITICAL</span>

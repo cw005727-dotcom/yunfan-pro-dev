@@ -10,6 +10,7 @@ export const useReputation = (group = null) => {
   const [dailyAlerts, setDailyAlerts] = useState({ complaints: '00', violations: '00', messages: '00' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const abortRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -29,6 +30,7 @@ export const useReputation = (group = null) => {
       const repData = await repRes.json();
       if (!controller.signal.aborted) {
         setReputation(Array.isArray(repData) ? repData : []);
+        setLastUpdated(new Date());
       }
       
       if (statsRes.ok) {
@@ -55,6 +57,17 @@ export const useReputation = (group = null) => {
     }
   }, [group]);
 
+  // 强制刷新：先调后端同步脚本，再重新拉数据
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      await fetch(`${API_BASE}/shop_reputation/refresh`, { method: 'POST' });
+    } catch (e) {
+      // 即使同步请求失败，也继续拉最新数据
+    }
+    await fetchData();
+  }, [fetchData]);
+
   useEffect(() => {
     fetchData();
     // 从 10 秒降到 30 秒
@@ -65,5 +78,5 @@ export const useReputation = (group = null) => {
     };
   }, [fetchData]);
 
-  return { reputation, dailyAlerts, loading, error, refresh: fetchData };
+  return { reputation, dailyAlerts, loading, error, refresh, lastUpdated };
 };
