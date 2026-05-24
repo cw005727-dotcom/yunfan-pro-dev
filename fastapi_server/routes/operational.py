@@ -7,10 +7,9 @@ from datetime import date
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 from typing import Optional
+from fastapi_server.config import DB_PATH
 
 router = APIRouter(prefix="/api/operational", tags=["运营数据"])
-
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'mercadolibre.db')
 
 
 def get_conn():

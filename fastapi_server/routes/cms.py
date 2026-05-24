@@ -8,10 +8,9 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from fastapi_server.config import DB_PATH
 
 router = APIRouter(prefix="/api/cms", tags=["CMS"])
-
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "mercadolibre.db")
 
 
 def get_db():

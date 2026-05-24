@@ -4,10 +4,9 @@ from typing import Optional, List
 import sqlite3
 import os
 from datetime import datetime
+from fastapi_server.config import DB_PATH
 
 router = APIRouter(prefix="/api/research", tags=["选品研究"])
-
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "mercadolibre.db")
 
 
 class ProductOut(BaseModel):

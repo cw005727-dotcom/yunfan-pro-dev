@@ -3,10 +3,9 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 import sqlite3, os, hashlib, requests, json
+from fastapi_server.config import DB_PATH
 
 router = APIRouter(prefix="/api/logistics", tags=["物流追踪"])
-
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'mercadolibre.db')
 
 # 快递100配置
 KD100_CUSTOMER = '75CA3374A64148674663769A02A7DEC0'
