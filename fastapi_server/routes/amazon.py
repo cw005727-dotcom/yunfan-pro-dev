@@ -629,14 +629,16 @@ def normalize_product(p: dict, site: str) -> dict:
         "title": p.get("title") or p.get("标题") or p.get("product_name") or "",
         "brand": p.get("brand") or p.get("品牌") or "",
         "price": price,
-        "sales": sales,
+        "monthly_sales": sales,
         "rating": rating,
-        "reviews": reviews,
+        "review_count": reviews,
         "listed_days": listed_days,
         "volume": dims["volume"] if dims else None,
         "dimensions": dims,
         "fulfillment": fulfillment,
         "thumbnail_url": thumbnail,
+        "product_url": f'https://www.amazon.{site.lower()}/dp/{asin}' if asin else '',
+        "launch_date": raw_date,
     }
 
 # ── 请求模型─────────────────────────────────────────────────────────────
@@ -998,6 +1000,7 @@ ON CONFLICT(asin, site, mode) DO UPDATE SET
     launch_date=excluded.launch_date, fba_fee=excluded.fba_fee,
     fulfillment=excluded.fulfillment, thumbnail_url=excluded.thumbnail_url,
     product_url=excluded.product_url, potential_index=excluded.potential_index,
+    status=excluded.status,
     fetched_at=datetime('now', '+8 hours')
 """
 
