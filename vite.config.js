@@ -34,7 +34,7 @@ export default defineConfig({
         target: 'http://127.0.0.1:8506',
         changeOrigin: true,
         headers: {
-          'X-Admin-Token': 'YUNFAN_ADMIN_2026',
+          'X-Admin-Token': process.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026',
         },
       },
     },

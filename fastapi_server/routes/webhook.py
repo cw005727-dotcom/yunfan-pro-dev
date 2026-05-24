@@ -22,6 +22,8 @@ from pydantic import BaseModel
 
 from ..db import get_db_connection
 
+ML_DEFAULT_SELLER_ID = ***"ML_DEFAULT_SELLER_ID", "3164139599")
+
 BJ_TZ = timezone(timedelta(hours=8))
 router = APIRouter(prefix="/api", tags=["Webhook"])
 logger = logging.getLogger(__name__)
@@ -97,7 +99,7 @@ def to_beijing(ts_str):
         return ''
     try:
         dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-        bj = dt + timedelta(hours=12)
+        bj = dt + timedelta(hours=8)
         return bj.strftime('%Y-%m-%dT%H:%M:%S')
     except:
         return ts_str[:19] if ts_str else ''
@@ -280,7 +282,7 @@ def handle_questions(conn, data: dict):
 
     from_val = data.get('from', {})
     from_user = from_val.get('id') if isinstance(from_val, dict) else None
-    seller_id = data.get('seller_id') or data.get('user_id') or '3164139599'
+    seller_id = data.get('seller_id') or data.get('user_id') or ML_DEFAULT_SELLER_ID
     site = data.get('site_id', '')
     product = data.get('item_id', '')
     question_text = data.get('question_text') or data.get('text', '')

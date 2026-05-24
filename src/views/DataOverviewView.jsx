@@ -22,7 +22,7 @@ const DATE_OPTIONS = [
 function useShops() {
   const [shops, setShops] = useState(['大姐店']);
   useEffect(() => {
-    fetch(`${API_BASE}/shops`, { headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' } })
+    fetch(`${API_BASE}/shops`, { headers: { 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' } })
       .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => { if (Array.isArray(data) && data.length) setShops(data); })
       .catch(() => {});
@@ -126,7 +126,7 @@ export default function DataOverviewView() {
     params.append('_t', Date.now());
     
     fetch(`${API_BASE}/stats_overview?${params.toString()}`, { 
-      headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' } 
+      headers: { 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' } 
     })
       .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setData(d); setLoading(false); })
@@ -143,7 +143,7 @@ export default function DataOverviewView() {
     if (filter !== 'ALL') params.append('group', filter);
     params.append('days', dateRange);
     fetch(`${API_BASE}/stats_overview?${params.toString()}`, {
-      headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' },
+      headers: { 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' },
       signal: ctrl.signal,
     })
       .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })

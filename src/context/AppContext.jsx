@@ -11,7 +11,7 @@ export const AppProvider = ({ children }) => {
 
   // Load shop list on mount — shared across all views
   useEffect(() => {
-    fetch('/api/shops', { headers: { 'X-Admin-Token': 'YUNFAN_ADMIN_2026' } })
+    fetch('/api/shops', { headers: { 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' } })
       .then(r => r.json())
       .then(data => { if (Array.isArray(data) && data.length) setShopList(data); })
       .catch(() => {});

@@ -8,13 +8,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import os
+
 # 火山引擎 Seedream 配置
-SEEDREAM_API_KEY = "57e448e2-545c-4c0e-a47b-b49e3ff3feef"
+SEEDREAM_API_KEY = ***"SEEDREAM_API_KEY", "")
 SEEDREAM_ENDPOINT = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
 SEEDREAM_MODEL = "doubao-seedream-4-0-250828"
 
 # 后端公网地址（用于补全相对路径为绝对URL）
-BACKEND_PUBLIC_URL = "http://47.76.179.242:8506"
+BACKEND_PUBLIC_URL = ***"BACKEND_PUBLIC_URL", "http://47.76.179.242:8506")
 
 
 class ImageGenError(Exception):
