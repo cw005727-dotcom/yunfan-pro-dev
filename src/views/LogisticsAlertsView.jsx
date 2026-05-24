@@ -176,7 +176,7 @@ function LifecycleTimeline({ currentStep }) {
     { key: 'air', label: '已上飞机' }
   ];
   return (
-    <div className="relative flex items-center justify-between px-2 w-full max-w-[400px]">
+    <div className="relative flex items-center justify-between max-w-[320px] ml-0 px-0">
       <div className="absolute left-5 right-5 top-[9px] h-0 border-t border-dashed border-slate-200" />
       <div className="absolute left-5 top-[8px] h-[2px] bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
         style={{ width: animWidth }} />
@@ -401,13 +401,13 @@ export default function LogisticsAlertsView_V5() {
           </div>
           
           <div className="overflow-x-auto premium-scrollbar-hide">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse" style={{ tableLayout: 'fixed' }}>
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">订单详情</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">国内物流链路</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">采购情报</th>
-                  <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">风险监测</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'28%'}}>订单详情</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'39%'}}>国内物流链路</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'18%'}}>采购情报</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'15%'}}>风险监测</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -421,7 +421,7 @@ export default function LogisticsAlertsView_V5() {
                       className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                       onClick={() => { setCurrentOrder(order); setDrawerVisible(true); }}
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img src={order.thumbnail || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
                           <div className="flex flex-col">
@@ -433,10 +433,10 @@ export default function LogisticsAlertsView_V5() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-4 text-left">
                         <LifecycleTimeline currentStep={getStep(order)} />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           {order.purchase_order_no ? (
                             <div className="flex items-center gap-1.5">
@@ -452,7 +452,7 @@ export default function LogisticsAlertsView_V5() {
                           <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><User size={10} /> {order.salesperson || '系统自动'}</div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-4">
                         {risk ? (
                           <div className={`px-3 py-1.5 rounded-xl border flex flex-col ${risk.color}`}>
                             <span className="text-[10px] font-black uppercase leading-tight">{risk.level} CRITICAL</span>

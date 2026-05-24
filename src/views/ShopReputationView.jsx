@@ -119,7 +119,15 @@ function SiteStatusBlock({ siteData, config }) {
 }
 
 export default function ShopReputationView_V5() {
-  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated } = useReputation();
+  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus } = useReputation();
+
+  // 根据同步阶段返回显示文字
+  const syncLabel = (() => {
+    if (syncStatus === 'syncing') return '同步中...';
+    if (syncStatus === 'fetching') return '拉取数据...';
+    if (syncStatus === 'done') return '已更新';
+    return '刷新数据';
+  })();
 
   const formatTime = (date) => {
     if (!date) return '';
@@ -184,7 +192,7 @@ export default function ShopReputationView_V5() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm active:scale-95 disabled:opacity-50"
             >
               <Icon name="refresh-cw" size={12} className={loading ? 'animate-spin' : ''} />
-              {loading ? '同步中' : '刷新数据'}
+              {syncLabel}
             </button>
           </div>
         </div>
