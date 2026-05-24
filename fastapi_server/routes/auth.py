@@ -82,7 +82,7 @@ async def register(data: RegisterRequest):
 
             # 3. 检查是否过期
             if expires_at:
-                cursor.execute("SELECT datetime(?) < datetime(?)", (datetime.now().isoformat(), expires_at))
+                cursor.execute("SELECT datetime(?) > datetime(?)", (datetime.now().isoformat(), expires_at))
                 if cursor.fetchone()[0]:
                     return AuthResponse(ok=False, message="邀请码已过期")
 

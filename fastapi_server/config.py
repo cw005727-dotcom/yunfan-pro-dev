@@ -25,7 +25,7 @@ TOKEN_FILE_ENC = os.environ.get("TOKEN_FILE_ENC", str(Path.home() / ".ml_token_e
 TOKEN_FILE_JSON = os.environ.get("TOKEN_FILE_JSON", str(Path.home() / ".ml_token_json"))
 
 # MiniMax API 配置
-MINIMAX_API_KEY = "sk-cp-b3SjCUfROLbWo2kMeEu-pjfofmcG8S-NuB-QQn0kk7neiQwS4kg5a2-8RtkBWwKSheV1oz4AeKNH__frdJIQi-S_lC6Sat7M1v_yXCYWHq5_7gSwHxU6FRA"
+MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
 MINIMAX_API_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2"
 MINIMAX_MODEL = "MiniMax-M2.7-highspeed"
 
@@ -35,8 +35,8 @@ MINIMAX_IMAGE_URL = "https://api.minimax.chat/v1/image_generation"
 
 # ML API 配置
 ML_API_BASE = "https://api.mercadolibre.com"
-ML_APP_ID = os.environ.get("ML_APP_ID", "2853782117476515")
-ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ")
+ML_APP_ID = os.environ.get("ML_APP_ID", "")
+ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "")
 
 # 日志配置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")

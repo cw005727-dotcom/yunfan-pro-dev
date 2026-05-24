@@ -82,7 +82,7 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
             "group_label": r.get('group_label'),
             "reputation_level": level,
             "status": status,
-            "is_suspended": level == 'suspended',
+            "is_suspended": 'suspended' in level,
             # 三个核心指标（百分比字符串，来自 stores 表官方字段）
             "reclamos": format_rate(r.get('complaints_rate')),
             "despacho": format_rate(r.get('delayed_rate')),
