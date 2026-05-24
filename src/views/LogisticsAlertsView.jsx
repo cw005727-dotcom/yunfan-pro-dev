@@ -406,8 +406,8 @@ export default function LogisticsAlertsView_V5() {
                 <tr className="bg-slate-50/50">
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'28%'}}>订单详情</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'39%'}}>国内物流链路</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'18%'}}>采购情报</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'15%'}}>风险监测</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'18%'}}>物流单号</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap" style={{width:'15%'}}>预计到云仓时间</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -437,33 +437,36 @@ export default function LogisticsAlertsView_V5() {
                         <LifecycleTimeline currentStep={getStep(order)} />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          {order.purchase_order_no ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded uppercase">已采</span>
-                              <span className="text-[11px] font-mono font-bold text-slate-600">{order.purchase_order_no}</span>
-                            </div>
+                        <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-70" onClick={(e) => { e.stopPropagation(); setCurrentOrder(order); setDrawerVisible(true); }}>
+                          {order.logistics_1688_tracking ? (
+                            <>
+                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded">运单</span>
+                              <span className="text-[11px] font-mono font-bold text-slate-600 truncate max-w-[120px]">{(order.logistics_1688_tracking || '').split(':')[0]}</span>
+                            </>
                           ) : (
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-black rounded uppercase">待采</span>
-                              <span className="text-[10px] font-bold text-slate-300">WAITING...</span>
-                            </div>
+                            <span className="text-[10px] font-bold text-slate-300">暂无物流单号</span>
                           )}
-                          <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1"><User size={10} /> {order.salesperson || '系统自动'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {risk ? (
-                          <div className={`px-3 py-1.5 rounded-xl border flex flex-col ${risk.color}`}>
-                            <span className="text-[10px] font-black uppercase leading-tight">{risk.level} CRITICAL</span>
-                            <span className="text-[9px] font-bold opacity-80">{risk.text}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-emerald-600">
-                             <CheckCircle size={14} />
-                             <span className="text-[10px] font-black uppercase tracking-tight">链路通畅</span>
-                          </div>
-                        )}
+                        <div className="flex flex-col gap-0.5">
+                          {order.warehouse_in_date ? (
+                            <div className="flex flex-col">
+                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded self-start">已入仓</span>
+                              <span className="text-[10px] font-bold text-slate-500 mt-1">{order.warehouse_in_date}</span>
+                            </div>
+                          ) : order.logistics_1688_tracking ? (
+                            <div className="flex flex-col">
+                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded self-start">运输中</span>
+                              <span className="text-[10px] font-bold text-slate-400 mt-1">预计1-3天</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col">
+                              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-black rounded self-start">待发货</span>
+                              <span className="text-[10px] font-bold text-slate-300 mt-1">-</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -498,47 +501,42 @@ export default function LogisticsAlertsView_V5() {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">下单时间</span>
-                    <span className="text-[13px] font-black text-slate-800">{currentOrder.order_date}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">采购单号</span>
-                    <span className="text-[13px] font-black text-emerald-600 font-mono">{currentOrder.purchase_order_no || '未采购'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">国内运单号</span>
-                    <span className="text-[13px] font-black text-blue-600 font-mono">{currentOrder.purchase_tracking || '未同步'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">平台追踪号</span>
-                    <span className="text-[13px] font-black text-slate-800 font-mono">{currentOrder.waybill_no || '待打印'}</span>
-                  </div>
+                <div className="space-y-0">
+                  {/* 竖线展示：下单时间 → 发货时间 → 运输中 → 预计到仓时间 */}
+                  {[
+                    { label: '下单时间', time: currentOrder.order_date, active: true },
+                    { label: '发货时间', time: currentOrder.logistics_1688_tracking ? (currentOrder.order_date || '已发货') : '', active: !!currentOrder.logistics_1688_tracking },
+                    { label: '运输中', time: currentOrder.logistics_1688_tracking && !currentOrder.warehouse_in_date ? '运输中' : '', active: !!(currentOrder.logistics_1688_tracking && !currentOrder.warehouse_in_date) },
+                    { label: '预计到仓', time: currentOrder.warehouse_in_date ? currentOrder.warehouse_in_date : (currentOrder.logistics_1688_tracking ? '预计1-3天' : ''), active: !!currentOrder.warehouse_in_date },
+                  ].map((step, i) => (
+                    <div key={i} className="relative flex items-start gap-4 pb-5 last:pb-0">
+                      <div className="flex flex-col items-center">
+                        <div className={'w-3 h-3 rounded-full border-2 z-10 ' + (step.active ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-200')} />
+                        {i < 3 && <div className={'w-[1px] h-full absolute top-3 ' + (step.active ? 'bg-emerald-400' : 'bg-slate-100')} />}
+                      </div>
+                      <div className="flex flex-col pt-[-2px]">
+                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{step.label}</span>
+                        {step.time && <span className="text-[13px] font-black text-slate-800">{step.time}</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
              </div>
 
              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h5 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-emerald-500" /> 链路实时反馈</h5>
-                <div className="space-y-6 relative pl-4 border-l border-slate-100">
-                   {[
-                     { time: currentOrder.order_date, text: '平台订单已接收，等待采购确认', icon: ShoppingCart, active: true },
-                     currentOrder.purchase_order_no && { time: '系统自动/手动同步', text: `已完成采购，单号: ${currentOrder.purchase_order_no}`, icon: Package, active: true },
-                     currentOrder.prepare_time && { time: currentOrder.prepare_time, text: '货件已抵达国内中转仓，扫描入库', icon: Box, active: true },
-                     currentOrder.waybill_no && { time: '系统自动生成', text: '打印面单已完成，包裹准备离库', icon: Printer, active: true },
-                   ].filter(Boolean).map((log, i) => (
-                     <div key={i} className="relative mb-6 last:mb-0">
-                        <div className={`absolute -left-[21px] top-0 w-3 h-3 rounded-full border-2 bg-white ${log.active ? 'border-emerald-500' : 'border-slate-200'}`} />
-                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mb-1">{log.time}</p>
-                        <p className="text-[12px] font-black text-slate-800 leading-tight">{log.text}</p>
-                     </div>
-                   ))}
+                <h5 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-emerald-500" /> 包裹状态</h5>
+                <div className="text-[13px] font-black text-slate-800">
+                  物流单号: <span className="text-blue-600 font-mono">{(currentOrder.logistics_1688_tracking || '').split(':')[0] || '暂无'}</span>
                 </div>
-             </div>
-             
-             <div className="flex gap-4">
-                <Button block size="large" className="rounded-xl border-slate-200 font-black text-[12px] uppercase tracking-widest">联系供应商</Button>
-                <Button block type="primary" size="large" className="rounded-xl bg-emerald-600 border-none font-black text-[12px] uppercase tracking-widest shadow-lg shadow-emerald-100">一键催发货</Button>
+                <div className="mt-4 text-[12px] font-bold text-slate-500">
+                  {currentOrder.warehouse_in_date ? (
+                    <span>已于 {currentOrder.warehouse_in_date} 到达云仓</span>
+                  ) : currentOrder.logistics_1688_tracking ? (
+                    <span>包裹运输中，等待云仓接收</span>
+                  ) : (
+                    <span>等待1688发货</span>
+                  )}
+                </div>
              </div>
           </div>
         )}
