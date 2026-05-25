@@ -564,6 +564,17 @@ def get_express_traces(waybill: str):
     if not com:
         return JSONResponse({"success": False, "message": f"无法识别快递公司: {raw}"})
 
+    # auto没数据且有尾号时，用中通+尾号兜底
+    if not traces and phone and raw.isdigit():
+        poll_traces = _poll_query('zhongtong', raw, phone)
+        if poll_traces:
+            return JSONResponse({
+                "success": True,
+                "com": "zhongtong",
+                "waybill": raw,
+                "traces": poll_traces,
+            })
+
     # 最终检查：纯数字单号必须命中三个收货城市之一
     if traces and raw.isdigit():
         ctx_all = ' '.join(t.get('context','') for t in traces)
