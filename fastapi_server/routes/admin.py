@@ -1,374 +1,178 @@
 """
-Admin 管理后台相关路由
-GET  /api/admin/stats          - 系统统计
-GET  /api/admin/logs           - 日志查询
-GET  /api/admin/invitation_codes - 邀请码列表
-POST /api/admin/generate_code  - 生成邀请码
-POST /api/deploy               - 部署触发
-GET  /api/cms/articles         - CMS文章
-POST /api/cms/articles         - 创建文章
-PUT  /api/cms/articles/{id}    - 更新文章
-DELETE /api/cms/articles/{id}  - 删除文章
+管理员 API
+P0 多租户管理 - 总管理员专用
 """
-import os
-import random
-import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
-
 from ..db import get_db_connection
-from ..config import DB_PATH, PROJECT_ROOT
 
-router = APIRouter(prefix="/api", tags=["Admin"])
+router = APIRouter(prefix="/api/admin", tags=["管理员"])
 
+# ─── 管理员鉴权 ─────────────────────────────────────────
 
-# ==================== Request/Response Models ====================
-
-class GenerateCodeRequest(BaseModel):
-    count: int = 1
-
-
-class GenerateCodeResponse(BaseModel):
-    status: str
-    codes: list
-
-
-class DeployRequest(BaseModel):
-    action: str = "restart"  # restart | reload | status
-    target: Optional[str] = None  # api | frontend | all
+def check_admin(username: str):
+    """检查是否为管理员"""
+    from ..db import get_db_connection
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, role FROM users WHERE username = ?", (username,))
+        user = cur.fetchone()
+        if not user or user['role'] != '管理员':
+            raise HTTPException(status_code=403, detail="仅管理员可操作")
+        return user['id']
 
 
-class DeployResponse(BaseModel):
-    status: str
-    message: str
-    details: Optional[dict] = None
+# ─── 用户管理 ───────────────────────────────────────────
+
+@router.get("/users")
+def list_users(admin: str = Query(...)):
+    """获取所有注册用户列表"""
+    check_admin(admin)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT u.id, u.username, u.role, u.status, u.created_at, u.last_login,
+                   u.invite_code,
+                   (SELECT COUNT(*) FROM stores WHERE user_id = u.id) as store_count
+            FROM users u
+            ORDER BY u.created_at DESC
+        """)
+        users = []
+        for r in cur.fetchall():
+            users.append({
+                "id": r['id'],
+                "username": r['username'],
+                "role": r['role'],
+                "status": r['status'],
+                "created_at": r['created_at'],
+                "last_login": r['last_login'] or '',
+                "invite_code": r['invite_code'] or '',
+                "store_count": r['store_count'],
+            })
+        return {"users": users, "total": len(users)}
 
 
-class Article(BaseModel):
-    id: Optional[int] = None
-    title: str
-    content: str
-    category: str = "general"
-    status: str = "draft"
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+@router.post("/users/ban")
+def ban_user(admin: str = Query(...), user_id: int = Query(...)):
+    """禁用用户"""
+    check_admin(admin)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET status = 'banned' WHERE id = ?", (user_id,))
+        conn.commit()
+        return {"ok": True, "message": "用户已禁用"}
 
 
-class OfficialNewsSyncResponse(BaseModel):
-    status: str = "ok"
-    synced: int = 0
-    message: str = ""
+@router.post("/users/unban")
+def unban_user(admin: str = Query(...), user_id: int = Query(...)):
+    """解禁用户"""
+    check_admin(admin)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET status = 'active' WHERE id = ?", (user_id,))
+        conn.commit()
+        return {"ok": True, "message": "用户已解禁"}
 
 
-class SystemStats(BaseModel):
-    db_size_mb: float
-    orders_count: int
-    products_count: int
-    stores_count: int
-    last_sync: Optional[str] = None
-    # 扩充字段
-    today_orders: int = 0
-    today_revenue: float = 0.0
-    total_revenue: float = 0.0
-    pending_orders: int = 0
-    shipped_orders: int = 0
-    cancelled_orders: int = 0
-    total_users: int = 0
-    active_stores: int = 0
-    warning_stores: int = 0
-    critical_stores: int = 0
+@router.get("/users/detail")
+def user_detail(admin: str = Query(...), user_id: int = Query(...)):
+    """查看用户详细信息（店铺、订单数量等）"""
+    check_admin(admin)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        # 用户信息
+        cur.execute("SELECT id, username, role, status, created_at, last_login, invite_code FROM users WHERE id = ?", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 店铺数量
+        cur.execute("SELECT COUNT(*) FROM stores WHERE user_id = ?", (user_id,))
+        store_count = cur.fetchone()[0]
+        
+        # 订单数量
+        cur.execute("SELECT COUNT(*) FROM orders_v2 WHERE user_id = ?", (user_id,))
+        order_count = cur.fetchone()[0]
+        
+        # 店铺列表
+        cur.execute("SELECT id, nickname, site_id, status, group_label FROM stores WHERE user_id = ?", (user_id,))
+        stores = [dict(r) for r in cur.fetchall()]
+        
+        return {
+            "user": {
+                "id": user['id'],
+                "username": user['username'],
+                "role": user['role'],
+                "status": user['status'],
+                "created_at": user['created_at'],
+                "last_login": user['last_login'] or '',
+            },
+            "store_count": store_count,
+            "order_count": order_count,
+            "stores": stores,
+        }
 
 
-# ==================== 路由实现 ====================
+# ─── 邀请码管理 ─────────────────────────────────────────
 
-@router.get("/admin/stats", response_model=SystemStats)
-async def get_admin_stats():
-    """系统统计概览（管理员数据看板）"""
-    try:
-        if os.path.exists(DB_PATH):
-            size_mb = os.path.getsize(DB_PATH) / (1024 * 1024)
-        else:
-            size_mb = 0
+class InviteCodeGenerate(BaseModel):
+    role: str = "店主"
+    max_uses: int = 5
 
-        with get_db_connection() as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-
-            orders_count = cursor.execute("SELECT COUNT(*) FROM orders_v2").fetchone()[0]
-            products_count = cursor.execute("SELECT COUNT(*) FROM product_metrics").fetchone()[0]
-            stores_count = cursor.execute("SELECT COUNT(*) FROM stores").fetchone()[0]
-            last_sync = cursor.execute("SELECT MAX(alert_date) FROM stores").fetchone()[0]
-
-            today = datetime.now().strftime('%Y-%m-%d')
-            today_orders = cursor.execute(
-                "SELECT COUNT(*) FROM orders_v2 WHERE order_date >= ?", (today,)
-            ).fetchone()[0]
-            today_revenue = cursor.execute(
-                "SELECT COALESCE(SUM(amount), 0) FROM orders_v2 WHERE order_date >= ?", (today,)
-            ).fetchone()[0]
-            total_revenue = cursor.execute(
-                "SELECT COALESCE(SUM(amount), 0) FROM orders_v2"
-            ).fetchone()[0]
-            pending_orders = cursor.execute(
-                "SELECT COUNT(*) FROM orders_v2 WHERE status IN ('pending', 'confirmed', 'processing')"
-            ).fetchone()[0]
-            shipped_orders = cursor.execute(
-                "SELECT COUNT(*) FROM orders_v2 WHERE shipping_status IN ('shipped', 'delivered', 'delivering')"
-            ).fetchone()[0]
-            cancelled_orders = cursor.execute(
-                "SELECT COUNT(*) FROM orders_v2 WHERE status IN ('cancelled', 'refunded', 'voided')"
-            ).fetchone()[0]
-
-            # 用户统计
-            try:
-                total_users = cursor.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-            except sqlite3.OperationalError:
-                total_users = 0
-
-            # 店铺状态统计
-            active_stores = cursor.execute(
-                "SELECT COUNT(*) FROM stores WHERE status = 'active' OR status = 'green'"
-            ).fetchone()[0]
-            warning_stores = cursor.execute(
-                "SELECT COUNT(*) FROM stores WHERE status = 'yellow' OR status = 'warning'"
-            ).fetchone()[0]
-            critical_stores = cursor.execute(
-                "SELECT COUNT(*) FROM stores WHERE status = 'red' OR status = 'critical'"
-            ).fetchone()[0]
-
-        return SystemStats(
-            db_size_mb=round(size_mb, 2),
-            orders_count=orders_count,
-            products_count=products_count,
-            stores_count=stores_count,
-            last_sync=last_sync,
-            today_orders=today_orders,
-            today_revenue=round(float(today_revenue), 2),
-            total_revenue=round(float(total_revenue), 2),
-            pending_orders=pending_orders,
-            shipped_orders=shipped_orders,
-            cancelled_orders=cancelled_orders,
-            total_users=total_users,
-            active_stores=active_stores,
-            warning_stores=warning_stores,
-            critical_stores=critical_stores,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/admin/logs")
-async def get_admin_logs(
-    lines: int = Query(50, ge=1, le=500),
-    level: Optional[str] = Query(None, pattern="^(DEBUG|INFO|WARNING|ERROR)$")
-):
-    """
-    查询最近日志
-    优先读 FastAPI 日志，其次读 api_server 日志
-    """
-    log_paths = [
-        PROJECT_ROOT / "logs" / "fastapi.log",
-        PROJECT_ROOT / "logs" / "api_server.log",
-        PROJECT_ROOT / "api_server.log",
-    ]
-
-    log_content = ""
-    log_path = None
-    for lp in log_paths:
-        if os.path.exists(lp):
-            with open(lp, "r") as f:
-                lines_list = f.readlines()
-                log_content = "".join(lines_list[-lines:])
-            log_path = lp
-            break
-
-    if not log_content:
-        return {"logs": [], "count": 0}
-
-    # 按级别过滤
-    if level:
-        log_content = "\n".join(
-            l for l in log_content.split("\n")
-            if level in l
-        )
-
-    return {
-        "logs": log_content.split("\n")[-lines:],
-        "count": lines,
-        "source": str(log_path) if log_content else None
-    }
-
-
-@router.get("/admin/invitation_codes")
-async def get_invitation_codes():
-    """获取邀请码列表"""
-    try:
-        with get_db_connection() as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM invitation_codes ORDER BY created_at DESC")
-            rows = [dict(r) for r in cursor.fetchall()]
-        return rows
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/admin/generate_code", response_model=GenerateCodeResponse)
-async def generate_invitation_code(req: GenerateCodeRequest = None):
-    """生成邀请码"""
-    if req is None:
-        req = GenerateCodeRequest()
+@router.post("/invite/generate")
+def admin_generate_invite(admin: str = Query(...), data: InviteCodeGenerate = None):
+    """管理员生成邀请码"""
+    from ..routes.auth import generate_invite_code, get_db_connection
+    check_admin(admin)
     
-    count = req.count
-    codes = []
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            for _ in range(count):
-                code = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))
-                cursor.execute(
-                    "INSERT INTO invitation_codes (code, status, created_at) VALUES (?, 'active', ?)",
-                    (code, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                )
-                codes.append(code)
-            conn.commit()
-        return GenerateCodeResponse(status="success", codes=codes)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/deploy", response_model=DeployResponse)
-async def deploy_service(req: DeployRequest = None):
-    """
-    触发服务部署/重启
-    注意：生产环境需要额外验证
-    """
-    if req is None:
-        req = DeployRequest()
+    code = generate_invite_code()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO invite_codes (code, role, created_by, max_uses) VALUES (?, ?, ?, ?)",
+            (code, data.role if data else "店主", 0, data.max_uses if data else 5)
+        )
+        conn.commit()
     
-    action = req.action
-    target = req.target or "api"
-
-    try:
-        if action == "status":
-            return DeployResponse(
-                status="ok",
-                message="服务运行正常",
-                details={"version": "5.0.0", "framework": "FastAPI"}
-            )
-
-        elif action == "restart":
-            # 模拟重启响应（实际服务器操作）
-            return DeployResponse(
-                status="ok",
-                message=f"部署触发成功（{target}）",
-                details={
-                    "action": "restart",
-                    "target": target,
-                    "note": "生产环境需通过 PM2 或 SSH 触发"
-                }
-            )
-
-        else:
-            return DeployResponse(
-                status="error",
-                message=f"未知动作: {action}"
-            )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"ok": True, "code": code, "role": data.role if data else "店主", "max_uses": data.max_uses if data else 5}
 
 
-@router.get("/admin/official-news")
-async def get_official_news(limit: int = Query(10, ge=1, le=50)):
-    """
-    获取 ML 官方动态（从 cms_articles 的 official_news category 获取）
-    """
-    try:
-        with get_db_connection() as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute(
-                """SELECT id, title, content, created_at FROM cms_articles
-                   WHERE category = 'official_news'
-                   ORDER BY created_at DESC LIMIT ?""",
-                (limit,)
-            )
-            rows = [dict(r) for r in cursor.fetchall()]
-        return {"news": rows, "count": len(rows)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/invite/list")
+def admin_list_invites(admin: str = Query(...)):
+    """列出所有邀请码"""
+    check_admin(admin)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT code, role, max_uses, used_count, status, created_at FROM invite_codes ORDER BY created_at DESC LIMIT 50"
+        )
+        codes = [dict(r) for r in cur.fetchall()]
+        return {"codes": codes, "total": len(codes)}
 
 
-@router.post("/admin/official-news/sync", response_model=OfficialNewsSyncResponse)
-async def sync_official_news(background_tasks: BackgroundTasks):
-    """
-    同步 ML 官方动态到 cms_articles（official_news category）
-    后台执行，避免阻塞
-    """
-    async def _do_sync():
-        import requests
-        from bs4 import BeautifulSoup
-        try:
-            # 抓取 ML 官方公告页面
-            resp = requests.get(
-                "https://www.mercadolibre.com.ar/notificaciones/",
-                headers={"User-Agent": "Mozilla/5.0"},
-                timeout=10
-            )
-            if resp.status_code != 200:
-                return {"status": "error", "synced": 0, "message": f"HTTP {resp.status_code}"}
+# ─── 全量数据概览 ───────────────────────────────────────
 
-            soup = BeautifulSoup(resp.text, "html.parser")
-            # 提取公告标题和链接（根据 ML 页面结构调整选择器）
-            items = []
-            for item in soup.select("NotificationItem_notification__2hJuP, .notification-item")[:10]:
-                title = item.get_text(strip=True)[:200]
-                link = item.a["href"] if item.a else ""
-                if title:
-                    items.append({"title": title, "link": link})
-
-            # 写入 cms_articles
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                synced = 0
-                now = datetime.now().isoformat()
-                for item in items:
-                    # 去重（根据标题）
-                    cursor.execute(
-                        "SELECT id FROM cms_articles WHERE title = ? AND category = 'official_news'",
-                        (item["title"],)
-                    )
-                    if not cursor.fetchone():
-                        cursor.execute(
-                            """INSERT INTO cms_articles (title, content, category, status, created_at, updated_at)
-                               VALUES (?, ?, 'official_news', 'published', ?, ?)""",
-                            (item["title"], item.get("link", ""), now, now)
-                        )
-                        synced += 1
-                conn.commit()
-                return {"status": "success", "synced": synced, "message": f"同步 {synced} 条官方公告"}
-        except Exception as e:
-            return {"status": "error", "synced": 0, "message": str(e)}
-
-    background_tasks.add_task(_do_sync)
-    return OfficialNewsSyncResponse(status="running", synced=0, message="同步任务已触发")
-
-
-# ==================== 公众号同步（占位）====================
-
-@router.post("/admin/wechat-sync/sync", response_model=OfficialNewsSyncResponse)
-async def sync_wechat_news():
-    """
-    同步美客多公众号内容（占位接口）
-    实际需要微信爬虫或官方API，此处记录同步意向
-    """
-    # TODO: 微信公众号内容抓取（需单独爬虫或官方API）
-    return OfficialNewsSyncResponse(
-        status="pending",
-        synced=0,
-        message="公众号同步待实现，需配置微信爬虫或官方API"
-    )
+@router.get("/dashboard")
+def admin_dashboard(admin: str = Query(...)):
+    """管理员数据总览"""
+    check_admin(admin)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM users")
+        total_users = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM users WHERE role = '管理员'")
+        admin_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM stores")
+        total_stores = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM orders_v2")
+        total_orders = cur.fetchone()[0]
+        
+        return {
+            "total_users": total_users,
+            "admin_count": admin_count,
+            "total_stores": total_stores,
+            "total_orders": total_orders,
+        }
