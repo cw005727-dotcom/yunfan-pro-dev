@@ -16,40 +16,217 @@ def get_conn():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 
-def query_kd100_trace(waybill):
-    """调快递100查询物流轨迹，返回第一条轨迹时间"""
+# ── 快递公司映射（自动识别失败时手动匹配） ──────────────
+# ── 常见快递公司编码（按优先级排序） ──────────────────
+COMMON_COMS = [
+    ('YT', 'yuantong'), ('JT', 'jtexpress'), ('SF', 'shunfeng'),
+    ('STO', 'shentong'), ('ZTO', 'zhongtong'), ('YD', 'yunda'),
+    ('YZ', 'youzhengguonei'), ('DBL', 'debang'),
+    ('HHTT', 'huitongkuaidi'), ('UC', 'youshu'),
+    ('GTO', 'guotongkuaidi'), ('FAST', 'kuaitao'),
+]
+# 前缀 → 编码快速匹配
+COM_MAP = {k: v for k, v in COMMON_COMS}
+
+# 常见中文名 → 编码
+COM_NAMES = {
+    '圆通': 'yuantong', '中通': 'zhongtong', '申通': 'shentong',
+    '韵达': 'yunda', '极兔': 'jtexpress', '顺丰': 'shunfeng',
+    '邮政': 'youzhengguonei', '德邦': 'debang', '百世': 'huitongkuaidi',
+}
+
+# ── 快递公司编码规则 ──────────────────────────────────
+COM_PREFIX_MAP = {
+    'YT': 'yuantong', 'JT': 'jtexpress', 'SF': 'shunfeng',
+    'STO': 'shentong', 'ZTO': 'zhongtong', 'YD': 'yunda',
+    'YZ': 'youzhengguonei', 'DBL': 'debang',
+}
+
+
+# ── 常见快递列表（优先级排序，纯数字单号遍历用） ─────
+COMMON_COMS = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng',
+               'huitongkuaidi', 'youzhengguonei', 'debang', 'jtexpress']
+
+# 快递公司中文名 → 编码映射（用于从轨迹内容匹配）
+COM_NAMES_REV = {
+    '圆通': 'yuantong', '中通': 'zhongtong', '申通': 'shentong',
+    '韵达': 'yunda', '极兔': 'jtexpress', '顺丰': 'shunfeng',
+    '京东': 'jd', '邮政': 'youzhengguonei', '德邦': 'debang',
+    '百世': 'huitongkuaidi',
+}
+
+
+def _detect_com(waybill):
+    """根据快递单号规则识别快递公司编码（不调外部接口）"""
+    prefix = waybill[:2].upper()
+    if prefix in COM_PREFIX_MAP:
+        return COM_PREFIX_MAP[prefix]
+
+    if waybill.isdigit():
+        return None  # 纯数字返回None，由调用方遍历
+
+    return ''
+
+
+def _get_traces_from_waybill(waybill_str):
+    """从完整运单号（含:尾号）解析并查轨迹"""
+    parts = waybill_str.split(':')
+    raw = parts[0].strip()
+    phone = parts[1].strip() if len(parts) > 1 and parts[1].isdigit() else ''
+    com, traces = _detect_com_and_traces(raw, phone=phone)
+    return com, traces
+
+
+def _get_traces(waybill, com, phone=''):
+    """快递100 poll接口查询物流轨迹"""
+    # 中通、顺丰等需要手机号的，优先用poll带手机号查
+    if phone and com in ('zhongtong', 'shunfeng', 'jd'):
+        poll_traces = _poll_query(com, waybill, phone)
+        if poll_traces:
+            return poll_traces
+
+    # 没有手机号时，中通/顺丰用免费接口
+    if com in ('zhongtong', 'shunfeng', 'jd'):
+        return _get_traces_free(waybill, com)
+
     import hashlib, requests, json
-    param = {
-        "com": "",
-        "num": waybill,
-        "phone": "",
-        "from": "",
-        "to": "",
-        "resultv2": "1",
-        "show": "0",
-        "order": "desc"
-    }
-    param_json = json.dumps(param, separators=(',',':'), ensure_ascii=False)
-    raw = param_json + KD100_KEY + KD100_CUSTOMER
-    sign = hashlib.md5(raw.encode('utf-8')).hexdigest().upper()
-    payload = {
-        "customer": KD100_CUSTOMER,
-        "sign": sign,
-        "param": param_json
-    }
+
+    param = json.dumps({"com": com, "num": waybill}, separators=(",", ":"), ensure_ascii=False)
+    raw = param + KD100_KEY + KD100_CUSTOMER
+    sign = hashlib.md5(raw.encode("utf-8")).hexdigest().upper()
+
     try:
-        resp = requests.post('https://poll.kuaidi100.com/poll/query.do', data=payload, timeout=15)
+        resp = requests.post(
+            "https://poll.kuaidi100.com/poll/query.do",
+            data={"customer": KD100_CUSTOMER, "sign": sign, "param": param},
+            timeout=10
+        )
         result = resp.json()
-        if result.get('status') == '200' and result.get('data'):
-            traces = result['data']
-            # 取最早一条轨迹时间（第一条按时间顺序最小）
-            if traces:
-                times = [t.get('time', '') for t in traces if t.get('time')]
-                times.sort()
-                return times[0] if times else None
+        if result.get("status") == "200":
+            data = result.get("data", [])
+            valid = [t for t in data if t.get("context", "") not in ("查无结果", "") and "查无结果" not in t.get("context", "")]
+            return valid
+        return []
+    except Exception:
+        return []
+
+
+def _poll_query(com, waybill, phone=''):
+    """快递100 poll付费接口查询"""
+    import hashlib, requests, json
+    param_dict = {"com": com, "num": waybill}
+    if phone:
+        param_dict["phone"] = phone
+    param = json.dumps(param_dict, separators=(",", ":"), ensure_ascii=False)
+    raw = param + KD100_KEY + KD100_CUSTOMER
+    sign = hashlib.md5(raw.encode("utf-8")).hexdigest().upper()
+    try:
+        resp = requests.post(
+            "https://poll.kuaidi100.com/poll/query.do",
+            data={"customer": KD100_CUSTOMER, "sign": sign, "param": param},
+            timeout=10
+        )
+        result = resp.json()
+        if result.get("status") == "200":
+            data = result.get("data", [])
+            return [t for t in data if t.get("context", "") not in ("查无结果", "")]
+    except Exception:
+        pass
+    return []
+
+
+def _get_traces_free(waybill, com):
+    """免费接口兜底"""
+    import requests
+    try:
+        resp = requests.get(
+            f"https://www.kuaidi100.com/query?type={com}&postid={waybill}",
+            timeout=10
+        )
+        result = resp.json()
+        if result.get("status") == "200":
+            data = result.get("data", [])
+            valid = [t for t in data if t.get("context", "") not in ("查无结果", "") and "查无结果" not in t.get("context", "")]
+            return valid
+    except Exception:
+        pass
+    return []
+
+
+def _detect_com_and_traces(waybill, phone=''):
+    """识别快递公司并查询轨迹，纯数字优先选中通+尾号查poll"""
+    import concurrent.futures
+    raw = waybill.split(':')[0].split('|')[0].strip()
+    # 从完整字符串提取手机尾号
+    if not phone and ':' in waybill:
+        parts = waybill.split(':')
+        if len(parts) > 1 and parts[1].strip().isdigit():
+            phone = parts[1].strip()
+
+    # 有字母前缀直接查
+    com = _detect_com(raw)
+    if com:
+        traces = _get_traces(raw, com, phone=phone)
+        if traces:
+            return com, traces
+        return com, []
+
+    # 纯数字单号：有手机尾号时用poll查中通
+    # 需校验轨迹是否到达三个收货城市之一：东莞、义乌、郑州
+    if phone:
+        poll_traces = _poll_query('zhongtong', raw, phone)
+        if poll_traces:
+            ctx_all = ' '.join(t.get('context','') for t in poll_traces)
+            valid_cities = ['东莞', '义乌', '郑州']
+            has_valid_city = any(c in ctx_all for c in valid_cities)
+            if has_valid_city:
+                return 'zhongtong', poll_traces
+
+    # 中通没命中收货城市，不走中通免费接口（容易出假数据）
+    # 直接遍历其他快递公司
+    top_cos = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng']
+
+    # 并发查其他公司
+    top_cos = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng']
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_com = {executor.submit(_get_traces, raw, c, phone): c for c in top_cos}
+        results = []
+        for future in concurrent.futures.as_completed(future_to_com):
+            c = future_to_com[future]
+            try:
+                traces = future.result()
+                if traces:
+                    score = len(traces)
+                    for t in traces:
+                        ctx = t.get('context', '')
+                        for zh_name, code in COM_NAMES_REV.items():
+                            if zh_name in ctx:
+                                score += 5 if code == c else -2
+                    results.append((score, c, traces))
+            except Exception:
+                continue
+
+    if results:
+        results.sort(key=lambda x: x[0], reverse=True)
+        return results[0][1], results[0][2]
+    return '', []
+
+
+def query_kd100_trace(waybill):
+    """调快递100免费接口查询物流轨迹，返回最早一条轨迹时间"""
+    raw = waybill.split(':')[0].split('|')[0].strip()
+    try:
+        com, traces = _detect_com_and_traces(raw)
+        if not com:
+            print(f"快递100无法识别单号: {raw}")
+            return None
+        if traces:
+            times = [t.get('time', '') for t in traces if t.get('time')]
+            times.sort()
+            return times[0] if times else None
         return None
     except Exception as e:
-        print(f"快递100查询失败 {waybill}: {e}")
+        print(f"快递100查询失败 {raw}: {e}")
         return None
 
 
@@ -375,3 +552,32 @@ def fetch_thumbnails(limit: int = 30):
     conn.commit()
     conn.close()
     return JSONResponse({"fetched": len(rows), "results": results})
+
+
+@router.get("/traces/{waybill}")
+def get_express_traces(waybill: str):
+    """快递100查询单号轨迹详情（前端Drawer用），从:后提取手机尾号"""
+    raw = waybill.split(':')[0].split('|')[0].strip()
+    phone = waybill.split(':')[1].strip() if ':' in waybill and waybill.split(':')[1].strip().isdigit() else ''
+    com, traces = _detect_com_and_traces(raw, phone=phone)
+
+    if not com:
+        return JSONResponse({"success": False, "message": f"无法识别快递公司: {raw}"})
+
+    # 最终检查：纯数字单号必须命中三个收货城市之一
+    if traces and raw.isdigit():
+        ctx_all = ' '.join(t.get('context','') for t in traces)
+        valid_cities = ['东莞', '义乌', '郑州']
+        if not any(c in ctx_all for c in valid_cities):
+            return JSONResponse({"success": False, "message": "轨迹不匹配"})
+
+    if traces:
+        return JSONResponse({
+            "success": True,
+            "com": com,
+            "waybill": raw,
+            "traces": traces,
+        })
+    else:
+        return JSONResponse({"success": False, "message": "查询失败"})
+

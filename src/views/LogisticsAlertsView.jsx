@@ -205,7 +205,28 @@ export default function LogisticsAlertsView_V5() {
   
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [currentOrder, setCurrentOrder] = useState(null);
+  // 不再使用快递100轨迹，改为百度搜索
+  const [expressTraces, setExpressTraces] = useState([]);
+  const [traceLoading, setTraceLoading] = useState(false);
   const [activeCard, setActiveCard] = useState('yesterday');
+
+  const fetchExpressTraces = async (waybill) => {
+    if (!waybill) return;
+    setTraceLoading(true);
+    setExpressTraces([]);
+    try {
+      const res = await fetch(`${API}/logistics/traces/${encodeURIComponent(waybill)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setExpressTraces(data.traces);
+        }
+      }
+    } catch (e) {
+      console.error('轨迹查询失败:', e);
+    }
+    setTraceLoading(false);
+  };
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -419,7 +440,7 @@ export default function LogisticsAlertsView_V5() {
                     <tr 
                       key={order.id} 
                       className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
-                      onClick={() => { setCurrentOrder(order); setDrawerVisible(true); }}
+                      onClick={() => { setCurrentOrder(order); setDrawerVisible(true); fetchExpressTraces(order.logistics_1688_tracking); }}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -437,7 +458,7 @@ export default function LogisticsAlertsView_V5() {
                         <LifecycleTimeline currentStep={getStep(order)} />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-70" onClick={(e) => { e.stopPropagation(); setCurrentOrder(order); setDrawerVisible(true); }}>
+                        <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-70" onClick={(e) => { e.stopPropagation(); setCurrentOrder(order); setDrawerVisible(true); fetchExpressTraces(order.logistics_1688_tracking); }}>
                           {order.logistics_1688_tracking ? (
                             <>
                               <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded">运单</span>
@@ -524,19 +545,44 @@ export default function LogisticsAlertsView_V5() {
              </div>
 
              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h5 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-emerald-500" /> 包裹状态</h5>
-                <div className="text-[13px] font-black text-slate-800">
+                <h5 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-emerald-500" /> 物流轨迹</h5>
+                <div className="text-[13px] font-black text-slate-800 mb-3">
                   物流单号: <span className="text-blue-600 font-mono">{(currentOrder.logistics_1688_tracking || '').split(':')[0] || '暂无'}</span>
+                  <span 
+                    className="ml-2 text-[10px] text-blue-500 underline cursor-pointer hover:text-blue-700"
+                    onClick={() => window.open(`https://www.baidu.com/s?wd=${encodeURIComponent((currentOrder.logistics_1688_tracking || '').split(':')[0])}`, '_blank')}
+                  >百度查</span>
                 </div>
-                <div className="mt-4 text-[12px] font-bold text-slate-500">
-                  {currentOrder.warehouse_in_date ? (
-                    <span>已于 {currentOrder.warehouse_in_date} 到达云仓</span>
-                  ) : currentOrder.logistics_1688_tracking ? (
-                    <span>包裹运输中，等待云仓接收</span>
-                  ) : (
-                    <span>等待1688发货</span>
-                  )}
-                </div>
+                {traceLoading ? (
+                  <div className="text-center py-8 text-slate-400 text-[12px] font-bold">查询中...</div>
+                ) : expressTraces.length > 0 ? (
+                  <div className="space-y-0 max-h-[400px] overflow-y-auto">
+                    {expressTraces.map((t, i) => (
+                      <div key={i} className="relative flex items-start gap-3 pb-4 last:pb-0">
+                        <div className="flex flex-col items-center">
+                          <div className={'w-2.5 h-2.5 rounded-full border-2 z-10 ' + (i === 0 ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300')} />
+                          {i < expressTraces.length - 1 && <div className="w-[1px] h-full absolute top-2.5 bg-slate-200" />}
+                        </div>
+                        <div>
+                          <div className="text-[12px] font-bold text-slate-700">{t.context}</div>
+                          <div className="text-[10px] text-slate-400 font-medium mt-0.5">{t.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center">
+                    <div className="text-[12px] font-bold text-slate-400">
+                      {currentOrder.warehouse_in_date ? (
+                        <span>已于 {currentOrder.warehouse_in_date} 到达云仓</span>
+                      ) : currentOrder.logistics_1688_tracking ? (
+                        <span>查询中，请稍后...</span>
+                      ) : (
+                        <span>等待1688发货</span>
+                      )}
+                    </div>
+                  </div>
+                )}
              </div>
           </div>
         )}
