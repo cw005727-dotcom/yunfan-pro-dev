@@ -116,12 +116,36 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
 
 @router.post("/shop_reputation/refresh")
 async def refresh_reputation():
-    """强制触发声誉数据同步（调自身API）"""
-    import requests
-    from ..config import API_HOST, API_PORT
+    """强制触发声誉数据同步（调外部 Python 脚本）"""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    script_path = Path(__file__).parent.parent.parent / "pull_reputation.py"
+    if not script_path.exists():
+        return {"status": "error", "message": f"Script not found: {script_path}"}
+
     try:
-        r = requests.post(f"http://{API_HOST}:{API_PORT}/api/shop_reputation/refresh", timeout=30)
-        return r.json()
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(script_path.parent),
+        )
+        if result.returncode == 0:
+            return {
+                "status": "ok",
+                "message": "Reputation sync triggered",
+                "output": result.stdout.strip()[-500:] if result.stdout else "",
+            }
+        else:
+            return {
+                "status": "error",
+                "message": f"Script failed: {result.stderr.strip()[-200:]}",
+            }
+    except subprocess.TimeoutExpired:
+        return {"status": "error", "message": "Script timed out after 30s"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

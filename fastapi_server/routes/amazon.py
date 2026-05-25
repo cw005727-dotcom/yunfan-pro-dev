@@ -75,7 +75,10 @@ def mcp_call(tool, args):
         },
         method="POST"
     )
-    with urllib.request.urlopen(req, timeout=45) as resp:
+    # bypass system proxy to avoid SSL handshake failures
+    proxy_handler = urllib.request.ProxyHandler({})
+    opener = urllib.request.build_opener(proxy_handler)
+    with opener.open(req, timeout=45) as resp:
         for line in resp.read().decode().split("\n"):
             if line.startswith("data: "):
                 d = json.loads(line[6:])

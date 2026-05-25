@@ -16,13 +16,14 @@ import re
 import requests
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Request
+import os
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..db import get_db_connection
 
-ML_DEFAULT_SELLER_ID = ***"ML_DEFAULT_SELLER_ID", "3164139599")
+ML_DEFAULT_SELLER_ID = os.environ.get("ML_DEFAULT_SELLER_ID", "3164139599")
 
 BJ_TZ = timezone(timedelta(hours=8))
 router = APIRouter(prefix="/api", tags=["Webhook"])
@@ -329,15 +330,21 @@ def handle_claims(conn, data: dict):
 
 
 @router.post("/relay")
-async def relay(body: dict = Body(...)):
+async def relay(request: Request):
     """
-    统一接收 ML 所有 webhook 通知，按 topic 分流处理：
-      orders / orders_v2      → handle_orders   → orders_v2
-      shipments               → handle_shipments → 更新已有订单物流字段
-      questions               → handle_questions → customer_messages
-      marketplace_claims      → handle_claims    → ml_notifications（后续处理）
-    monitoring_logs 写在事务 commit 之后，避免 SQLite 锁。
+    统一接收 ML 所有 webhook 通知，按 topic 分流处理。
+    兼容 JSON 和 form-urlencoded。
     """
+    return await _handle_webhook(request)
+
+async def _handle_webhook(request: Request):
+    content_type = request.headers.get("content-type", "")
+    if "application/x-www-form-urlencoded" in content_type:
+        form = await request.form()
+        body = dict(form)
+    else:
+        body = await request.json()
+
     try:
         data = body  # 直接用原始 dict，不走 Pydantic 验证
         if not data:
@@ -383,7 +390,7 @@ async def relay(body: dict = Body(...)):
                                     (data['_bj_now'], str(order_id)))
                 site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
                 amount = data.get('amount')
-                amt_str = f'${amount:.2f}' if amount else 'N/A'
+                amt_str = f'${float(amount):.2f}' if amount else 'N/A'
                 monitor_msg = f"📦 新订单：{site} {order_id} 成交 {amt_str}"
                 monitor_store = data.get('user_id')
                 monitor_site = data.get('site_id')
@@ -445,6 +452,13 @@ async def relay(body: dict = Body(...)):
             else:
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
 
+            # 写入实时通知表（前端「实时推送」专用）
+            conn.execute(
+                "INSERT INTO realtime_notifications (topic, content, site_id, order_id, received_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))",
+                (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
+                 monitor_site or data.get('site_id', ''),
+                 str(order_id) if order_id else '')
+            )
 
             conn.commit()
 
@@ -463,6 +477,9 @@ async def relay(body: dict = Body(...)):
 
 
 @router.post("/tongzhi")
-async def tongzhi(body: dict = Body(...)):
-    """ML webhook 通知接收（/api/tongzhi 路径，与 /relay 同一逻辑）"""
-    return await relay(body)
+async def tongzhi(request: Request):
+    """
+    ML webhook 通知接收（/api/tongzhi 路径）。
+    兼容 JSON 和 form-urlencoded 两种格式，统一走 _process_webhook 处理。
+    """
+    return await _handle_webhook(request)

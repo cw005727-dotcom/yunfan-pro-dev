@@ -35,8 +35,8 @@ MINIMAX_IMAGE_URL = "https://api.minimax.chat/v1/image_generation"
 
 # ML API 配置
 ML_API_BASE = "https://api.mercadolibre.com"
-ML_APP_ID = os.environ.get("ML_APP_ID", "")
-ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "")
+ML_APP_ID = os.environ.get("ML_APP_ID", "4507485641678982")
+ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJRWasypPZ")
 
 # 日志配置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
@@ -53,3 +53,12 @@ CORS_ORIGINS = [
 
 # JWT/Admin Token (用于简单的 API 鉴权)
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "YUNFAN_ADMIN_2026")
+
+# ── 1688 开放平台 ────────────────────────────────────
+ALI1688_APP_KEY = os.environ.get("ALI1688_APP_KEY", "8372841")
+ALI1688_APP_SECRET = os.environ.get("ALI1688_APP_SECRET", "")
+# OAuth 回调地址（审核通过后配置实际的服务器地址）
+ALI1688_CALLBACK_URL = os.environ.get(
+    "ALI1688_CALLBACK_URL",
+    "http://localhost:8506/api/alibaba1688/callback",
+)

@@ -20,9 +20,8 @@ from fastapi import APIRouter, Query, HTTPException, Body
 from fastapi.responses import HTMLResponse
 from scripts.utils.token_manager import load_tokens, save_tokens
 
-# ML OAuth 配置（与 api_server.py 保持一致）
-ML_APP_ID = "4507485641678982"
-ML_CLIENT_SECRET = "uRVTdNiMfXiLLXjoBaDHXcJRWasypPZ"
+# ML OAuth 配置（统一从 config.py 读取）
+from ..config import ML_APP_ID, ML_CLIENT_SECRET
 ML_REDIRECT_URI = "https://chensan.vip/api/meli-auth"
 ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
@@ -111,15 +110,60 @@ async def get_stores():
 
 @router.get("/shops")
 async def get_shops():
-    """获取店铺列表 - get_stores 的别名（兼容旧前端）"""
-    return await get_stores()
+    """
+    获取店铺名称列表（去重），供前端下拉筛选用。
+    返回的是用户在授权时填写的 nickname（备注名）。
+    """
+    from fastapi_server.db import get_db_connection
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT DISTINCT nickname FROM stores WHERE nickname IS NOT NULL "
+            "AND nickname != '' AND nickname != '未命名店铺' "
+            "ORDER BY nickname ASC"
+        )
+        names = [r[0] for r in cursor.fetchall()]
+
+    if not names:
+        names = ["大姐店"]  # fallback
+    return names
 
 
 @router.post("/generate_auth_url")
-async def generate_auth_url():
-    """生成 ML OAuth 授权 URL"""
+async def generate_auth_url(data: dict = Body(None)):
+    """生成 ML OAuth 授权 URL，并保存店铺备注名"""
+    from fastapi_server.db import get_db_connection
+
+    shop_id = (data or {}).get("shop_id", "")
+    nickname = (data or {}).get("nickname", "").strip()
+
+    if not nickname:
+        # 兼容旧参数：如果传了 shop_id 但没传 nickname，用 shop_id 当昵称
+        nickname = shop_id if shop_id else "未命名店铺"
+
+    # 写一条占位记录（user_id=0 表示还未 OAuth 回调）
+    if shop_id:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id FROM stores WHERE user_id = ?",
+                (int(shop_id),)
+            )
+            if not cursor.fetchone():
+                cursor.execute(
+                    "INSERT INTO stores (user_id, nickname, site_id) VALUES (?, ?, ?)",
+                    (int(shop_id), nickname, "PENDING")
+                )
+            else:
+                cursor.execute(
+                    "UPDATE stores SET nickname = ? WHERE user_id = ?",
+                    (nickname, int(shop_id))
+                )
+            conn.commit()
+
     auth_url = (
         f"https://auth.mercadolibre.com.mx/authorization"
         f"?response_type=code&client_id={ML_APP_ID}&redirect_uri={ML_REDIRECT_URI}"
     )
-    return {"auth_url": auth_url}
+    return {"auth_url": auth_url, "nickname": nickname}
