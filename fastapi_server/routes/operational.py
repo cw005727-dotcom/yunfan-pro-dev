@@ -32,7 +32,7 @@ def base_where(salesperson, site, store_name, date_from, date_to):
 
 
 def agg_filter(conn, where_sql, params):
-    """统计主数据：排除 取消-发货前 + 取消-已取消，保留 取消-发货后"""
+    """统计主数据：排除 取消-发货前 + 取消-已取消 + 找货-没汇总"""
     cur = conn.cursor()
     exclude_sql = " AND status NOT IN ('取消-发货前','取消-已取消','找货-没汇总')"
     cur.execute(
@@ -159,7 +159,7 @@ def get_stores(
     if site:        where.append(" site = ? ");        params.append(site)
     if date_from:   where.append(" date(replace(order_date,'/','-')) >= ? "); params.append(dt(date_from))
     if date_to:     where.append(" date(replace(order_date,'/','-')) <= ? "); params.append(dt(date_to))
-    where.append(" NOT status IN ('取消-发货前','取消-已取消')")
+    where.append(" status NOT IN ('取消-发货前','取消-已取消','找货-没汇总') ")
     wc = (" AND " + " AND ".join(where)) if where else ""
     sql = (
         "SELECT COALESCE(salesperson,'未知'), COALESCE(site,'未知'), COALESCE(store_name,'未知'), "

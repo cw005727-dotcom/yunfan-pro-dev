@@ -26,7 +26,7 @@ export const NAV_GROUPS = [
     color: '#3b82f6',
     items: [
       { id: 'reputation',     label: '店铺声誉',   icon: 'shield'      },
-      { id: 'store-data',     label: '店铺数据趋势', icon: 'line-chart' },
+      { id: 'store-data',     label: '数据概览', icon: 'line-chart' },
       { id: 'product-report', label: '商品性能矩阵', icon: 'layout-grid' },
     ]
   },
