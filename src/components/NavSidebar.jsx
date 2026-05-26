@@ -30,7 +30,7 @@ const SIDEBAR_STYLES = `
   }
 `;
 
-const NavSidebar = memo(function NavSidebar({ topTab, sidebarItem, onTabChange, onItemChange, mobile, onClose }) {
+const NavSidebar = memo(function NavSidebar({ user, topTab, sidebarItem, onTabChange, onItemChange, mobile, onClose }) {
   const navigate = (group, itemId) => {
     onTabChange(group.id);
     onItemChange(itemId);
@@ -80,7 +80,7 @@ const NavSidebar = memo(function NavSidebar({ topTab, sidebarItem, onTabChange, 
 
       {/* 2. Navigation Control - High Density */}
       <div className="flex-1 overflow-y-auto py-5 px-3 space-y-2.5 sidebar-scroll">
-        {NAV_GROUPS.map(group => {
+        {NAV_GROUPS.filter(g => !g.adminOnly || user?.role === '管理员').map(group => {
           const hasItems = group.items && group.items.length > 0;
           const isActiveGroup = hasItems 
             ? group.items.some(item => item.id === sidebarItem)
@@ -91,55 +91,46 @@ const NavSidebar = memo(function NavSidebar({ topTab, sidebarItem, onTabChange, 
             backgroundColor: isActiveGroup ? groupColor : getRgba(groupColor, 0.08)
           };
 
+          const isExternal = group.isExternal;
+          const extUrl = group.externalUrl || '/admin';
+
           return (
             <div key={group.id} className="space-y-1">
-              <button
-                onClick={() => handleGroupClick(group)}
-                style={bgStyle}
-                className={`
-                  nav-group-btn group w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[10px] transition-all duration-300
-                  ${isActiveGroup ? 'active' : 'hover:bg-opacity-15'}
-                `}
-              >
-                <div className={`
-                  w-[26px] h-[26px] rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-300
-                  ${isActiveGroup ? 'bg-white/20 text-white' : 'bg-white text-slate-400 group-hover:text-slate-600 shadow-sm'}
-                `}>
-                  <Icon name={group.icon} size={13} />
-                </div>
-                <span className={`
-                  flex-1 text-[13px] font-black tracking-tight transition-colors truncate
-                  ${isActiveGroup ? 'text-white' : 'text-slate-800 group-hover:text-slate-950'}
-                `}>
-                  {group.label}
-                </span>
-                {isActiveGroup && <Icon name="chevron-right" size={12} className="text-white/40" />}
-              </button>
-
-              {/* Sub-Control Layer - Compact */}
-              {hasItems && (
+              {isExternal ? (
+                <a href={extUrl} target="_blank" rel="noopener noreferrer" style={bgStyle}
+                  className="nav-group-btn group w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[10px] transition-all duration-300 hover:bg-opacity-15 no-underline"
+                >
+                  <div className="w-[26px] h-[26px] rounded-[7px] flex items-center justify-center shrink-0 bg-white text-slate-400 shadow-sm">
+                    <Icon name={group.icon} size={13} />
+                  </div>
+                  <span className="flex-1 text-[13px] font-black tracking-tight truncate text-slate-800">
+                    {group.label}
+                  </span>
+                  <Icon name="external-link" size={11} className="text-slate-300" />
+                </a>
+              ) : (
+                <button onClick={() => handleGroupClick(group)} style={bgStyle}
+                  className={`nav-group-btn group w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[10px] transition-all duration-300 ${isActiveGroup ? 'active' : 'hover:bg-opacity-15'}`}
+                >
+                  <div className={`w-[26px] h-[26px] rounded-[7px] flex items-center justify-center shrink-0 transition-all duration-300 ${isActiveGroup ? 'bg-white/20 text-white' : 'bg-white text-slate-400 group-hover:text-slate-600 shadow-sm'}`}>
+                    <Icon name={group.icon} size={13} />
+                  </div>
+                  <span className={`flex-1 text-[13px] font-black tracking-tight transition-colors truncate ${isActiveGroup ? 'text-white' : 'text-slate-800 group-hover:text-slate-950'}`}>
+                    {group.label}
+                  </span>
+                  {isActiveGroup && <Icon name="chevron-right" size={12} className="text-white/40" />}
+                </button>
+              )}
+              {hasItems && !isExternal && (
                 <div className="mt-0.5 space-y-0.5">
-                  {group.items.map(item => {
-                    const isActive = sidebarItem === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => navigate(group, item.id)}
-                        className={`
-                          w-full flex items-center gap-2.5 pl-[36px] pr-2 py-1.5 rounded-lg text-left transition-all
-                          ${isActive 
-                            ? 'text-slate-950 font-black bg-slate-50' 
-                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50/50'}
-                        `}
-                      >
-                        <div className={`
-                          w-1 h-1 rounded-full shrink-0 transition-all
-                          ${isActive ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}
-                        `} />
-                        <span className="text-[11.5px] font-bold tracking-tight truncate">{item.label}</span>
-                      </button>
-                    );
-                  })}
+                  {group.items.map(item =>
+                    <button key={item.id} onClick={() => navigate(group, item.id)}
+                      className={`w-full flex items-center gap-2.5 pl-[36px] pr-2 py-1.5 rounded-lg text-left transition-all ${sidebarItem === item.id ? 'text-slate-950 font-black bg-slate-50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50/50'}`}
+                    >
+                      <div className={`w-1 h-1 rounded-full shrink-0 transition-all ${sidebarItem === item.id ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
+                      <span className="text-[11.5px] font-bold tracking-tight truncate">{item.label}</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>

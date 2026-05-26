@@ -22,15 +22,19 @@ SITE_MAPPING = {
 
 
 def format_rate(val):
-    """统一格式化百分比字段"""
+    """统一格式化百分比字段（ML 返回 0.0714 表示 7.14%）"""
     if not val or val == '%':
         return "0.00%"
-    if isinstance(val, str) and not val.endswith('%'):
+    if isinstance(val, (int, float)):
+        return f"{val * 100:.2f}%"
+    if isinstance(val, str):
+        if val.endswith('%'):
+            return val
         try:
-            return f"{float(val):.2f}%"
+            return f"{float(val) * 100:.2f}%"
         except (ValueError, TypeError):
             return "0.00%"
-    return val
+    return "0.00%"
 
 
 def compute_status(reputation_level: Optional[str]) -> str:
@@ -53,63 +57,62 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
     """
     返回所有店铺的声誉数据，支持按 group_label 过滤。
 
-    返回字段格式与旧端点 /api/shop_reputation 完全一致，
-    兼容前端 ShopReputationView.jsx。
+    每个店铺展开为 6 个站点（MLM/MLB/MLA/MCO/MLC/MLU），
+    每个站点从独立字段读取数据。
     """
+    ALL_SITES = ['MLM', 'MLB', 'MLA', 'MCO', 'MLC', 'MLU']
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
         if group:
-            cursor.execute(
-                "SELECT * FROM stores WHERE group_label = ?",
-                (group,)
-            )
+            cursor.execute("SELECT * FROM stores WHERE group_label = ?", (group,))
         else:
             cursor.execute("SELECT * FROM stores")
         rows = [dict(r) for r in cursor.fetchall()]
 
     data = []
     for r in rows:
-        level = r.get('reputation_level') or ''
-        status = compute_status(level)
+        for site_id in ALL_SITES:
+            p = site_id.lower()
+            level = r.get(f'{p}_reputation_level') or r.get('reputation_level') or ''
+            complaints_rate = r.get(f'{p}_complaints_rate') if r.get(f'{p}_complaints_rate') else r.get('complaints_rate')
+            delayed_rate = r.get(f'{p}_delayed_rate') if r.get(f'{p}_delayed_rate') else r.get('delayed_rate')
+            cancellations_rate = r.get(f'{p}_cancellations_rate') if r.get(f'{p}_cancellations_rate') else r.get('cancellations_rate')
 
-        data.append({
-            "id": r.get('id'),
-            "account": r.get('nickname') or r.get('store_name'),
-            "user_id": r.get('user_id'),
-            "site": SITE_MAPPING.get(r.get('site_id', ''), r.get('site_id', '')),
-            "site_id": r.get('site_id'),
-            "name": r.get('store_name'),
-            "group_label": r.get('group_label'),
-            "reputation_level": level,
-            "status": status,
-            "is_suspended": 'suspended' in level,
-            # 三个核心指标（百分比字符串，来自 stores 表官方字段）
-            "reclamos": format_rate(r.get('complaints_rate')),
-            "despacho": format_rate(r.get('delayed_rate')),
-            "cancel": format_rate(r.get('cancellations_rate')),
-            # 指标对应的数值
-            "reclamos_v": r.get('claims_value') or 0,
-            "despacho_v": r.get('delayed_value') or 0,
-            "cancel_v": r.get('cancel_value') or 0,
-            "total_v": r.get('total_transactions') or 0,
-            # 投诉历史
-            "claims_period": r.get('claims_period_days') or '60 days',
-            "claims_history": r.get('claims_history') or 'N/A',
-            "alert_date": r.get('alert_date'),
-            "last_updated": r.get('last_updated') or '',
-            # 新增统计（各周期增量）
-            "new_claims": r.get('new_claims') or 0,
-            "total_claims": r.get('total_complaints') or 0,
-            "new_violations": r.get('new_violations') or 0,
-            "total_violations": r.get('total_violations') or 0,
-            "new_messages": r.get('new_messages') or 0,
-            "total_messages": r.get('total_messages') or 0,
-            "new_delayed": r.get('new_delayed') or 0,
-            "new_cancel": r.get('new_cancel') or 0,
-            "total_cancellations": r.get('total_cancellations') or 0,
-            # 综合健康分
-            "score": compute_score(status),
-        })
+            status = compute_status(level)
+            data.append({
+                "id": r.get('id'),
+                "account": r.get('nickname') or r.get('store_name'),
+                "user_id": r.get('user_id'),
+                "site": SITE_MAPPING.get(site_id, site_id),
+                "site_id": site_id,
+                "name": r.get('store_name'),
+                "group_label": r.get('group_label'),
+                "reputation_level": level,
+                "status": status,
+                "is_suspended": 'suspended' in level,
+                "reclamos": format_rate(complaints_rate),
+                "despacho": format_rate(delayed_rate),
+                "cancel": format_rate(cancellations_rate),
+                "reclamos_v": r.get('claims_value') or 0,
+                "despacho_v": r.get('delayed_value') or 0,
+                "cancel_v": r.get('cancel_value') or 0,
+                "total_v": r.get('total_transactions') or 0,
+                "claims_period": r.get('claims_period_days') or '60 days',
+                "claims_history": r.get('claims_history') or 'N/A',
+                "alert_date": r.get('alert_date'),
+                "last_updated": r.get('last_updated') or '',
+                "new_claims": r.get(f'{p}_new_claims') or r.get('new_claims') or 0,
+                "total_claims": r.get('total_complaints') or 0,
+                "new_violations": r.get(f'{p}_new_violations') or r.get('new_violations') or 0,
+                "total_violations": r.get('total_violations') or 0,
+                "new_messages": r.get('new_messages') or 0,
+                "total_messages": r.get('total_messages') or 0,
+                "new_delayed": r.get(f'{p}_new_delayed') or r.get('new_delayed') or 0,
+                "new_cancel": r.get(f'{p}_new_cancel') or r.get('new_cancel') or 0,
+                "total_cancellations": r.get('total_cancellations') or 0,
+                "score": compute_score(status),
+            })
 
     return data
 
@@ -148,4 +151,81 @@ async def refresh_reputation():
         return {"status": "error", "message": "Script timed out after 30s"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@router.get("/reputation/token")
+async def reputation_token():
+    """返回当前店铺的 access_token（供本地 Mac 拉取声誉用）"""
+    from fastapi_server.db import get_db_connection
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT access_token FROM stores WHERE access_token IS NOT NULL AND access_token != '' LIMIT 1")
+        row = cur.fetchone()
+    if row:
+        return {"access_token": row["access_token"]}
+    return {"access_token": ""}
+
+
+@router.post("/reputation/sync")
+async def reputation_sync(data: dict):
+    """接收本地 Mac 推送的声誉数据"""
+    reputation_list = data.get("reputation", [])
+    if not reputation_list:
+        return {"status": "error", "message": "无数据"}
+
+    from fastapi_server.db import get_db_connection
+    from datetime import datetime
+
+    updated = 0
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        # 排除 fulfillment，只保留 remote/CBT 数据
+        site_groups = {}
+        for rep in reputation_list:
+            lt = rep.get("logistic_type", "")
+            if lt == 'fulfillment':
+                continue
+            sid = rep.get("site_id", "")
+            if sid not in site_groups:
+                site_groups[sid] = rep
+            else:
+                existing_level = site_groups[sid].get("seller_reputation", {}).get("level_id", "")
+                new_level = rep.get("seller_reputation", {}).get("level_id", "")
+                if 'newbie' in existing_level and 'newbie' not in new_level:
+                    site_groups[sid] = rep
+
+        for site_id, rep in site_groups.items():
+            rep_detail = rep.get("seller_reputation", {})
+            metrics = rep_detail.get("metrics", {})
+
+            level = rep_detail.get("level_id") or ""
+            complaints_rate = metrics.get("claims", {}).get("rate", 0)
+            delayed_rate = metrics.get("delayed_handling_time", {}).get("rate", 0)
+            cancellations_rate = metrics.get("cancellations", {}).get("rate", 0)
+            new_claims = metrics.get("claims", {}).get("value", 0) or 0
+            new_delayed = metrics.get("delayed_handling_time", {}).get("value", 0) or 0
+            new_cancel = metrics.get("cancellations", {}).get("value", 0) or 0
+            new_violations = new_claims + new_delayed + new_cancel
+
+            prefix = site_id.lower()
+            cur.execute(f"""
+                UPDATE stores SET
+                    {prefix}_reputation_level = ?,
+                    {prefix}_complaints_rate = ?,
+                    {prefix}_delayed_rate = ?,
+                    {prefix}_cancellations_rate = ?,
+                    {prefix}_new_violations = ?,
+                    {prefix}_new_claims = ?,
+                    {prefix}_new_delayed = ?,
+                    {prefix}_new_cancel = ?
+                WHERE rowid IN (SELECT MIN(rowid) FROM stores WHERE ml_user_id IS NOT NULL AND ml_user_id != '')
+            """, (level, complaints_rate, delayed_rate, cancellations_rate,
+                  new_violations, new_claims, new_delayed, new_cancel))
+            if cur.rowcount > 0:
+                updated += 1
+
+        conn.commit()
+
+    return {"status": "ok", "updated": updated}
+
 

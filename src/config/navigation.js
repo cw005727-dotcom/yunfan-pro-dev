@@ -60,6 +60,18 @@ export const NAV_GROUPS = [
       { id: 'notify', label: '通知中心', icon: 'bell' },
     ]
   },
+  {
+    id: 'admin_group',
+    label: '管理控制',
+    icon: 'shield',
+    color: '#064e3b',
+    adminOnly: true,
+    isExternal: true,
+    externalUrl: '/admin',
+    items: [
+      { id: 'admin', label: '管理后台', icon: 'command' },
+    ]
+  }
 ];
 
 export const findGroupIdByItemId = (itemId) => {

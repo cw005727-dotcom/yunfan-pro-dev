@@ -18,3 +18,7 @@ ModuleNotFoundError: No module named 'utils'
 /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py': [Errno 1] Operation not permitted
 /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py': [Errno 1] Operation not permitted
 /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py': [Errno 1] Operation not permitted
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py", line 9, in <module>
+    from fastapi_server.config import ML_APP_ID as CLIENT_ID, ML_CLIENT_SECRET
+ModuleNotFoundError: No module named 'fastapi_server'

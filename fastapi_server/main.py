@@ -60,8 +60,18 @@ app = FastAPI(
 
 # ==================== 静态文件（uploads）====================
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 app.mount("/app", StaticFiles(directory=str(BASE_DIR / "dist"), html=True), name="dist")
+
+
+@app.get("/admin/{full_path:path}")
+async def serve_admin(full_path: str):
+    """管理后台独立页面"""
+    admin_path = BASE_DIR / "dist" / "admin.html"
+    if admin_path.exists():
+        return FileResponse(str(admin_path))
+    return JSONResponse(status_code=404, content={"error": "Admin page not found"})
 
 # ==================== 中间件 ====================
 

@@ -17,7 +17,7 @@ MCP_KEY = "znfbzeq3wwfgahdzzeznmfhxtzljqt09"
 MCP_URL = "https://mcp.sorftime.com"
 
 # ── 数据库路径─────────────────────────────────────────────────────────────
-from fastapi_server.config import DB_PATH
+from fastapi_server.config import DB_PATH, EXPORT_DIR
 
 # ── 数据库初始化─────────────────────────────────────────────────────────
 def _ensure_amazon_table():
@@ -936,9 +936,9 @@ async def pull_potential_products(req: NewReq):
 @router.post("/new")
 async def pull_new_products(req: NewReq):
     """
-    新品模式：调用 potential_product（MCP 按潜力排序返回较新商品），
-    支持 searchName 按类目筛选，
-    前端按上架时间(listed_days)升序排列（越新越前）。
+    新品模式：
+    - US: potential_product（全量60条潜力品）
+    - MX/BR: potential_product 可能无效，用 product_search + sortby_potential_index
     """
     import logging
     logger = logging.getLogger("uvicorn.error")
@@ -948,35 +948,51 @@ async def pull_new_products(req: NewReq):
         raise HTTPException(400, "站点仅支持 US / MX / BR")
 
     all_products = []
-    # potential_product 支持 searchName 按类目筛选
-    for page in range(1, 4):  # 3次=60条
-        args = {"amzSite": site, "page": page}
-        if req.search:
-            args["searchName"] = req.search
-        raw = mcp_call("potential_product", args)
-        try:
-            chunk = json.loads(raw) if isinstance(raw, str) else raw
-        except Exception:
-            chunk = []
-        chunk = chunk if isinstance(chunk, list) else []
-        for p in chunk:
-            norm = normalize_product(p, site)
-            norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
-            norm["big_category"] = p.get("所属大类", "")
-            norm["sub_category"] = p.get("所属细分类目", "")
-            norm["seller_country"] = p.get("卖家国籍", "")
-            norm["fba_fee"] = p.get("FBA费用", 0)
-            weight_raw = p.get("重量", 0)
-            try: norm["weight"] = float(weight_raw)
-            except: norm["weight"] = 0
-            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-                continue
-            # 类目标题过滤：确保商品属于所选类目
-            if req.search and norm.get("big_category"):
-                cat = norm["big_category"].lower()
-                if req.search.lower() not in cat:
+    if site == "US":
+        for page in range(1, 4):  # 3次=60条
+            args = {"amzSite": site, "page": page}
+            raw = mcp_call("potential_product", args)
+            try:
+                chunk = json.loads(raw) if isinstance(raw, str) else raw
+            except Exception:
+                chunk = []
+            chunk = chunk if isinstance(chunk, list) else []
+            for p in chunk:
+                norm = normalize_product(p, site)
+                norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
+                norm["big_category"] = p.get("所属大类", "")
+                norm["sub_category"] = p.get("所属细分类目", "")
+                norm["seller_country"] = p.get("卖家国籍", "")
+                norm["fba_fee"] = p.get("FBA费用", 0)
+                weight_raw = p.get("重量", 0)
+                try: norm["weight"] = float(weight_raw)
+                except: norm["weight"] = 0
+                if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
                     continue
-            all_products.append(norm)
+                all_products.append(norm)
+    else:
+        # MX/BR: product_search + sortby_potential_index
+        for page in range(1, 4):
+            args = {"amzSite": site, "sortby_potential_index": True, "page": page}
+            raw = mcp_call("product_search", args)
+            try:
+                chunk = json.loads(raw) if isinstance(raw, str) else raw
+            except Exception:
+                chunk = []
+            chunk = chunk if isinstance(chunk, list) else []
+            for p in chunk:
+                norm = normalize_product(p, site)
+                norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
+                norm["big_category"] = p.get("所属大类", "")
+                norm["sub_category"] = p.get("所属细分类目", "")
+                norm["seller_country"] = p.get("卖家国籍", "")
+                norm["fba_fee"] = p.get("FBA费用", 0)
+                weight_raw = p.get("重量", 0)
+                try: norm["weight"] = float(weight_raw)
+                except: norm["weight"] = 0
+                if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
+                    continue
+                all_products.append(norm)
 
     return {"products": all_products, "total": len(all_products), "errors": []}
 
@@ -1309,6 +1325,53 @@ async def seed_all():
 
     logger.warning(f'[SEED-ALL] 全量完成，共拉取 {total_saved} 条')
     return {"success": True, "total_saved": total_saved, "message": f"全量拉取完成，共 {total_saved} 条"}
+
+
+@router.post("/export")
+async def amazon_export(data: dict):
+    """导出 Amazon 商品为 Excel，返回下载链接"""
+    import sqlite3, openpyxl, uuid, os, io
+    asins = data.get("asins", [])
+    site = data.get("site", "US")
+    mode = data.get("mode", "hot")
+
+    if not asins:
+        return {"error": "没有可导出的商品"}
+
+    _ensure_amazon_table()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    placeholders = ",".join(["?"] * len(asins))
+    cur.execute(f"SELECT asin, title, brand, price, month_sales, rating, review_count, thumbnail_url, product_url FROM amazon_products WHERE asin IN ({placeholders}) AND site=? AND mode=?", asins + [site, mode])
+    rows = cur.fetchall()
+    conn.close()
+
+    # 生成 Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Amazon Export"
+    ws.append(["ASIN", "标题", "品牌", "价格", "月销量", "评分", "评论数", "图片", "链接"])
+    for r in rows:
+        ws.append([r[0], r[1], r[2], r[3], r[4] or 0, r[5] or 0, r[6] or 0, r[7] or "", r[8] or ""])
+
+    filename = f"amazon_export_{uuid.uuid4().hex[:8]}.xlsx"
+    filepath = EXPORT_DIR / filename
+    os.makedirs(str(EXPORT_DIR), exist_ok=True)
+    wb.save(str(filepath))
+
+    download_url = f"/api/amazon/download/{filename}"
+    return {"task_id": filename, "download_url": download_url, "total": len(rows)}
+
+
+@router.get("/download/{filename}")
+async def amazon_download(filename: str):
+    """下载导出的 Excel 文件"""
+    from fastapi.responses import FileResponse
+    filepath = EXPORT_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="文件不存在或已过期")
+    return FileResponse(str(filepath), filename=filename, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @router.get("/stats")

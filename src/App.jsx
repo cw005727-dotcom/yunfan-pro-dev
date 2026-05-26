@@ -29,7 +29,6 @@ import ProductMaintainView from './views/ProductMaintainView'
 import ImageLabView from './views/ImageLabView'
 import KeywordIntelView from './views/KeywordIntelView'
 import AuthPrepareView from './views/AuthPrepareView'
-
 const viewMap = {
   'xp-amazon-hot':       XpAmazonView,
   'xp-amazon-potential': XpAmazonView,
@@ -75,8 +74,7 @@ const routeLabels = {
 }
 
 export default function App() {
-  const { toast } = useAppContext()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { toast, user, setUser } = useAppContext()
   const [sidebarItem, setSidebarItem] = useState('intro')
   const [topTab, setTopTab] = useState('home')
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -84,12 +82,12 @@ export default function App() {
 
   // 登录后淡入主界面
   useEffect(() => {
-    if (isLoggedIn) setTimeout(() => setShowMain(true), 50)
+    if (user) setTimeout(() => setShowMain(true), 50)
     else setShowMain(false)
-  }, [isLoggedIn])
+  }, [user])
 
-  if (!isLoggedIn) {
-    return <LoginView onLogin={() => setIsLoggedIn(true)} />
+  if (!user) {
+    return <LoginView onLogin={(res) => setUser({ id: res.user_id, username: res.username, role: res.role })} />
   }
 
   const View = viewMap[sidebarItem]
@@ -103,6 +101,7 @@ export default function App() {
       <TopMonitoringBar />
       <div className="flex-1 flex overflow-hidden">
         <NavSidebar
+          user={user}
           topTab={topTab}
           sidebarItem={sidebarItem}
           onTabChange={handleTabChange}
@@ -122,7 +121,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {View ? <View defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : sidebarItem === 'xp-amazon-potential' ? 'potential' : 'new'} /> : (
+            {View ? <View key={sidebarItem} defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : sidebarItem === 'xp-amazon-potential' ? 'potential' : 'new'} /> : (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">该模块正在开发中...</div>
             )}
           </div>

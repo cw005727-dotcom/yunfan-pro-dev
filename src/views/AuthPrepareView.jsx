@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import Icon from '../components/Icon.jsx'
+import { AppContext } from '../context/AppContext'
 
 // 设计语言常量
 const BRAND_GREEN = '#1EAD6F'
@@ -98,8 +99,8 @@ function SmallCard({ accent, light, icon, label, items, index, badge }) {
   )
 }
 
-// 授权弹窗 (保持逻辑不变)
-function AuthModal({ onClose, handleConnect, shopId, setShopId, nickname, setNickname, loading, error }) {
+// 授权弹窗 (只填备注名，编号后台处理)
+function AuthModal({ onClose, handleConnect, nickname, setNickname, loading, error }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
@@ -114,7 +115,7 @@ function AuthModal({ onClose, handleConnect, shopId, setShopId, nickname, setNic
         </div>
         
         <h4 className="text-xl font-black text-slate-900 tracking-tight mb-2">店铺授权</h4>
-        <p className="text-[12px] text-slate-400 font-medium mb-2">给这个店铺起个名字（备注），全站都会用这个名字显示和筛选</p>
+        <p className="text-[12px] text-slate-400 font-medium mb-6">给这个店铺起个名字（备注），全站都会用这个名字显示和筛选</p>
 
         <div className="space-y-3 mb-6">
           <input
@@ -124,13 +125,6 @@ function AuthModal({ onClose, handleConnect, shopId, setShopId, nickname, setNic
             onChange={e => setNickname(e.target.value)}
             placeholder="例如: 大姐店、墨西哥店"
             className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-[20px] text-lg font-black tracking-tight focus:outline-none focus:bg-white focus:border-emerald-500/20 transition-all"
-          />
-          <input
-            type="text"
-            value={shopId}
-            onChange={e => setShopId(e.target.value.replace(/\D/g, ''))}
-            placeholder="ML 店铺编号（纯数字）"
-            className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-[16px] text-sm font-bold tracking-tight focus:outline-none focus:bg-white focus:border-emerald-500/20 transition-all"
           />
           {error && (
             <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-500 rounded-lg">
@@ -144,7 +138,7 @@ function AuthModal({ onClose, handleConnect, shopId, setShopId, nickname, setNic
           <button onClick={onClose} className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl font-black text-[13px]">返回</button>
           <button
             onClick={handleConnect}
-            disabled={!nickname || !shopId || loading}
+            disabled={!nickname || loading}
             className="flex-[2] py-3 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-[13px] transition-all flex items-center justify-center gap-2"
           >
             {loading ? <Icon name="loader" className="w-4 h-4 animate-spin" /> : <Icon name="zap" className="w-4 h-4 text-emerald-400 fill-emerald-400" />}
@@ -158,28 +152,31 @@ function AuthModal({ onClose, handleConnect, shopId, setShopId, nickname, setNic
 
 export default function AuthPrepareView_V5() {
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [shopId, setShopId] = useState('')
   const [nickname, setNickname] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // 从 AppContext 获取当前登录用户名
+  let currentUser = '未知用户';
+  try {
+    const ctx = JSON.parse(localStorage.getItem('yf_user') || '{}');
+    if (ctx.username) currentUser = ctx.username;
+  } catch {}
+
   const handleConnect = async () => {
     if (!nickname) { setError('请输入店铺备注名'); return }
-    if (!shopId) { setError('请输入店铺编号'); return }
-    if (!/^\d+$/.test(shopId)) { setError('店铺编号必须是纯数字'); return }
     setLoading(true)
     setError('')
     try {
       const resp = await fetch('/api/generate_auth_url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' },
-        body: JSON.stringify({ shop_id: shopId, nickname: nickname })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: nickname, username: currentUser })
       })
       const data = await resp.json()
       if (data.auth_url) {
         window.open(data.auth_url, '_blank')
         setShowAuthModal(false)
-        setShopId('')
         setNickname('')
       } else {
         setError('生成授权链接失败')
@@ -287,8 +284,6 @@ export default function AuthPrepareView_V5() {
         <AuthModal 
           onClose={() => setShowAuthModal(false)} 
           handleConnect={handleConnect}
-          shopId={shopId}
-          setShopId={setShopId}
           nickname={nickname}
           setNickname={setNickname}
           loading={loading}

@@ -6,8 +6,20 @@ export const AppProvider = ({ children }) => {
   const [activeShop, setActiveShop] = useState(null);
   const [shopList, setShopList] = useState([]);
   const [toast, setToast] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('yf_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
 
   const showToast = (message, type = 'success') => setToast({ message, type });
+
+  const handleSetUser = (u) => {
+    setUser(u);
+    if (u) localStorage.setItem('yf_user', JSON.stringify(u));
+    else localStorage.removeItem('yf_user');
+  };
 
   // Load shop list on mount — shared across all views
   useEffect(() => {
@@ -18,7 +30,7 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   return (
-    <AppContext.Provider value={{ activeShop, setActiveShop, shopList, setShopList, toast, showToast }}>
+    <AppContext.Provider value={{ activeShop, setActiveShop, shopList, setShopList, toast, showToast, user, setUser: handleSetUser }}>
       {children}
     </AppContext.Provider>
   );

@@ -145,7 +145,7 @@ export default function ShopReputationView_V5() {
     const groups = {};
     rawList.forEach(item => {
       if (!item) return;
-      const label = item.group_label || '未命名店铺';
+      const label = item.account || item.group_label || '未命名店铺';
       if (!groups[label]) {
         groups[label] = {
           name: label,
@@ -210,13 +210,7 @@ export default function ShopReputationView_V5() {
         </div>
       </div>
 
-      <div className="px-6 py-2 bg-slate-50/50 border-b border-slate-100 flex items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-         <div className="w-[140px] shrink-0">账号组名称</div>
-         <div className="flex-1 flex gap-2 justify-around">
-            {SITES_CONFIG.map(s => <span key={s.id}>{s.flag} {s.name}</span>)}
-         </div>
-         <div className="w-[110px] shrink-0 text-right">今日新增违规</div>
-      </div>
+      
 
       <div className="flex-1 overflow-y-auto px-6 py-4 bg-slate-50/20 scrollbar-hide">
         {error && (
@@ -254,7 +248,7 @@ export default function ShopReputationView_V5() {
                    {shop.totalViolations > 0 ? (
                      <div className="px-3 py-1 bg-rose-50 border border-rose-200 rounded-full text-rose-600 text-[11px] font-black flex items-center gap-1.5 shadow-sm animate-in fade-in slide-in-from-right-4">
                        <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
-                       {shop.totalViolations} 条新增
+                       {shop.totalViolations} 条累计
                      </div>
                    ) : (
                      <div className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full text-emerald-600 text-[11px] font-black">

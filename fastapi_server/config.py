@@ -42,6 +42,7 @@ ML_CLIENT_SECRET = os.environ.get("ML_CLIENT_SECRET", "fuRVTdNiMfXiLLXjoBaDHXcJR
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FILE = BASE_DIR / "api_server.log"
 UPLOAD_DIR = BASE_DIR / "uploads"
+EXPORT_DIR = BASE_DIR / "exports"
 
 # CORS 白名单
 CORS_ORIGINS = [
