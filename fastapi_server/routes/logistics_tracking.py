@@ -194,12 +194,12 @@ def _poll_query(com, waybill, phone=''):
 
 
 def _get_traces_free(waybill, com):
-    """免费接口兜底"""
+    """免费接口兜底，5秒超时"""
     import requests
     try:
         resp = requests.get(
             f"https://www.kuaidi100.com/query?type={com}&postid={waybill}",
-            timeout=10
+            timeout=5
         )
         result = resp.json()
         if result.get("status") == "200":
@@ -213,7 +213,6 @@ def _get_traces_free(waybill, com):
 
 def _detect_com_and_traces(waybill, phone=''):
     """识别快递公司并查询轨迹，优先用 auto 自动识别，失败再并发遍历兜底"""
-    import concurrent.futures
     raw = waybill.split(':')[0].split('|')[0].strip()
     # 从完整字符串提取手机尾号
     if not phone and ':' in waybill:
@@ -230,8 +229,29 @@ def _detect_com_and_traces(waybill, phone=''):
     auto_traces = _get_traces(raw, 'auto', phone=phone)
     if auto_traces:
         return 'auto', auto_traces
-    # auto 查不到说明快递100不认识这个单号，纯数字直接返回无结果（避免兜底拿到假数据）
+    # auto 查不到，纯数字用免费接口兜底（快递单号格式一般能匹配）
     if raw.isdigit():
+        import concurrent.futures
+        # 先试中通（812位numbers常见），再试其他
+        priority_coms = ['zhongtong', 'yuantong', 'shentong', 'yunda', 'shunfeng', 
+                         'jtexpress', 'huitongkuaidi', 'youzhengguonei']
+        best_com = ''
+        best_traces = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_com = {executor.submit(_get_traces_free, raw, c): c for c in priority_coms}
+            for future in concurrent.futures.as_completed(future_to_com):
+                try:
+                    traces = future.result(timeout=8)
+                    if traces:
+                        ctx_all = ' '.join(t.get('context','') for t in traces)
+                        if any(c in ctx_all for c in WAREHOUSE_CITIES):
+                            if len(traces) > len(best_traces):
+                                best_com = future_to_com[future]
+                                best_traces = traces
+                except:
+                    continue
+        if best_traces:
+            return best_com, best_traces
         return '', []
 
     # === 方案2: 有字母前缀直接查 ===
