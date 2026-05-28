@@ -265,3 +265,62 @@ async def get_performance_list(
         'page_size': page_size, 'total_pages': total_pages,
         'stats': stats, 'items': page_items
     }
+
+
+@router.post("/performance/repull-images")
+async def repull_performance_images():
+    """补拉商品性能表中缺失的主图，从 ML API 拉取"""
+    from ..middleware.auth import get_ml_token_provider
+    import requests, json, time as _time
+
+    provider = get_ml_token_provider()
+    token = provider.get_valid_token()
+    if not token:
+        return JSONResponse({'success': False, 'message': '无法获取 ML access_token，请重新授权'}, status_code=401)
+
+    conn = sqlite3.connect(str(DB_PATH))
+    rows = conn.execute(
+        "SELECT item_id, site_id FROM product_performance WHERE thumbnail IS NULL OR thumbnail = ''"
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        return {'success': True, 'message': '所有商品已有主图，无需补拉', 'total': 0}
+
+    pulled = 0
+    failed = 0
+    conn = sqlite3.connect(str(DB_PATH))
+    for item_id, site_id in rows:
+        try:
+            ml_id = f'{site_id}{item_id}'
+            r = requests.get(
+                f'https://api.mercadolibre.com/marketplace/items/{ml_id}',
+                headers={'Authorization': f'Bearer {token}'}, timeout=8
+            )
+            if r.status_code == 200:
+                d = r.json()
+                thumbnail = d.get('thumbnail', '') or d.get('secure_thumbnail', '')
+                pics = d.get('pictures', [])
+                pics_count = len(pics)
+                pics_urls = [p if isinstance(p, str) else p.get('url', '') for p in pics]
+                pictures = json.dumps(pics_urls, ensure_ascii=False)
+                conn.execute(
+                    "UPDATE product_performance SET thumbnail=?, pictures=?, pictures_count=? WHERE item_id=?",
+                    (thumbnail, pictures, pics_count, item_id)
+                )
+                conn.commit()
+                pulled += 1
+            else:
+                failed += 1
+        except:
+            failed += 1
+        _time.sleep(0.3)
+    conn.close()
+
+    return {
+        'success': True,
+        'message': f'补拉完成：成功 {pulled} 条，失败 {failed} 条',
+        'total': len(rows),
+        'pulled': pulled,
+        'failed': failed
+    }

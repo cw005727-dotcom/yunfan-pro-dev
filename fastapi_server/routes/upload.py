@@ -11,8 +11,7 @@ import openpyxl
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR
-
-ACCESS_TOKEN = os.environ.get('ML_ACCESS_TOKEN', '')
+from ..middleware.auth import get_ml_token_provider
 
 # 导入解析脚本
 import sys
@@ -155,16 +154,19 @@ async def upload_links(
         # 第二阶段：后台拉取图片（不阻塞用户返回）
         if imported > 0 and item_ids:
             import threading
+            _provider = get_ml_token_provider()
             def _pull_images(item_ids, site_id, tmp_path_for_cleanup):
                 import requests, json, time, sqlite3
-                h = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
                 conn = sqlite3.connect(str(DB_PATH))
                 for idx, item_id in enumerate(item_ids):
                     try:
+                        token = _provider.get_valid_token()
+                        if not token:
+                            continue
                         ml_id = f'{site_id}{item_id}'
                         r = requests.get(
                             f'https://api.mercadolibre.com/marketplace/items/{ml_id}',
-                            headers=h, timeout=8
+                            headers={'Authorization': f'Bearer {token}'}, timeout=8
                         )
                         if r.status_code == 200:
                             d = r.json()
