@@ -59,12 +59,12 @@ class MercadoLibreTokenProvider:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT access_token, refresh_token FROM stores WHERE access_token IS NOT NULL LIMIT 1"
+                "SELECT access_token, refresh_token, token_expires_at FROM stores WHERE access_token IS NOT NULL ORDER BY token_expires_at DESC LIMIT 1"
             )
             row = cursor.fetchone()
             conn.close()
             if row:
-                return {"access_token": row[0], "refresh_token": row[1]}
+                return {"access_token": row[0], "refresh_token": row[1], "expires_in": max(1, int(row[2]) - int(time.time())) if row[2] else 21600}
         except Exception as e:
             logger.warning(f"从数据库加载token失败: {e}")
         return None
