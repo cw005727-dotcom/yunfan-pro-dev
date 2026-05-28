@@ -4,6 +4,41 @@ from fastapi.responses import JSONResponse
 import sqlite3, json
 from ..config import DB_PATH
 
+# 自动建表（服务器首次启动时创建）
+conn = sqlite3.connect(str(DB_PATH))
+conn.execute("""
+    CREATE TABLE IF NOT EXISTS product_performance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id TEXT UNIQUE,
+        sku TEXT,
+        product_name TEXT,
+        status TEXT,
+        variation TEXT,
+        unique_visits INTEGER DEFAULT 0,
+        order_count INTEGER DEFAULT 0,
+        unique_buyers INTEGER DEFAULT 0,
+        units_sold INTEGER DEFAULT 0,
+        gross_sales_usd REAL DEFAULT 0,
+        share_percent TEXT,
+        visitor_convert_rate TEXT,
+        visitor_buy_convert_rate TEXT,
+        thumbnail TEXT,
+        pictures TEXT,
+        pictures_count INTEGER DEFAULT 0,
+        ai_issue_type TEXT,
+        ai_issue_desc TEXT,
+        ai_suggestion TEXT,
+        source_file TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        site_id TEXT DEFAULT 'MLB'
+    )
+""")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_pp_item_id ON product_performance(item_id)")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_pp_status ON product_performance(status)")
+conn.commit()
+conn.close()
+
 router = APIRouter(prefix="/api", tags=["商品性能"])
 
 def parse_rate(val):
