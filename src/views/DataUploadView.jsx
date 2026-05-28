@@ -215,7 +215,7 @@ export default function DataUploadView() {
             </div>
           </div>
           {selectedShop && (
-            <>
+            <div>
               <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
               <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', textAlign: 'left' }}>选择站点</div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -260,7 +260,7 @@ export default function DataUploadView() {
                   </button>
                 ))}
               </div>
-            </>
+            </div>
           )}
       </Modal>
       {/* 变化卡片区 */}
