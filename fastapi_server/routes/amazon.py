@@ -980,13 +980,13 @@ def _upsert_products_db(products: list, site: str, mode: str, category_node_id: 
         p['category_node_id'] = category_node_id
         cur.execute("""
         INSERT INTO amazon_products (
-            title, price, weight, monthly_sales, monthly_revenue,
+            asin, title, price, weight, monthly_sales, monthly_revenue,
             brand, review_count, rating, seller_country, node_id, node_name,
             big_category, sub_category, listed_days, launch_date, fba_fee,
             fulfillment, thumbnail_url, product_url, potential_index, status, fetched_at,
             category_node_id
         ) VALUES (
-            :title, :price, :weight, :monthly_sales, :monthly_revenue,
+            :asin, :title, :price, :weight, :monthly_sales, :monthly_revenue,
             :brand, :review_count, :rating, :seller_country, :node_id, :node_name,
             :big_category, :sub_category, :listed_days, :launch_date, :fba_fee,
             :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours'),
