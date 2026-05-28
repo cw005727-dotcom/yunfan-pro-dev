@@ -17,6 +17,10 @@ function UploadCard({ icon: Icon, title, accept, endpoint, onUpload }) {
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = useCallback(async (file) => {
+    if (onUpload) {
+      onUpload(file);
+      return false;
+    }
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -116,6 +120,7 @@ export default function DataUploadView() {
   const [pendingFile, setPendingFile] = useState(null);
   const [pendingEndpoint, setPendingEndpoint] = useState('');
   const [selectedShop, setSelectedShop] = useState(null);
+  const [siteUploading, setSiteUploading] = useState(false);
 
   // 页面加载时从数据库恢复历史变化
   useEffect(() => {
@@ -186,7 +191,7 @@ export default function DataUploadView() {
       <Modal
         title="选择店铺和站点"
         open={siteModalOpen}
-        onCancel={() => { setSiteModalOpen(false); setPendingFile(null); }}
+        onCancel={() => { setSiteModalOpen(false); setPendingFile(null); setSelectedShop(null); setSiteUploading(false); }}
         footer={null}
         width={420}
       >
@@ -248,6 +253,7 @@ export default function DataUploadView() {
                       } finally {
                         setSiteUploading(false);
                         setPendingFile(null);
+                        setSelectedShop(null);
                       }
                     }}
                     style={{
