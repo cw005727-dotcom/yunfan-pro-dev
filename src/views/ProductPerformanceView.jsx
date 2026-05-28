@@ -29,7 +29,6 @@ const issueStyle = (type) => {
   const map = {
     '⚠️高曝光低转化': { bg: '#fef3c7', color: '#d97706', border: '#f59e0b' },
     '💡低曝光高转化': { bg: '#d1fae5', color: '#059669', border: '#10b981' },
-    '🛒零订单': { bg: '#fee2e2', color: '#dc2626', border: '#ef4444' },
     '📈表现正常': { bg: '#f3f4f6', color: '#6b7280', border: '#9ca3af' },
   }
   return map[type] || map['📈表现正常']
@@ -38,7 +37,7 @@ const issueStyle = (type) => {
 export default function ProductPerformanceView() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈表现正常': 0 })
+  const [stats, setStats] = useState({ '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '📈表现正常': 0 })
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -71,7 +70,7 @@ export default function ProductPerformanceView() {
       if (controller.signal.aborted) return
 
       setItems(data.items || [])
-      setStats(data.stats || { '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈表现正常': 0 })
+      setStats(data.stats || { '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '📈表现正常': 0 })
       setTotal(data.total || 0)
       setTotalPages(data.total_pages || 1)
     } catch (err) {
@@ -117,7 +116,7 @@ export default function ProductPerformanceView() {
           📊 商品性能诊断
         </h2>
         <p style={{ color: '#6b7280', fontSize: '14px', margin: '8px 0 0' }}>
-          共 {total} 个商品 · {stats['⚠️高曝光低转化'] + stats['🛒零订单']} 个问题商品待优化
+          共 {total} 个商品 · {stats['⚠️高曝光低转化']} 个问题商品待优化
         </p>
       </div>
 
@@ -132,11 +131,10 @@ export default function ProductPerformanceView() {
         <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '16px', opacity: 0.9 }}>
           🌟 AI 自动诊断 · 问题商品识别
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
           {[
             { key: '⚠️高曝光低转化', icon: 'alert-triangle', label: '高曝光低转化', color: '#fbbf24' },
             { key: '💡低曝光高转化', icon: 'zap', label: '低曝光高转化', color: '#34d399' },
-            { key: '🛒零订单', icon: 'shopping-cart', label: '零订单商品', color: '#f87171' },
             { key: '📈表现正常', icon: 'check-circle', label: '表现正常', color: '#a78bfa' },
           ].map(({ key, icon, label, color }) => (
             <div key={key} style={{

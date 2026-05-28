@@ -54,10 +54,9 @@ def parse_rate(val):
 def ai_diagnose(items, all_items=None):
     """AI诊断：识别问题商品。
     新规则（2026-05-23）：基于全量数据计算均值，而非仅当前页。
-    - 高曝光低转化：访问量>=均值，转化率<均值，零订单
+    - 高曝光低转化：访问量>=均值，转化率<均值
     - 低曝光高转化：访问量<均值，转化率>=均值
-    - 零订单：有访问量但零订单（且不满足高曝光低转化条件时）
-    - 表现正常：曝光与转化均高于均值，或其他
+    - 表现正常：访问量>=均值且转化率>=均值，或其他情况
     """
     if not items:
         return items
@@ -73,13 +72,8 @@ def ai_diagnose(items, all_items=None):
     for p in items:
         v = p.get('unique_visits') or 0
         r = parse_rate(p.get('visitor_convert_rate', ''))
-        orders = p.get('order_count') or 0
 
-        if v > 0 and orders == 0:
-            issue_type = '🛒零订单'
-            issue_desc = f'有{v}次访问但未转化，可能存在主图/价格/库存问题'
-            suggestion = '建议：检查商品链接是否正常、价格竞争力、主图吸引力'
-        elif v >= avg_visit and r < avg_rate:
+        if v >= avg_visit and r < avg_rate:
             issue_type = '⚠️高曝光低转化'
             issue_desc = f'访问量{v}(>=均值{avg_visit:.0f})但转化率{round(r,2)}%低于均值{round(avg_rate,2)}%'
             suggestion = '建议检查：主图是否吸引、价格是否有竞争力、标题关键词是否准确'
