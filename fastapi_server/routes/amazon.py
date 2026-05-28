@@ -21,10 +21,12 @@ from fastapi_server.config import DB_PATH, EXPORT_DIR
 
 # ── 数据库初始化─────────────────────────────────────────────────────────
 def _ensure_amazon_table():
+    """建表/升级：确保 amazon_products 表有 category_node_id 字段"""
     import sqlite3
     conn = sqlite3.connect(DB_PATH)
-    conn.executescript(
-        """
+    cur = conn.cursor()
+    # 建表（完整结构）
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS amazon_products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         asin TEXT NOT NULL,
@@ -51,11 +53,17 @@ def _ensure_amazon_table():
         product_url TEXT,
         potential_index REAL DEFAULT 0,
         status TEXT DEFAULT 'pending',
+        category_node_id TEXT,
         fetched_at TEXT DEFAULT (datetime('now', '+8 hours')),
         CONSTRAINT uq_amazon_asin_site_mode UNIQUE(asin, site, mode)
-    );
-    CREATE INDEX IF NOT EXISTS idx_ap_site_mode ON amazon_products(site, mode);
-    """)
+    )""")
+    # 升级：如果表已存在但缺 category_node_id 列，补充
+    cur.execute("PRAGMA table_info(amazon_products)")
+    cols = [row[1] for row in cur.fetchall()]
+    if 'category_node_id' not in cols:
+        cur.execute("ALTER TABLE amazon_products ADD COLUMN category_node_id TEXT")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_ap_site_mode ON amazon_products(site, mode)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_ap_category_node ON amazon_products(category_node_id)")
     conn.commit()
     conn.close()
 
@@ -794,14 +802,21 @@ def list_sites():
         {"id": "BR", "name": "🇧🇷 巴西", "flag": "BR"},
     ]
 
-def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1, limit: int = 50) -> dict:
-    """从 amazon_products 表查询商品，按月销量降序"""
+def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1, limit: int = 50, node_id: str = "") -> dict:
+    """从 amazon_products 表查询商品
+    - node_id: 按 category_node_id 精确过滤（前端选类目时传）
+    - search: 按 big_category/sub_category/title 模糊搜索
+    """
     import sqlite3
     _ensure_amazon_table()
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     bindings = [site, mode]
-    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, category_node_id, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    if node_id:
+        sql += "AND category_node_id=? "
+        bindings.append(node_id)
     if search:
         sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
         like = f"%{search}%"
@@ -811,11 +826,20 @@ def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1,
     bindings.extend([limit, offset])
     cur.execute(sql, bindings)
     rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?", [site, mode])
+    products = [dict(r) for r in rows]
+    # count
+    count_sql = "SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?"
+    count_bindings = [site, mode]
+    if node_id:
+        count_sql += " AND category_node_id=?"
+        count_bindings.append(node_id)
+    if search:
+        like = f"%{search}%"
+        count_sql += " AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?)"
+        count_bindings.extend([like, like, like])
+    cur.execute(count_sql, count_bindings)
     total = cur.fetchone()[0]
     conn.close()
-    products = [dict(zip(cols, r)) for r in rows]
     return {"products": products, "total": total, "errors": []}
 
 
@@ -828,7 +852,7 @@ async def pull_hot_products(req: HotReq):
     site = req.site.upper()
     if site not in ("US", "MX", "BR"):
         raise HTTPException(400, "站点仅支持 US / MX / BR")
-    return _query_amazon_from_db(site, "hot", search=req.search or "", page=req.page or 1)
+    return _query_amazon_from_db(site, "hot", search=req.search or "", page=req.page or 1, node_id=req.node_id or "")
 
 @router.post("/potential")
 async def pull_potential_products(req: NewReq):
@@ -842,9 +866,13 @@ async def pull_potential_products(req: NewReq):
     import sqlite3
     _ensure_amazon_table()
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     bindings = [site, "potential"]
-    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, category_node_id, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    if req.node_id:
+        sql += "AND category_node_id=? "
+        bindings.append(req.node_id)
     if req.search:
         sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
         like = f"%{req.search}%"
@@ -856,11 +884,14 @@ async def pull_potential_products(req: NewReq):
     bindings.extend([limit, offset])
     cur.execute(sql, bindings)
     rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?", [site, "potential"])
+    products = [dict(r) for r in rows]
+    if req.node_id:
+        count_bindings = [site, "potential", req.node_id]
+        cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=? AND category_node_id=?", count_bindings)
+    else:
+        cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?", [site, "potential"])
     total = cur.fetchone()[0]
     conn.close()
-    products = [dict(zip(cols, r)) for r in rows]
     return {"products": products, "total": total, "errors": []}
 
 @router.post("/new")
@@ -872,11 +903,12 @@ async def pull_new_products(req: NewReq):
     site = req.site.upper()
     if site not in ("US", "MX", "BR"):
         raise HTTPException(400, "站点仅支持 US / MX / BR")
-    return _query_amazon_from_db(site, "new", search=req.search or "", page=req.page or 1)
+    return _query_amazon_from_db(site, "new", search=req.search or "", page=req.page or 1, node_id=req.node_id or "")
 
 # ── 数据库写入─────────────────────────────────────────────────────────────
-def _upsert_products_db(products: list, site: str, mode: str):
-    """先删 site+mode 的旧数据，再批量写入（全量替换，避免 UNIQUE 冲突浪费）"""
+def _upsert_products_db(products: list, site: str, mode: str, category_node_id: str = ""):
+    """先删 site+mode 的旧数据，再批量写入（全量替换，避免 UNIQUE 冲突浪费）
+    category_node_id: 记录这批数据来自哪个类目 nodeId"""
     import sqlite3
     _ensure_amazon_table()
     conn = sqlite3.connect(DB_PATH)
@@ -887,17 +919,20 @@ def _upsert_products_db(products: list, site: str, mode: str):
     for p in products:
         p['site'] = site
         p['mode'] = mode
+        p['category_node_id'] = category_node_id
         cur.execute("""
         INSERT INTO amazon_products (
             title, price, weight, monthly_sales, monthly_revenue,
             brand, review_count, rating, seller_country, node_id, node_name,
             big_category, sub_category, listed_days, launch_date, fba_fee,
-            fulfillment, thumbnail_url, product_url, potential_index, status, fetched_at
+            fulfillment, thumbnail_url, product_url, potential_index, status, fetched_at,
+            category_node_id
         ) VALUES (
             :title, :price, :weight, :monthly_sales, :monthly_revenue,
             :brand, :review_count, :rating, :seller_country, :node_id, :node_name,
             :big_category, :sub_category, :listed_days, :launch_date, :fba_fee,
-            :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours')
+            :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours'),
+            :category_node_id
         )""", p)
     conn.commit()
     conn.close()
@@ -983,6 +1018,7 @@ class SeedReq(BaseModel):
     site: str = "US"
     mode: str = "hot"
     category_name: Optional[str] = None
+    category_node_id: str = ""   # 记录拉取来源的 nodeId
     pages: int = 25
 
 @router.post("/seed")
@@ -1049,7 +1085,7 @@ async def seed_category(req: SeedReq):
         time.sleep(0.2)
 
     if all_products:
-        _upsert_products_db(all_products, site, mode)
+        _upsert_products_db(all_products, site, mode, category_node_id=req.category_node_id)
 
     logger.warning(f'[AMAZON SEED] 完成: 写入 {len(all_products)} 条 [{site}][{mode}][{search}]')
     return {
@@ -1165,14 +1201,12 @@ async def seed_all():
             except Exception as e:
                 logger.warning(f'[SEED-ALL] site={site} mode={mode} FAIL: {e}')
 
-            # 每个站点取前20个大类名做 category_report 补数据
+            # 每个站点取前20个大类，附带 nodeId 一起传递给 seed_category
             tree = _load_category_tree(site.upper())
-            top_names = []
             for node in tree[:20]:
-                cn = _translate_cat(site.upper(), node.get("nodeId", ""), node.get("类目名称", "") or node.get("name", ""))
-                top_names.append(cn or node.get("类目名称", "") or node.get("name", ""))
-
-            for cat_name in top_names:
+                node_id = node.get("nodeId", "")
+                cn = _translate_cat(site.upper(), node_id, node.get("类目名称", "") or node.get("name", ""))
+                cat_name = cn or node.get("类目名称", "") or node.get("name", "")
                 if not cat_name:
                     continue
                 await asyncio.sleep(0.3)
@@ -1180,12 +1214,13 @@ async def seed_all():
                     seed_result = await seed_category(SeedReq(
                         site=site, mode=mode,
                         category_name=cat_name,
+                        category_node_id=node_id,
                         pages=5
                     ))
                     total_saved += seed_result.get('products_saved', 0)
-                    logger.warning(f'[SEED-ALL] site={site} mode={mode} cat={cat_name[:20]} OK: {seed_result.get("products_saved", 0)}条')
+                    logger.warning(f'[SEED-ALL] site={site} mode={mode} cat={cat_name[:20]} nodeId={node_id} OK: {seed_result.get("products_saved", 0)}条')
                 except Exception as e:
-                    logger.warning(f'[SEED-ALL] site={site} mode={mode} cat={cat_name[:20]} FAIL: {e}')
+                    logger.warning(f'[SEED-ALL] site={site} mode={mode} cat={cat_name[:20]} nodeId={node_id} FAIL: {e}')
 
             logger.warning(f'[SEED-ALL] site={site} mode={mode} 完成')
 
