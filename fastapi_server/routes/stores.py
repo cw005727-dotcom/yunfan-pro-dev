@@ -281,7 +281,7 @@ async def generate_auth_url(data: dict = Body(None)):
     state = make_state(username, nickname, redirect_to)
 
     auth_url = (
-        f"https://auth.mercadolibre.com/authorization"
+        f"https://global-selling.mercadolibre.com/authorization"
         f"?response_type=code"
         f"&client_id={ML_APP_ID}"
         f"&redirect_uri={ML_REDIRECT_URI}"
