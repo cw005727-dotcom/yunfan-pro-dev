@@ -4,7 +4,13 @@ import os, sqlite3, json, time, logging
 from datetime import datetime, timezone, timedelta
 
 import socket
-DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else '/home/admin/yunfan-pro-dev'
+HOST = socket.gethostname()
+if HOST == 'VM-0-3-ubuntu':
+    DATA_DIR = '/home/ubuntu/yunfan-pro-dev'
+elif HOST == 'iZj6chblbqrz1cmahnevj3Z':
+    DATA_DIR = '/home/admin/data'
+else:
+    DATA_DIR = '/home/admin/yunfan-pro-dev'
 SERVER_DB = os.path.join(DATA_DIR, 'mercadolibre.db')
 LOG_FILE  = os.path.join(DATA_DIR, 'notification_processor.log')
 
@@ -145,8 +151,8 @@ def process_notification(notif):
 
             try:
                 import base64, os
-                key_file = '/home/admin/yunfan-pro-dev/.ml_token_key'
-                enc_file = '/home/admin/yunfan-pro-dev/ml_tokens.enc'
+                key_file = os.path.join(DATA_DIR, '.ml_token_key')
+                enc_file = os.path.join(DATA_DIR, 'ml_tokens.enc')
                 if os.path.exists(key_file) and os.path.exists(enc_file):
                     key = open(key_file).read().strip()
                     enc = open(enc_file).read()

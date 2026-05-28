@@ -329,12 +329,16 @@ def handle_claims(conn, data: dict):
         logger.warning(f"[Claims webhook] failed to write ml_notifications: {e}")
 
 
+# 兼容旧版 ML webhook 路径
 @router.post("/relay")
 async def relay(request: Request):
-    """
-    统一接收 ML 所有 webhook 通知，按 topic 分流处理。
-    兼容 JSON 和 form-urlencoded。
-    """
+    """统一接收 ML 所有 webhook 通知（旧路径），按 topic 分流处理。"""
+    return await _handle_webhook(request)
+
+# 兼容旧版错误路径 /api/ml/webhook/relay
+@router.post("/ml/webhook/relay")
+async def ml_relay(request: Request):
+    """兼容旧版 ML webhook 路径 /api/ml/webhook/relay"""
     return await _handle_webhook(request)
 
 async def _handle_webhook(request: Request):
@@ -360,7 +364,8 @@ async def _handle_webhook(request: Request):
                 order_id = m.group(1)
         logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
         # claims 类型的 topic 没有 order_id（用 resource），单独处理
-        if topic not in ('marketplace_claims',) and not order_id:
+        # marketplace_items 也没有 order_id（商品变更通知），忽略即可
+        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_shipments') and not order_id:
             raise HTTPException(status_code=400, detail="Missing order id")
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去（claims 不用）
         if order_id:
