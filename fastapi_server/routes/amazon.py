@@ -907,9 +907,6 @@ def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1,
     if search:
         # 按站点取中文→本地语言映射
         zh_mapped = _MAP_BY_SITE.get(site.upper(), {}).get(search.strip(), [])
-        import logging
-        logger = logging.getLogger("uvicorn.error")
-        logger.warning(f"[AMAZON MAP] site={site} search={search!r} mapped={zh_mapped}")
         if zh_mapped:
             or_clauses = []
             for kw in zh_mapped:
