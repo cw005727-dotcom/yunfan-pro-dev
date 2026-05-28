@@ -169,7 +169,7 @@ async def upload_links(
                             f'https://api.mercadolibre.com/marketplace/items/{ml_id}',
                             headers={'Authorization': f'Bearer {token}'}, timeout=8
                         )
-                        if r.status_code == 200:
+                        if r.status_code in (200, 206):
                             d = r.json()
                             thumbnail = d.get('thumbnail', '') or d.get('secure_thumbnail', '')
                             pics = d.get('pictures', [])
