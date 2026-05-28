@@ -424,26 +424,19 @@ def get_tracking(
         if has_tracking:
             purchased_count += 1
 
-        # thumbnail 优先级: logistics_tracking.thumbnail > operational_orders.thumbnail > product_performance
-        thumbnail = lt_thumbnail or ''
-        if not thumbnail and order_number:
+        # thumbnail 优先级: operational_orders.thumbnail > logistics_tracking.thumbnail（ML API批量拉取）
+        thumbnail = ''
+        if order_number:
             try:
                 cur2 = conn.cursor()
                 cur2.execute("SELECT thumbnail FROM operational_orders WHERE order_number = ? LIMIT 1", (order_number,))
                 t_row = cur2.fetchone()
                 if t_row and t_row[0]:
                     thumbnail = t_row[0]
-                if not thumbnail:
-                    cur2.execute("""
-                        SELECT p.thumbnail FROM product_performance p
-                        INNER JOIN operational_orders o ON (p.sku = o.sku OR p.item_id = o.asin)
-                        WHERE o.order_number = ? LIMIT 1
-                    """, (order_number,))
-                    p_row = cur2.fetchone()
-                    if p_row and p_row[0]:
-                        thumbnail = p_row[0]
             except:
                 pass
+        if not thumbnail and lt_thumbnail:
+            thumbnail = lt_thumbnail
 
         t = {
             'order_number': order_number,
@@ -619,7 +612,7 @@ def fetch_traces():
 
 @router.get("/fetch-thumbnails")
 def fetch_thumbnails(limit: int = 30):
-    """用 listing_id + site 调 ML API 拿缩略图，补齐 logistics_tracking"""
+    """用 order_number 调 ML 订单API拿缩略图，补齐 logistics_tracking"""
     from ..middleware.auth import get_ml_token_provider
     import time
 
@@ -632,36 +625,55 @@ def fetch_thumbnails(limit: int = 30):
     conn = get_conn()
     cur = conn.cursor()
 
-    # 找 logistics_tracking 有 listing_id 但没有 thumbnail 的
-    # listing_id 已包含站点前缀（如 MLA1739915551），直接用它调API
+    # 找 logistics_tracking 没有 thumbnail 的订单（排除已取消）
     cur.execute("""
-        SELECT order_number, listing_id
+        SELECT order_number
         FROM logistics_tracking
-        WHERE IFNULL(listing_id, '') != ''
-        AND (thumbnail IS NULL OR thumbnail = '')
+        WHERE (thumbnail IS NULL OR thumbnail = '')
         AND (is_ignored IS NULL OR is_ignored = 0)
         AND (status IS NULL OR status NOT IN ('已取消','取消'))
         LIMIT ?
     """, (limit,))
     rows = cur.fetchall()
 
+    # 先查 operational_orders 中有没有图
     results = []
-    for order_number, listing_id in rows:
-        ml_id = listing_id  # listing_id 已经包含站点前缀，直接就是完整的item_id
+    for (order_number,) in rows:
+        cur2 = conn.cursor()
+        cur2.execute("SELECT thumbnail FROM operational_orders WHERE order_number = ? LIMIT 1", (order_number,))
+        op_row = cur2.fetchone()
+        if op_row and op_row[0]:
+            cur.execute("UPDATE logistics_tracking SET thumbnail = ? WHERE order_number = ?", (op_row[0], order_number))
+            results.append({"order_number": order_number, "source": "operational_orders", "thumbnail": op_row[0], "success": True})
+            continue
+
+        # 调 ML 订单API获取 item ID → items API 取图
         try:
-            r = requests.get(f'https://api.mercadolibre.com/marketplace/items/{ml_id}', headers=headers, timeout=8)
+            r = requests.get(f'https://api.mercadolibre.com/marketplace/orders/{order_number}', headers=headers, timeout=8)
             if r.status_code == 200:
-                d = r.json()
-                thumb_url = d.get('thumbnail', '') or d.get('secure_thumbnail', '')
-                if thumb_url:
-                    cur.execute("UPDATE logistics_tracking SET thumbnail = ? WHERE order_number = ?", (thumb_url, order_number))
-                    results.append({"order_number": order_number, "listing_id": listing_id, "thumbnail": thumb_url, "success": True})
+                od = r.json()
+                items = od.get('order_items') or []
+                if items:
+                    item_id = items[0].get('item', {}).get('id', '')
+                    if item_id:
+                        ir = requests.get(f'https://api.mercadolibre.com/items/{item_id}', headers=headers, timeout=8)
+                        if ir.status_code == 200:
+                            thumb_url = ir.json().get('thumbnail', '') or ir.json().get('secure_thumbnail', '')
+                            if thumb_url:
+                                cur.execute("UPDATE logistics_tracking SET thumbnail = ? WHERE order_number = ?", (thumb_url, order_number))
+                                results.append({"order_number": order_number, "source": "ml_api", "thumbnail": thumb_url, "success": True})
+                            else:
+                                results.append({"order_number": order_number, "success": False, "reason": "ML无图片"})
+                        else:
+                            results.append({"order_number": order_number, "success": False, "reason": f"items HTTP {ir.status_code}"})
+                    else:
+                        results.append({"order_number": order_number, "success": False, "reason": "订单无商品ID"})
                 else:
-                    results.append({"order_number": order_number, "listing_id": listing_id, "success": False, "reason": "无图片"})
+                    results.append({"order_number": order_number, "success": False, "reason": "订单无商品"})
             else:
-                results.append({"order_number": order_number, "listing_id": listing_id, "success": False, "reason": f"HTTP {r.status_code}"})
+                results.append({"order_number": order_number, "success": False, "reason": f"orders HTTP {r.status_code}"})
         except Exception as e:
-            results.append({"order_number": order_number, "listing_id": listing_id, "success": False, "reason": str(e)[:50]})
+            results.append({"order_number": order_number, "success": False, "reason": str(e)[:50]})
         time.sleep(0.3)
 
     conn.commit()
