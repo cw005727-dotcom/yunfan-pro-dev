@@ -144,6 +144,12 @@ def _get_traces(waybill, com, phone=''):
         if poll_traces:
             return poll_traces
 
+    # auto模式有手机尾号时，优先试中通poll
+    if com == 'auto' and phone:
+        poll_traces = _poll_query('zhongtong', waybill, phone)
+        if poll_traces:
+            return poll_traces
+
     # 没有手机号时，中通/顺丰用免费接口
     if com in ('zhongtong', 'shunfeng', 'jd'):
         return _get_traces_free(waybill, com)
@@ -194,12 +200,12 @@ def _poll_query(com, waybill, phone=''):
 
 
 def _get_traces_free(waybill, com):
-    """免费接口兜底，5秒超时"""
+    """免费接口兜底"""
     import requests
     try:
         resp = requests.get(
             f"https://www.kuaidi100.com/query?type={com}&postid={waybill}",
-            timeout=5
+            timeout=10
         )
         result = resp.json()
         if result.get("status") == "200":
@@ -229,10 +235,9 @@ def _detect_com_and_traces(waybill, phone=''):
     auto_traces = _get_traces(raw, 'auto', phone=phone)
     if auto_traces:
         return 'auto', auto_traces
-    # auto 查不到，纯数字用免费接口兜底（快递单号格式一般能匹配）
+    # auto 查不到，纯数字用免费接口并发兜底
     if raw.isdigit():
         import concurrent.futures
-        # 先试中通（812位numbers常见），再试其他
         priority_coms = ['zhongtong', 'yuantong', 'shentong', 'yunda', 'shunfeng', 
                          'jtexpress', 'huitongkuaidi', 'youzhengguonei']
         best_com = ''
@@ -241,12 +246,17 @@ def _detect_com_and_traces(waybill, phone=''):
             future_to_com = {executor.submit(_get_traces_free, raw, c): c for c in priority_coms}
             for future in concurrent.futures.as_completed(future_to_com):
                 try:
-                    traces = future.result(timeout=8)
+                    traces = future.result(timeout=10)
                     if traces:
                         ctx_all = ' '.join(t.get('context','') for t in traces)
+                        # 中通数据量最大时优先采信（防止极兔/韵达等冒用）
+                        com_name = future_to_com[future]
+                        score = len(traces)
+                        if com_name == 'zhongtong':
+                            score += 5  # 中通加分，可信度更高
                         if any(c in ctx_all for c in WAREHOUSE_CITIES):
-                            if len(traces) > len(best_traces):
-                                best_com = future_to_com[future]
+                            if score > len(best_traces):
+                                best_com = com_name
                                 best_traces = traces
                 except:
                     continue
