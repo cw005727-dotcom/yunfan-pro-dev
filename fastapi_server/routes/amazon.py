@@ -974,11 +974,13 @@ def _upsert_products_db(products: list, site: str, mode: str, category_node_id: 
     # 先删该 site+mode 的旧数据
     cur.execute("DELETE FROM amazon_products WHERE site=? AND mode=?", [site, mode])
     # 批量插入新数据
+    inserted = 0
     for p in products:
         p['site'] = site
         p['mode'] = mode
         p['category_node_id'] = category_node_id
-        cur.execute("""
+        try:
+            cur.execute("""
         INSERT INTO amazon_products (
             asin, title, price, weight, monthly_sales, monthly_revenue,
             brand, review_count, rating, seller_country, node_id, node_name,
@@ -992,6 +994,8 @@ def _upsert_products_db(products: list, site: str, mode: str, category_node_id: 
             :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours'),
             :category_node_id
         )""", p)
+        except:
+            pass
     conn.commit()
     conn.close()
 
