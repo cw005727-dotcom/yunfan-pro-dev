@@ -190,9 +190,9 @@ export default function XpAmazonView_V5({ defaultMode }) {
       setSubCategories(top.children)
     } else {
       setSubCategories([])
-      // 没有子类，直接拉取
-      handlePull(topId, top.name)
     }
+    // 选一级类目就加载数据，二级类目可选
+    handlePull(topId, top.name)
   }
 
   const [subCategories, setSubCategories] = useState([])
