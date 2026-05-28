@@ -13,7 +13,7 @@ from typing import Optional
 
 router = APIRouter(prefix="/api/amazon", tags=["amazon"])
 
-MCP_KEY = "vmrqv0dlzke4vjfhu0zqsjfzuhbkqt09"
+MCP_KEY = "l08rouw3cki1ugntvk1hq1bpuujszz09"
 MCP_URL = "https://mcp.sorftime.com"
 
 # ── 数据库路径─────────────────────────────────────────────────────────────
@@ -831,7 +831,7 @@ _US_CAT_ZH2EN = {
 }
 
 
-def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1, limit: int = 50, node_id: str = "") -> dict:
+def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1, limit: int = 200, node_id: str = "") -> dict:
     """从 amazon_products 表查询商品
     - node_id: 按 category_node_id 精确过滤（前端选类目时传）
     - search: 按 big_category/sub_category/title 模糊搜索
@@ -936,7 +936,7 @@ async def pull_potential_products(req: NewReq):
         like = f"%{req.search}%"
         bindings.extend([like, like, like])
     sql += "ORDER BY potential_index DESC, monthly_sales DESC LIMIT ? OFFSET ?"
-    limit = 50
+    limit = 200
     page_num = req.page or 1
     offset = (page_num - 1) * limit
     bindings.extend([limit, offset])
@@ -1106,7 +1106,10 @@ async def seed_category(req: SeedReq):
             tool = 'product_search'
         else:
             if mode == 'hot':
-                tool = 'category_report'
+                tool = 'product_search'  # category_report已失效，改用product_search
+                if not search:
+                    # 无搜索词时product_search需要兜底，用空search返回热门
+                    args['searchName'] = 'best seller'
             elif mode == 'potential':
                 tool = 'potential_product' if site == 'US' else 'product_search'
             else:
