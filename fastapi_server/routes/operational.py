@@ -36,20 +36,47 @@ def extract_store_name(source):
     return s.strip() or '未知'
 
 
-EXCLUDED_SALESPERSONS = {'1502886', 'dc', 'DC', 'yy', 'YY', '大川', 'yfkj1', 'YFkj1', 'YFkj', ''}
+EXCLUDED_SALESPERSONS = {
+    '1502886', '15028868888',
+    'dc', 'DC', 'Dc',
+    'yy', 'YY', 'Yy',
+    '大川', 'yfkj1', 'YFkj1', 'yfkj',
+    '',
+}
+
+def _is_excluded(sp):
+    if not sp: return True
+    s = sp.strip()
+    if not s: return True
+    if s in EXCLUDED_SALESPERSONS: return True
+    if s.lower() in {'dc', 'yy'}: return True
+    if s.startswith('150'): return True
+    if s.lower().startswith('yfkj'): return True
+    return False
+
+
+def _exclude_clause():
+    """返回排除测试账号的SQL条件（用于数据查询）"""
+    parts = ["salesperson IS NULL OR salesperson = ''"]
+    parts.append(f" salesperson NOT IN ({','.join('?' * len(EXCLUDED_SALESPERSONS))})")
+    return " AND (" + " OR ".join(parts) + ")"
+
+# 用于拼接参数的占位列表
+_EXCLUDED_LIST = list(EXCLUDED_SALESPERSONS)
+
 
 def base_where(salesperson, site, store_name, date_from, date_to):
     w, p = [], []
     if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
     if site:        w.append(" site = ? ");        p.append(site)
     if store_name:
-        # store_name 从 source 列提取，搜索时用 LIKE 匹配 '美客多 {店铺名}(...)'
         w.append(" source LIKE ? "); p.append(f"%{store_name}%")
     if date_from:   w.append(" date(replace(order_date,'/','-')) >= ? "); p.append(dt(date_from))
     if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
-    # 全局排除无效运营
-    w.append(f" salesperson NOT IN ({','.join('?' * len(EXCLUDED_SALESPERSONS))}) ")
-    p.extend(EXCLUDED_SALESPERSONS)
+    # 全局排除测试/无效账号
+    if not salesperson:
+        w.append(_exclude_clause())
+        p.extend(_EXCLUDED_LIST)
     wc = " AND ".join(w)
     return (" AND " + wc) if wc else "", p
 
@@ -238,14 +265,12 @@ def get_salespersons():
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        "SELECT DISTINCT salesperson FROM operational_orders WHERE salesperson NOT IN ("
-        + ','.join('?' * len(EXCLUDED_SALESPERSONS))
-        + ") AND salesperson IS NOT NULL AND salesperson != '' ORDER BY salesperson",
-        list(EXCLUDED_SALESPERSONS)
+        "SELECT DISTINCT salesperson FROM operational_orders WHERE salesperson IS NOT NULL AND salesperson != '' ORDER BY salesperson"
     )
     rows = cur.fetchall()
     conn.close()
-    return JSONResponse({"salespersons": [r[0] for r in rows]})
+    names = sorted(set(r[0] for r in rows if not _is_excluded(r[0])))
+    return JSONResponse({"salespersons": names})
 
 @router.get("/changes")
 def get_changes(
