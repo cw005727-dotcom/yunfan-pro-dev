@@ -8,10 +8,14 @@ import Icon from '../components/Icon.jsx';
 
 const { Text, Title } = Typography;
 
+// key = 数据库 actual 值，value = "🇺🇾 国名"（给 DonutChart 显示用）
 const SITE_MAP = {
-  'ALL': '全站聚合',
-  'MLM': '🇲🇽 墨西哥', 'MLB': '🇧🇷 巴西', 'MLA': '🇦🇷 阿根廷',
-  'MCO': '🇨🇴 哥伦比亚', 'MLC': '🇨🇱 智利', 'MLU': '🇺🇾 乌拉圭',
+  'ALL':  '全站聚合',
+  'MX':   '🇲🇽 墨西哥',
+  'BR':   '🇧🇷 巴西',
+  'AR':   '🇦🇷 阿根廷',
+  'CO':   '🇨🇴 哥伦比亚',
+  'CL':   '🇨🇱 智利',
 };
 const API_BASE = '/api';
 
