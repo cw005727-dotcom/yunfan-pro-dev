@@ -213,6 +213,38 @@ async def upload_links(
             pass
 
 
+# ── 自动建表：logistics_tracking ──────────────────────
+def ensure_logistics_tracking_table():
+    """创建 logistics_tracking 表（如不存在）"""
+    import sqlite3
+    from ..config import DB_PATH
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS logistics_tracking (
+            order_number TEXT PRIMARY KEY,
+            site TEXT,
+            store_name TEXT,
+            order_date TEXT,
+            status TEXT,
+            listing_id TEXT,
+            sku TEXT,
+            logistics_1688_order TEXT,
+            logistics_1688_tracking TEXT,
+            label_status TEXT,
+            warehouse_in_date TEXT,
+            international_tracking TEXT,
+            thumbnail TEXT,
+            shipped_at TEXT,
+            is_ignored INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now','localtime')),
+            updated_at TEXT DEFAULT (datetime('now','localtime'))
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+ensure_logistics_tracking_table()
+
 @router.post("/upload/logistics")
 async def upload_logistics(file: UploadFile = File(...)):
     """上传物流追踪Excel"""
