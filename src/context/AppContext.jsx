@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 
-const AppContext = createContext(null);
+export const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
   const [activeShop, setActiveShop] = useState(null);
