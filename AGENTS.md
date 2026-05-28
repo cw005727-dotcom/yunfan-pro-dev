@@ -2,11 +2,11 @@
 
 ## 唯一正确工作目录
 
-**唯一合法开发目录：**
+### 唯一正确工作目录
 ```
-/Users/chensan/Library/CloudStorage/OneDrive-个人/Mac 资料/YunfanV2
+~/yunfan-pro-dev
 ```
-- `~/yunfan-pro-dev` 是软链接，指向此目录
+OneDrive 下的「Mac 资料/YunfanV2」是备份同步副本，不要在那上面开发。**禁止在 Accio 目录进行任何开发工作**。
 - 所有代码操作都在这个目录下
 - **禁止在 Accio 目录进行任何开发工作**
 
