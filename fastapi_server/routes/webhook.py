@@ -359,10 +359,12 @@ async def _handle_webhook(request: Request):
             if m:
                 order_id = m.group(1)
         logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
-        if not order_id:
+        # claims 类型的 topic 没有 order_id（用 resource），单独处理
+        if topic not in ('marketplace_claims',) and not order_id:
             raise HTTPException(status_code=400, detail="Missing order id")
-        # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去
-        data['id'] = order_id
+        # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去（claims 不用）
+        if order_id:
+            data['id'] = order_id
 
         # marketplace_orders / marketplace_orders_on_site 缺少详情字段，先通过 API 补充
         if topic in ('marketplace_orders', 'marketplace_orders_on_site'):
@@ -467,7 +469,7 @@ async def _handle_webhook(request: Request):
             log_to_monitoring('warning' if urgent else 'info', monitor_msg,
                               store_id=monitor_store, site_id=monitor_site, details=monitor_details)
 
-        return {"ok": True, "topic": topic, "id": order_id}
+        return {"ok": True, "topic": topic, "id": order_id or ""}
 
     except HTTPException:
         raise
