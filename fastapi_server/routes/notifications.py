@@ -211,7 +211,7 @@ def get_realtime_notifications():
     with get_db_connection() as db:
         cur = db.cursor()
         rows = cur.execute("""
-            SELECT id, topic, content, site_id, order_id, received_at, read_status
+            SELECT id, topic, content, site_id, order_id, received_at, read
             FROM realtime_notifications
             ORDER BY id DESC
             LIMIT 100
