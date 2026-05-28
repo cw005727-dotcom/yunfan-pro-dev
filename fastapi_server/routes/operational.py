@@ -3,6 +3,7 @@
 """
 import sqlite3
 import os
+import re
 from datetime import date
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
@@ -20,11 +21,28 @@ def dt(day):
     return day.replace('/', '-') if day else day
 
 
+def extract_store_name(source):
+    """
+    从 source 列提取店铺名。
+    格式示例：'美客多 张2店(巴西)' → '张2店'
+    去掉'美客多 '前缀和'({国家})'后缀
+    """
+    if not source:
+        return '未知'
+    # 去掉前缀
+    s = re.sub(r'^美客多\s*', '', source)
+    # 去掉 ({国家}) 后缀
+    s = re.sub(r'\([^)]*\)$', '', s)
+    return s.strip() or '未知'
+
+
 def base_where(salesperson, site, store_name, date_from, date_to):
     w, p = [], []
     if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
     if site:        w.append(" site = ? ");        p.append(site)
-    if store_name:  w.append(" store_name = ? ");   p.append(store_name)
+    if store_name:
+        # store_name 从 source 列提取，搜索时用 LIKE 匹配 '美客多 {店铺名}(...)'
+        w.append(" source LIKE ? "); p.append(f"%{store_name}%")
     if date_from:   w.append(" date(replace(order_date,'/','-')) >= ? "); p.append(dt(date_from))
     if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
     wc = " AND ".join(w)
@@ -164,18 +182,19 @@ def get_stores(
     where.append(" status NOT IN ('取消-发货前','取消-已取消','找货-没汇总') ")
     wc = (" AND " + " AND ".join(where)) if where else ""
     sql = (
-        "SELECT COALESCE(salesperson,'未知'), COALESCE(site,'未知'), COALESCE(store_name,'未知'), "
+        "SELECT COALESCE(salesperson,'未知'), COALESCE(site,'未知'), COALESCE(source,'未知'), "
         "COUNT(*), COALESCE(SUM(amount_usd),0), COALESCE(SUM(profit),0), COALESCE(SUM(purchase_cost),0) "
         "FROM operational_orders WHERE 1=1" + wc +
-        " GROUP BY salesperson, site, store_name ORDER BY 5 DESC"
+        " GROUP BY salesperson, site, source ORDER BY 5 DESC"
     )
     cur.execute(sql, params)
     rows = cur.fetchall()
     conn.close()
     return JSONResponse({
         "stores": [
-            {"salesperson": r[0], "site": r[1], "store_name": r[2], "order_count": r[3],
-             "gmv_usd": round(r[4], 2), "profit_cny": round(r[5], 2), "purchase_cost": round(r[6], 2)}
+            {"salesperson": r[0], "site": r[1], "store_name": extract_store_name(r[2]),
+             "order_count": r[3], "gmv_usd": round(r[4], 2),
+             "profit_cny": round(r[5], 2), "purchase_cost": round(r[6], 2)}
             for r in rows
         ]
     })
@@ -200,12 +219,13 @@ def get_store_names(site: Optional[str] = Query(None), salesperson: Optional[str
     if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
     wc = (" AND " + " AND ".join(w)) if w else ""
     cur.execute(
-        "SELECT DISTINCT COALESCE(store_name,'未知') FROM operational_orders WHERE 1=1" + wc + " ORDER BY store_name",
+        "SELECT DISTINCT source FROM operational_orders WHERE 1=1" + wc,
         p
     )
     rows = cur.fetchall()
     conn.close()
-    return JSONResponse({"store_names": [r[0] for r in rows]})
+    names = sorted(set(extract_store_name(r[0]) for r in rows if r[0]))
+    return JSONResponse({"store_names": names})
 
 
 @router.get("/salespersons")
