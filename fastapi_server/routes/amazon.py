@@ -13,7 +13,7 @@ from typing import Optional
 
 router = APIRouter(prefix="/api/amazon", tags=["amazon"])
 
-MCP_KEY = "znfbzeq3wwfgahdzzeznmfhxtzljqt09"
+MCP_KEY = "vmrqv0dlzke4vjfhu0zqsjfzuhbkqt09"
 MCP_URL = "https://mcp.sorftime.com"
 
 # ── 数据库路径─────────────────────────────────────────────────────────────
