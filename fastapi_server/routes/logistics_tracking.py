@@ -339,7 +339,7 @@ def compute_stage(t):
     """根据物流追踪数据计算当前链路阶段（4阶段制）"""
     if t.get('international_tracking'):
         return 3, '✈️', '已发出', '#6366f1'
-    if t.get('warehouse_in_date'):
+    if t.get('status') == '已入库':
         return 2, '🏢', '官方仓收货', '#10b981'
     if t.get('label_status') == '已贴单':
         return 1, '🏭', '云仓已贴单', '#f59e0b'
@@ -450,6 +450,7 @@ def get_tracking(
             'site': site_v or '',
             'store_name': store_name or '',
             'order_date': order_date or '',
+            'status': status_val or '',
             'logistics_1688_order': ls1688 or '',
             'logistics_1688_tracking': ls1688_t or '',
             'label_status': label_status or '',

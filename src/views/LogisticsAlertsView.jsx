@@ -313,7 +313,7 @@ export default function LogisticsAlertsView_V5() {
   // 国内物流链路步骤：0平台已发货 1云仓已贴单 2官方仓收货 3已发出
   const getStep = (order) => {
     if (order.international_tracking) return 3;
-    if (order.warehouse_in_date) return 2;
+    if (order.status === '已入库') return 2;
     if (order.label_status === '已贴单') return 1;
     if (order.logistics_1688_tracking) return 0;
     return -1;
@@ -526,7 +526,7 @@ export default function LogisticsAlertsView_V5() {
                   {[
                     { label: '平台已发货', time: currentOrder.logistics_1688_tracking ? ((currentOrder.logistics_1688_tracking || '').split(':')[0]) : '未发货', active: !!currentOrder.logistics_1688_tracking },
                     { label: '云仓已贴单', time: currentOrder.label_status === '已贴单' ? '已贴单' : (currentOrder.logistics_1688_tracking ? '待贴单' : ''), active: currentOrder.label_status === '已贴单' },
-                    { label: '官方仓收货', time: currentOrder.warehouse_in_date ? currentOrder.warehouse_in_date : (currentOrder.label_status === '已贴单' ? '预计1-3天' : ''), active: !!currentOrder.warehouse_in_date },
+                    { label: '官方仓收货', time: currentOrder.status === '已入库' ? (currentOrder.warehouse_in_date || '已入库') : (currentOrder.label_status === '已贴单' ? '预计1-3天' : ''), active: currentOrder.status === '已入库' },
                     { label: '已发出', time: currentOrder.international_tracking ? (currentOrder.international_tracking || '').split(':')[0] : (currentOrder.warehouse_in_date ? '待发出' : ''), active: !!currentOrder.international_tracking },
                   ].map((step, i) => (
                     <div key={i} className="relative flex items-start gap-4 pb-5 last:pb-0">
