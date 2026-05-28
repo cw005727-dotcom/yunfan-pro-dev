@@ -406,13 +406,16 @@ async def _handle_webhook(request: Request):
 
             elif topic in ('shipments', 'marketplace_shipments'):
                 handle_shipments(conn, data)
+                # 用发货单号做显示（订单号可能获取不到）
+                raw_resource = data.get('resource', '') or ''
+                sid = raw_resource.split('/')[-1] if raw_resource else order_id or '-'
                 logistic_company = data.get('logistic_company') or data.get('tracking_method') or '-'
                 rcv_city = data.get('receiver_city') or '-'
                 est_del = data.get('estimated_delivery_date') or ''
                 if est_del:
                     est_del = est_del[:10]
                 monitor_msg = (
-                    f"🚚 物流更新：订单 {order_id} → "
+                    f"🚚 物流更新：发货单 {sid} → "
                     f"{logistic_company} / "
                     f"{data.get('shipping_status', '-')}"
                 )
@@ -422,7 +425,7 @@ async def _handle_webhook(request: Request):
                     monitor_msg += f" / 预计{est_del}"
                 monitor_site = data.get('site_id')
                 monitor_details = {
-                    "order_id": str(order_id),
+                    "shipment_id": sid,
                     "source": "webhook",
                     "logistics": True,
                     "logistic_company": logistic_company,
