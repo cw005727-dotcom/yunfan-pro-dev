@@ -115,6 +115,7 @@ export default function DataUploadView() {
   const [siteModalOpen, setSiteModalOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [pendingEndpoint, setPendingEndpoint] = useState('');
+  const [selectedShop, setSelectedShop] = useState(null);
 
   // 页面加载时从数据库恢复历史变化
   useEffect(() => {
@@ -183,17 +184,41 @@ export default function DataUploadView() {
 
       {/* 站点选择弹窗 */}
       <Modal
-        title="选择数据站点"
+        title="选择店铺和站点"
         open={siteModalOpen}
         onCancel={() => { setSiteModalOpen(false); setPendingFile(null); }}
         footer={null}
-        width={360}
+        width={420}
       >
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '13px' }}>
-            请选择这个文件对应哪个站点的数据
+            选择数据所属的店铺和站点
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* 店铺选择 */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', textAlign: 'left' }}>选择店铺</div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {['主营店铺', '测试1', '2店'].map(name => (
+                <button
+                  key={name}
+                  onClick={() => setSelectedShop(name)}
+                  style={{
+                    padding: '10px 16px', borderRadius: '8px', border: `2px solid ${selectedShop === name ? '#4f46e5' : '#d1d5db'}`,
+                    background: selectedShop === name ? '#eef2ff' : 'white', cursor: 'pointer',
+                    fontSize: '13px', fontWeight: '500',
+                    color: selectedShop === name ? '#4338ca' : '#374151',
+                  }}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+          {selectedShop && (
+            <>
+              <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
+              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', textAlign: 'left' }}>选择站点</div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
               { site: 'MLB', label: '🇧🇷 巴西', color: '#009c3b' },
               { site: 'MLM', label: '🇲🇽 墨西哥', color: '#006847' },
@@ -205,12 +230,13 @@ export default function DataUploadView() {
                 onClick={async () => {
                   setSiteModalOpen(false);
                   if (!pendingFile) return;
+                  const shopId = ({'主营店铺': '4802768831', '测试1': '9107675308', '2店': '7991941853'})[selectedShop] || '';
                   const formData = new FormData();
                   formData.append('file', pendingFile);
                   formData.append('site_id', site);
                   setSiteUploading(true);
                   try {
-                    const url = pendingEndpoint + '?site_id=' + site;
+                    const url = pendingEndpoint + '?site_id=' + site + (shopId ? '&shop_id=' + shopId : '');
                     const res = await fetch(url, { method: 'POST', body: formData });
                     const data = await res.json();
                     message.success(data.message || '上传成功');
@@ -232,9 +258,7 @@ export default function DataUploadView() {
               >
                 {label}
               </button>
-            ))}
-          </div>
-        </div>
+            ))}</div></div></>}
       </Modal>
       {/* 变化卡片区 */}
       <div className="grid grid-cols-2 gap-4">

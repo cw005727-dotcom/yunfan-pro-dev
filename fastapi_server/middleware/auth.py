@@ -181,3 +181,31 @@ def get_ml_token() -> str:
 def get_ml_token_provider() -> MercadoLibreTokenProvider:
     """获取 token provider 实例（用于需要刷新能力的场景）"""
     return _token_provider
+
+
+def get_ml_token_for_shop(shop_id: int) -> Optional[str]:
+    """获取指定店铺（stores.user_id）的 access_token，自动刷新"""
+    if not shop_id:
+        return _token_provider.get_valid_token()  # fallback 到全局
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT access_token, refresh_token, token_expires_at FROM stores WHERE user_id = ? LIMIT 1",
+            (shop_id,)
+        )
+        row = cur.fetchone()
+        conn.close()
+        if not row or not row[0]:
+            return _token_provider.get_valid_token()
+        access_token, refresh_token, expires_at = row
+        # 过期自动刷新
+        if not refresh_token or time.time() >= (expires_at or 0) - 60:
+            if refresh_token:
+                new_tokens = _token_provider.refresh_access_token(refresh_token)
+                if new_tokens:
+                    return new_tokens.get("access_token")
+            return _token_provider.get_valid_token()
+        return access_token
+    except Exception:
+        return _token_provider.get_valid_token()

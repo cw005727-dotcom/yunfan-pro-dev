@@ -31,11 +31,17 @@ conn.execute("""
         source_file TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        site_id TEXT DEFAULT 'MLB'
+        site_id TEXT DEFAULT 'MLB',
+        shop_id INTEGER
     )
 """)
 conn.execute("CREATE INDEX IF NOT EXISTS idx_pp_item_id ON product_performance(item_id)")
 conn.execute("CREATE INDEX IF NOT EXISTS idx_pp_status ON product_performance(status)")
+# 兼容已有数据库：加 shop_id 列（如果不存在）
+try:
+    conn.execute("ALTER TABLE product_performance ADD COLUMN shop_id INTEGER")
+except:
+    pass
 conn.commit()
 conn.close()
 
@@ -269,53 +275,57 @@ async def get_performance_list(
 
 @router.post("/performance/repull-images")
 async def repull_performance_images():
-    """补拉商品性能表中缺失的主图，从 ML API 拉取"""
-    from ..middleware.auth import get_ml_token_provider
+    """补拉商品性能表中缺失的主图，从 ML API 拉取（按 shop_id 分组使用各店铺 token）"""
+    from ..middleware.auth import get_ml_token_for_shop
     import requests, json, time as _time
-
-    provider = get_ml_token_provider()
-    provider.clear_cache()  # 强制清缓存，拿最新 token
-    token = provider.get_valid_token()
-    if not token:
-        return JSONResponse({'success': False, 'message': '无法获取 ML access_token，请重新授权'}, status_code=401)
 
     conn = sqlite3.connect(str(DB_PATH))
     rows = conn.execute(
-        "SELECT item_id, site_id FROM product_performance WHERE thumbnail IS NULL OR thumbnail = ''"
+        "SELECT item_id, site_id, COALESCE(shop_id, 0) as shop_id FROM product_performance WHERE thumbnail IS NULL OR thumbnail = ''"
     ).fetchall()
     conn.close()
 
     if not rows:
         return {'success': True, 'message': '所有商品已有主图，无需补拉', 'total': 0}
 
+    # 按 shop_id 分组
+    shops = {}
+    for item_id, site_id, shop_id in rows:
+        shops.setdefault(shop_id, []).append((item_id, site_id))
+
     pulled = 0
     failed = 0
     conn = sqlite3.connect(str(DB_PATH))
-    for item_id, site_id in rows:
-        try:
-            ml_id = f'{site_id}{item_id}'
-            r = requests.get(
-                f'https://api.mercadolibre.com/marketplace/items/{ml_id}',
-                headers={'Authorization': f'Bearer {token}'}, timeout=8
-            )
-            if r.status_code in (200, 206):
-                d = r.json()
-                thumbnail = d.get('thumbnail', '') or d.get('secure_thumbnail', '')
-                pics = d.get('pictures', [])
-                pics_count = len(pics)
-                pics_urls = [p if isinstance(p, str) else p.get('url', '') for p in pics]
-                pictures = json.dumps(pics_urls, ensure_ascii=False)
-                conn.execute(
-                    "UPDATE product_performance SET thumbnail=?, pictures=?, pictures_count=? WHERE item_id=?",
-                    (thumbnail, pictures, pics_count, item_id)
+    for shop_id, items in shops.items():
+        token = get_ml_token_for_shop(shop_id)
+        if not token:
+            failed += len(items)
+            continue
+        for item_id, site_id in items:
+            try:
+                ml_id = f'{site_id}{item_id}'
+                r = requests.get(
+                    f'https://api.mercadolibre.com/marketplace/items/{ml_id}',
+                    headers={'Authorization': f'Bearer {token}'}, timeout=8
                 )
-                conn.commit()
-                pulled += 1
-            else:
+                if r.status_code in (200, 206):
+                    d = r.json()
+                    thumbnail = d.get('thumbnail', '') or d.get('secure_thumbnail', '')
+                    pics = d.get('pictures', [])
+                    pics_count = len(pics)
+                    pics_urls = [p if isinstance(p, str) else p.get('url', '') for p in pics]
+                    pictures = json.dumps(pics_urls, ensure_ascii=False)
+                    conn.execute(
+                        "UPDATE product_performance SET thumbnail=?, pictures=?, pictures_count=? WHERE item_id=?",
+                        (thumbnail, pictures, pics_count, item_id)
+                    )
+                    conn.commit()
+                    pulled += 1
+                else:
+                    failed += 1
+            except:
                 failed += 1
-        except:
-            failed += 1
-        _time.sleep(0.3)
+            _time.sleep(0.3)
     conn.close()
 
     return {

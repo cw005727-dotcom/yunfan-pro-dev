@@ -8,7 +8,7 @@ import json
 import base64
 import sqlite3
 import openpyxl
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse
 from ..config import UPLOAD_DIR, DB_PATH, DATA_DIR
 from ..middleware.auth import get_ml_token_provider
@@ -53,6 +53,7 @@ async def upload_orders(file: UploadFile = File(...)):
 async def upload_links(
     file: UploadFile = File(...),
     site_id: str = "MLB",
+    shop_id: int = Query(0, description="店铺ID（stores.user_id）"),
 ):
     """上传商品性能Excel，解析入库到 product_performance 表
     解析后立即返回，图片在后台上异步拉取，不阻塞请求。
@@ -124,8 +125,8 @@ async def upload_links(
                     INSERT INTO product_performance 
                     (item_id, sku, product_name, status, variation, unique_visits, order_count,
                      unique_buyers, units_sold, gross_sales_usd, share_percent, 
-                     visitor_convert_rate, visitor_buy_convert_rate, source_file, site_id, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+                     visitor_convert_rate, visitor_buy_convert_rate, source_file, site_id, shop_id, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
                     ON CONFLICT(item_id) DO UPDATE SET
                         sku=excluded.sku, product_name=excluded.product_name, status=excluded.status,
                         variation=excluded.variation, unique_visits=excluded.unique_visits,
@@ -134,6 +135,7 @@ async def upload_links(
                         share_percent=excluded.share_percent, visitor_convert_rate=excluded.visitor_convert_rate,
                         visitor_buy_convert_rate=excluded.visitor_buy_convert_rate,
                         source_file=excluded.source_file, site_id=excluded.site_id,
+                        shop_id=excluded.shop_id,
                         updated_at=CURRENT_TIMESTAMP
                 """, (
                     data.get('item_id'), data.get('sku'), data.get('product_name'),
@@ -142,7 +144,7 @@ async def upload_links(
                     data.get('unique_buyers', 0), data.get('units_sold', 0),
                     data.get('gross_sales_usd', 0), data.get('share_percent', ''),
                     data.get('visitor_convert_rate', ''), data.get('visitor_buy_convert_rate', ''),
-                    file.filename, site_id
+                    file.filename, site_id, shop_id if shop_id else None
                 ))
                 imported += 1
             except Exception:
@@ -154,14 +156,14 @@ async def upload_links(
         # 第二阶段：后台拉取图片（不阻塞用户返回）
         if imported > 0 and item_ids:
             import threading
-            _provider = get_ml_token_provider()
+            _shop_id = shop_id
             def _pull_images(item_ids, site_id, tmp_path_for_cleanup):
                 import requests, json, time, sqlite3
+                from ..middleware.auth import get_ml_token_for_shop
                 conn = sqlite3.connect(str(DB_PATH))
                 for idx, item_id in enumerate(item_ids):
                     try:
-                        _provider.clear_cache()
-                        token = _provider.get_valid_token()
+                        token = get_ml_token_for_shop(_shop_id)
                         if not token:
                             continue
                         ml_id = f'{site_id}{item_id}'
