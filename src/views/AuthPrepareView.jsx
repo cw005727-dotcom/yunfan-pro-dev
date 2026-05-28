@@ -170,7 +170,10 @@ export default function AuthPrepareView_V5() {
     try {
       const resp = await fetch('/api/generate_auth_url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026'
+        },
         body: JSON.stringify({ nickname: nickname, username: currentUser })
       })
       const data = await resp.json()
