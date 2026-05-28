@@ -802,6 +802,35 @@ def list_sites():
         {"id": "BR", "name": "🇧🇷 巴西", "flag": "BR"},
     ]
 
+# ── US 类目中文→英文/西语映射（Sorftime 树名 → big_category 关键词）─────
+_US_CAT_ZH2EN = {
+    '大小家电': ['Health & Household', 'Home & Kitchen', 'Appliance', 'Kitchen & Dining'],
+    '艺术手工': ['Arts, Crafts & Sewing', 'Handmade'],
+    '汽车用品': ['Automotive', 'Automotriz', 'Motocicletas'],
+    '母婴用品': ['Baby', 'Bebé'],
+    '美妆护肤': ['Beauty & Personal Care', 'Belleza', 'Salud'],
+    '手机通讯': ['Cell Phones & Accessories'],
+    '时尚服饰': ['Clothing, Shoes & Jewelry', 'Ropa, Zapatos y Accesorios'],
+    '配件': ['Accessorie'],
+    '消费电子': ['Electronics', 'Electrónicos', 'Computers & Accessories', 'Camera & Photo', 'Amazon Devices', 'Amazon Renewed'],
+    '食品饮料': ['Grocery & Gourmet Food', 'Alimentos y Bebidas', 'Alimentos'],
+    '健康': ['Health & Household', 'Salud'],
+    '家居园艺': ['Patio, Lawn & Garden', 'Hogar y Cocina', 'Home & Kitchen'],
+    '工业用品': ['Industrial & Scientific', 'Industria'],
+    '厨房': ['Kitchen & Dining'],
+    '乐器演奏': ['Musical Instruments', 'Instrumentos Musicales'],
+    '办公文具': ['Office Products', 'Oficina y Papelería', 'Oficina'],
+    '园艺': ['Patio, Lawn & Garden', 'Garden'],
+    '宠物用品': ['Pet Supplies', 'Productos para animales', 'Productos para Animales'],
+    '运动': ['Sports & Outdoors', 'Deportes'],
+    '家居': ['Home & Kitchen', 'Hogar y Cocina'],
+    '玩具': ['Toys & Games', 'Juguetes y Juegos'],
+    '电子游戏': ['Video Games', 'Videojuegos'],
+    '图书': ['Books'],
+    'Our Brands': ['Our Brands'],
+}
+
+
 def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1, limit: int = 50, node_id: str = "") -> dict:
     """从 amazon_products 表查询商品
     - node_id: 按 category_node_id 精确过滤（前端选类目时传）
@@ -828,9 +857,19 @@ def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1,
             sql += "AND category_node_id=? "
             bindings.append(node_id)
     if search:
-        sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
-        like = f"%{search}%"
-        bindings.extend([like, like, like])
+        # 中文类目名→英文/西语 big_category 关键词
+        zh_mapped = _US_CAT_ZH2EN.get(search.strip(), [])
+        if zh_mapped:
+            or_clauses = []
+            for kw in zh_mapped:
+                or_clauses.append("(big_category LIKE ? OR sub_category LIKE ?)")
+                like = f"%{kw}%"
+                bindings.extend([like, like])
+            sql += "AND (" + " OR ".join(or_clauses) + ") "
+        else:
+            sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
+            like = f"%{search}%"
+            bindings.extend([like, like, like])
     sql += "ORDER BY monthly_sales DESC LIMIT ? OFFSET ?"
     offset = (page - 1) * limit
     bindings.extend([limit, offset])
@@ -844,9 +883,18 @@ def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1,
         count_sql += " AND category_node_id=?"
         count_bindings.append(node_id)
     if search:
-        like = f"%{search}%"
-        count_sql += " AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?)"
-        count_bindings.extend([like, like, like])
+        zh_mapped = _US_CAT_ZH2EN.get(search.strip(), [])
+        if zh_mapped:
+            or_clauses = []
+            for kw in zh_mapped:
+                or_clauses.append("(big_category LIKE ? OR sub_category LIKE ?)")
+                like = f"%{kw}%"
+                count_bindings.extend([like, like])
+            count_sql += " AND (" + " OR ".join(or_clauses) + ")"
+        else:
+            like = f"%{search}%"
+            count_sql += " AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?)"
+            count_bindings.extend([like, like, like])
     cur.execute(count_sql, count_bindings)
     total = cur.fetchone()[0]
     conn.close()
