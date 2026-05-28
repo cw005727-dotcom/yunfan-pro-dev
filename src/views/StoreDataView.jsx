@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, Row, Col, Select, Spin, Empty, Segmented, Tooltip as AntTooltip } from 'antd';
-import { 
-  ShoppingCart, TrendingUp, Calendar, DollarSign, 
+import { Card, Row, Col, Select, Spin, Empty, Segmented, Tooltip as AntTooltip, DatePicker } from 'antd';
+import {
+  ShoppingCart, TrendingUp, Calendar, DollarSign,
   Wallet, Flame, XCircle, ArrowUpRight, ChevronRight, RefreshCw, User, Globe, Clock, AlertCircle
 } from 'lucide-react';
 import { Line as AntLine, Pie } from '@ant-design/plots';
+import dayjs from 'dayjs';
+
+const { RangePicker } = DatePicker;
 
 const API = '/api';
 const PIE_COLORS = ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#475569'];
@@ -161,50 +164,25 @@ export default function StoreDataView_V5() {
   const [selectedSalesperson, setSelectedSalesperson] = useState(null);
   const [selectedSite, setSelectedSite] = useState(null);
   const [selectedStoreName, setSelectedStoreName] = useState(null);
-  const [selectedTimeRange, setSelectedTimeRange] = useState('今日');
-  
+  const [dateRange, setDateRange] = useState(null); // [dayjs, dayjs] or null
+
   const [stats, setStats] = useState(null);
   const [daily, setDaily] = useState([]);
   const [storeStats, setStoreStats] = useState([]);
   const [pieView, setPieView] = useState('site');
   const [rankView, setRankView] = useState('profit');
-  const SITE_NAMES = { MLB: '🇧🇷 巴西', MLM: '🇲🇽 墨西哥', MLA: '🇦🇷 阿根廷', MLC: '🇨🇱 智利', MCO: '🇨🇴 哥伦比亚', MLU: '🇺🇾 乌拉圭', BR: '🇧🇷 巴西', MX: '🇲🇽 墨西哥', AR: '🇦🇷 阿根廷', CL: '🇨🇱 智利', CO: '🇨🇴 哥伦比亚' };
-  const STATS_MAP = {
-    '今日': { profit: 'today_profit', orders: 'today_orders', gmv: 'today_gmv', margin: 'today_margin', label: '今日' },
-    '本周': { profit: 'total_profit', orders: 'total_orders', gmv: 'total_gmv', margin: 'total_margin', label: '本周' },
-    '本月': { profit: 'monthly_profit', orders: 'monthly_orders', gmv: 'monthly_gmv', margin: 'monthly_margin', label: '本月' },
-    '上月': { profit: 'total_profit', orders: 'total_orders', gmv: 'total_gmv', margin: 'total_margin', label: '上月' },
-    '全年': { profit: 'total_profit', orders: 'total_orders', gmv: 'total_gmv', margin: 'total_margin', label: '全年' },
-  };
-  const s = STATS_MAP[selectedTimeRange] || STATS_MAP['今日'];
-  const stat = (field) => stats ? (stats[s[field]] ?? 0) : 0;
+  const SITE_NAMES = { MLB: '🇧🇷 巴西', MLM: '🇲🇽 墨西哥', MLA: '🇦🇷 阿根廷', MLC: '🇨🇱 智利', MCO: '🇨🇴 哥伦比亚', MLU: '🇺🇾 乌拉圭', BR: '🇧🇷 巴西', MX: '🇲🇽 墨西哥', AR: '🇦🇷 阿根廷', CL: '🇨🇱 智利', CO: '🇨🇷 哥伦比亚' };
+
+  const [stats, setStats] = useState(null);
 
   const fetchData = useCallback(() => {
     const params = {};
     if (selectedSalesperson) params.salesperson = selectedSalesperson;
     if (selectedSite) params.site = selectedSite;
     if (selectedStoreName) params.store_name = selectedStoreName;
-    const today = new Date();
-    if (selectedTimeRange === '今日') {
-      const t = today.toISOString().slice(0,10);
-      params.date_from = t; params.date_to = t;
-    } else if (selectedTimeRange === '本周') {
-      const dayOfWeek = today.getDay() || 7;
-      const monday = new Date(today); monday.setDate(today.getDate() - dayOfWeek + 1);
-      params.date_from = monday.toISOString().slice(0,10);
-      params.date_to = today.toISOString().slice(0,10);
-    } else if (selectedTimeRange === '本月') {
-      params.date_from = today.toISOString().slice(0,7) + '-01';
-      params.date_to = today.toISOString().slice(0,10);
-    } else if (selectedTimeRange === '上月') {
-      const firstDayThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDayLastMonth = new Date(firstDayThisMonth.getTime() - 86400000);
-      const firstDayLastMonth = new Date(lastDayLastMonth.getFullYear(), lastDayLastMonth.getMonth(), 1);
-      params.date_from = firstDayLastMonth.toISOString().slice(0,10);
-      params.date_to = lastDayLastMonth.toISOString().slice(0,10);
-    } else if (selectedTimeRange === '全年') {
-      params.date_from = today.getFullYear() + '-01-01';
-      params.date_to = today.toISOString().slice(0,10);
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      params.date_from = dateRange[0].format('YYYY-MM-DD');
+      params.date_to = dateRange[1].format('YYYY-MM-DD');
     }
     
     const qs = new URLSearchParams(params).toString();
@@ -219,11 +197,12 @@ export default function StoreDataView_V5() {
       setDaily(d.daily || []); 
       setStoreStats(st.stores || []); 
     }).catch(err => console.error(err)).finally(() => setLoading(false));
-  }, [selectedSalesperson, selectedSite, selectedStoreName, selectedTimeRange]);
+  }, [selectedSalesperson, selectedSite, selectedStoreName, dateRange]);
 
   useEffect(() => {
     fetch(`${API}/operational/sites`).then(r => r.json()).then(d => setSites(d.sites || []));
     fetch(`${API}/operational/salespersons`).then(r => r.json()).then(d => setSalespersons(d.salespersons || []));
+    fetch(`${API}/operational/store-names`).then(r => r.json()).then(d => setStoreNames(d.store_names || []));
     fetchData();
   }, [fetchData]);
 
@@ -296,7 +275,8 @@ export default function StoreDataView_V5() {
         <div className="flex items-center gap-3">
           <div className="flex flex-col"><div className="v5-filter-label">站点 / SITE</div><Select allowClear placeholder="全部站点" className="w-[110px]" size="small" variant="filled" value={selectedSite} onChange={setSelectedSite} options={sites.map(s => ({ label: SITE_NAMES[s] || s, value: s }))} /></div>
           <div className="flex flex-col"><div className="v5-filter-label">运营 / STAFF</div><Select allowClear placeholder="全部运营" className="w-[110px]" size="small" variant="filled" value={selectedSalesperson} onChange={setSelectedSalesperson} options={salespersons.map(s => ({ label: s, value: s }))} /></div>
-          <div className="flex flex-col"><div className="v5-filter-label">维度 / RANGE</div><Segmented size="small" value={selectedTimeRange} onChange={setSelectedTimeRange} className="v5-segmented" options={['今日', '本周', '本月', '上月', '全年']} /></div>
+          <div className="flex flex-col"><div className="v5-filter-label">店铺 / STORE</div><Select allowClear placeholder="全部店铺" className="w-[110px]" size="small" variant="filled" value={selectedStoreName} onChange={setSelectedStoreName} options={storeNames.map(s => ({ label: s, value: s }))} /></div>
+          <div className="flex flex-col"><div className="v5-filter-label">日期 / DATE</div><RangePicker size="small" variant="filled" className="w-[200px]" value={dateRange} onChange={setDateRange} allowClear /></div>
           <button onClick={fetchData} className="h-[36px] px-5 bg-emerald-600 text-white rounded-lg flex items-center gap-2 text-[11px] font-black hover:bg-emerald-700 transition-all active:scale-95"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />同步实时数据</button>
         </div>
       </div>
@@ -306,20 +286,20 @@ export default function StoreDataView_V5() {
         <div className="grid grid-cols-12 gap-5">
           <div className="col-span-12 xl:col-span-4"><MainProfitCard stats={stats} daily={daily} /></div>
           <div className="col-span-12 xl:col-span-5 grid grid-cols-2 gap-4">
-             <KPIBlockMini label={`${s.label}净利`} value={`¥${fmt(stat('profit'))}`} sub="CNY" colorClass="bg-emerald-50 border-emerald-100 text-emerald-700" delay={100} />
-             <KPIBlockMini label={`${s.label}订单件数`} value={`${fmt(stat('orders'))} 件`} sub="" colorClass="bg-blue-50 border-blue-100 text-blue-700" delay={200} />
-             <KPIBlockMini label={`${s.label}总GMV`} value={`$${fmt(stat('gmv'))}`} sub="USD" colorClass="bg-indigo-50 border-indigo-100 text-indigo-700" delay={300} />
-             <KPIBlockMini label="平均利润率" value={`${stat('margin') || 0}%`} sub="AVG MARGIN" colorClass="bg-amber-50 border-amber-100 text-amber-700" delay={400} />
+             <KPIBlockMini label="净利润" value={`¥${fmt(stats?.total_profit ?? 0)}`} sub="CNY" colorClass="bg-emerald-50 border-emerald-100 text-emerald-700" delay={100} />
+             <KPIBlockMini label="订单件数" value={`${fmt(stats?.total_orders ?? 0)} 件`} sub="" colorClass="bg-blue-50 border-blue-100 text-blue-700" delay={200} />
+             <KPIBlockMini label="总 GMV" value={`$${fmt(stats?.total_gmv ?? 0)}`} sub="USD" colorClass="bg-indigo-50 border-indigo-100 text-indigo-700" delay={300} />
+             <KPIBlockMini label="平均利润率" value={`${stats?.total_margin ?? 0}%`} sub="AVG MARGIN" colorClass="bg-amber-50 border-amber-100 text-amber-700" delay={400} />
           </div>
           <div className="col-span-12 xl:col-span-3">
              <div className="h-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                 <div>
-                   <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">取消率监控 <AntTooltip title={`计算公式: 本期取消订单 / 本期总订单 (${s.label})`}><AlertCircle size={12} /></AntTooltip></div>
-                   <div className="text-[42px] font-black text-rose-600 leading-none mb-1">{stats ? (stats[`${s.label === '今日' ? 'today' : s.label === '本周' ? 'week' : s.label === '本月' ? 'monthly' : s.label === '上月' ? 'last_month' : 'year'}_cancel_rate`] || 0) : 0}%</div>
+                   <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">取消率监控 <AntTooltip title="计算公式: 本期取消订单 / 本期总订单"><AlertCircle size={12} /></AntTooltip></div>
+                   <div className="text-[42px] font-black text-rose-600 leading-none mb-1">{stats ? (((stats.total_cancel_pre || 0) + (stats.total_cancel_post || 0)) / (stats.total_orders || 1) * 100).toFixed(1) : 0}%</div>
                 </div>
                 <div className="pt-4 border-t border-slate-50">
                    <div className="text-[12px] font-bold text-slate-500 flex items-center gap-1">低于类目阈值 <ArrowUpRight size={14} className="text-rose-500" strokeWidth={3} /></div>
-                   <div className="mt-1 text-[8px] text-slate-300 font-bold uppercase tracking-widest">Calculated by {s.label}</div>
+                   <div className="mt-1 text-[8px] text-slate-300 font-bold uppercase tracking-widest">自定义日期范围</div>
                 </div>
              </div>
           </div>
