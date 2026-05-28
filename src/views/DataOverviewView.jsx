@@ -75,7 +75,7 @@ function DonutChart({ data }) {
     <div style={{ textAlign: 'center' }}>
       <Pie {...config} />
       <div style={{ marginTop: -40, fontSize: 20, fontWeight: 700, color: '#1a1a2e' }}>
-        ${(total / 1000).toFixed(1)}k
+        ¥{(total / 1000).toFixed(1)}k
       </div>
       <Text type="secondary" style={{ fontSize: 11 }}>Total</Text>
     </div>
@@ -136,10 +136,31 @@ function fetchOperationalDaily(params) {
   return fetch(`${API_BASE}/operational/daily?${p.toString()}`).then(r => r.json());
 }
 
-function buildDataFromOperational(stats, daily) {
+function fetchOperationalStores(params) {
+  const p = new URLSearchParams();
+  if (params.site && params.site !== 'ALL') p.append('site', params.site);
+  if (params.date_from) p.append('date_from', params.date_from);
+  if (params.date_to) p.append('date_to', params.date_to);
+  return fetch(`${API_BASE}/operational/stores?${p.toString()}`).then(r => r.json());
+}
+
+function buildDataFromOperational(stats, daily, stores) {
   const totalOrders = stats.total_orders || 0;
   const totalGmv = stats.total_gmv || 0;
   const totalProfit = stats.total_profit || 0;
+
+  // 按国家汇总利润 -> 饼图数据
+  const countryMap = {};
+  (stores || []).forEach(s => {
+    const k = s.site || '未知';
+    if (!countryMap[k]) countryMap[k] = { name: k, gmv: 0 };
+    countryMap[k].gmv += s.profit_cny || 0;
+  });
+  const store_distribution = Object.values(countryMap).map(c => ({
+    name: c.name,
+    gmv: Math.round(c.gmv * 100) / 100,
+  }));
+
   return {
     metrics: {
       total_gmv: totalGmv,
@@ -155,7 +176,7 @@ function buildDataFromOperational(stats, daily) {
       date: d.date,
       gmv: d.gmv_usd || 0,
     })),
-    store_distribution: [],
+    store_distribution,
     rankings: { top_gmv: [] },
   };
 }
@@ -190,9 +211,10 @@ function buildDataFromOperational(stats, daily) {
     Promise.all([
       fetchOperationalStats(opts),
       fetchOperationalDaily(opts),
+      fetchOperationalStores(opts),
     ])
-      .then(([stats, daily]) => {
-        setData(buildDataFromOperational(stats, daily));
+      .then(([stats, daily, stores]) => {
+        setData(buildDataFromOperational(stats, daily, stores?.stores));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -353,7 +375,7 @@ function buildDataFromOperational(stats, daily) {
                 title={
                   <Space>
                     <Icon name="pie-chart" />
-                    <span>各站 GMV 占比</span>
+                    <span>各站利润占比</span>
                   </Space>
                 }
               >

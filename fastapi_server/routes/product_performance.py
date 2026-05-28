@@ -158,11 +158,10 @@ async def get_product_performance(
     stats = {
         '⚠️高曝光低转化': 0,
         '💡低曝光高转化': 0,
-        '🛒零订单': 0,
-        '📈正常': 0
+        '📈表现正常': 0
     }
     for p in items:
-        t = p.get('ai_issue_type', '📈正常')
+        t = p.get('ai_issue_type', '📈表现正常')
         if t in stats:
             stats[t] += 1
 
@@ -255,7 +254,7 @@ async def get_performance_list(
     page_items = filtered[offset:offset + page_size]
 
     # 全量统计
-    stats = {'⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '🛒零订单': 0, '📈表现正常': 0}
+    stats = {'⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '📈表现正常': 0}
     for p in all_diagnosed:
         t = p.get('ai_issue_type', '📈表现正常')
         if t in stats:
