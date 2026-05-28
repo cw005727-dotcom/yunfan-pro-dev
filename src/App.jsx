@@ -32,9 +32,8 @@ import ImageLabView from './views/ImageLabView'
 import KeywordIntelView from './views/KeywordIntelView'
 import AuthPrepareView from './views/AuthPrepareView'
 const viewMap = {
-  'xp-amazon-hot':       XpAmazonView,
-  'xp-amazon-potential': XpAmazonView,
-  'xp-amazon-new':       XpAmazonView,
+  'xp-amazon-hot': XpAmazonView,
+  'xp-amazon-new': XpAmazonView,
   'xp-holiday':         XpHolidayView,
   notify:               NotificationsView,
   notifications:        NotificationsView,
@@ -63,7 +62,8 @@ const viewMap = {
 }
 
 const routeLabels = {
-  'xp-amazon-hot': '热销爆品', 'xp-amazon-potential': '潜力商品', 'xp-amazon-new': '最近上新',
+  'xp-amazon-hot':  '热销爆品',
+  'xp-amazon-new':  '最近上新',
   notify: '通知中心', notifications: '通知中心',
   reputation: '店铺声誉', 'store-data': '店铺数据', 'product-report': '商品性能表',
   logistics: '物流跟踪', 'auto-center': '自动化中心',
@@ -139,7 +139,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {View ? <View key={sidebarItem} defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : sidebarItem === 'xp-amazon-potential' ? 'potential' : 'new'} /> : (
+            {View ? <View key={sidebarItem} defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : 'new'} /> : (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">该模块正在开发中...</div>
             )}
           </div>

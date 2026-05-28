@@ -14,9 +14,8 @@ export const NAV_GROUPS = [
     label: '亚马逊中心',
     color: '#f97316',
     items: [
-      { id: 'xp-amazon-hot',       label: '热销爆品', icon: 'flame'        },
-      { id: 'xp-amazon-potential', label: '潜力商品', icon: 'trending-up'  },
-      { id: 'xp-amazon-new',       label: '最近上新', icon: 'sparkles'     },
+      { id: 'xp-amazon-hot', label: '热销爆品', icon: 'flame'    },
+      { id: 'xp-amazon-new', label: '最近上新', icon: 'sparkles' },
     ]
   },
   {
