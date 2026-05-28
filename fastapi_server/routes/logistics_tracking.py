@@ -135,7 +135,9 @@ def _get_traces_from_waybill(waybill_str):
 
 
 def _get_traces(waybill, com, phone=''):
-    """快递100 poll接口查询物流轨迹"""
+    """快递100 poll接口查询物流轨迹，支持 com='auto' 自动识别"""
+    import hashlib, requests, json
+
     # 中通、顺丰等需要手机号的，优先用poll带手机号查
     if phone and com in ('zhongtong', 'shunfeng', 'jd'):
         poll_traces = _poll_query(com, waybill, phone)
@@ -146,9 +148,8 @@ def _get_traces(waybill, com, phone=''):
     if com in ('zhongtong', 'shunfeng', 'jd'):
         return _get_traces_free(waybill, com)
 
-    import hashlib, requests, json
-
-    param = json.dumps({"com": com, "num": waybill}, separators=(",", ":"), ensure_ascii=False)
+    param_dict = {"com": com, "num": waybill}
+    param = json.dumps(param_dict, separators=(",", ":"), ensure_ascii=False)
     raw = param + KD100_KEY + KD100_CUSTOMER
     sign = hashlib.md5(raw.encode("utf-8")).hexdigest().upper()
 
@@ -211,7 +212,7 @@ def _get_traces_free(waybill, com):
 
 
 def _detect_com_and_traces(waybill, phone=''):
-    """识别快递公司并查询轨迹，纯数字优先选中通+尾号查poll"""
+    """识别快递公司并查询轨迹，优先用 auto 自动识别，失败再并发遍历兜底"""
     import concurrent.futures
     raw = waybill.split(':')[0].split('|')[0].strip()
     # 从完整字符串提取手机尾号
@@ -225,14 +226,23 @@ def _detect_com_and_traces(waybill, phone=''):
     if not is_valid:
         return '', []
 
-    # 有字母前缀直接查
+    # === 方案1: auto 自动识别（快递100自动判断物流商）===
+    auto_traces = _get_traces(raw, 'auto', phone=phone)
+    if auto_traces:
+        return 'auto', auto_traces
+    # auto 查不到说明快递100不认识这个单号，纯数字直接返回无结果（避免兜底拿到假数据）
+    if raw.isdigit():
+        return '', []
+
+    # === 方案2: 有字母前缀直接查 ===
     if com:
         traces = _get_traces(raw, com, phone=phone)
         if traces:
             return com, traces
         return com, []
 
-    # 纯数字单号：有手机尾号时用poll查中通
+    # === 方案3: 纯数字单号，并发遍历兜底 ===
+    # 有手机尾号时用poll查中通
     if phone:
         poll_traces = _poll_query('zhongtong', raw, phone)
         if poll_traces:
@@ -241,7 +251,7 @@ def _detect_com_and_traces(waybill, phone=''):
             if has_valid_city:
                 return 'zhongtong', poll_traces
 
-    # 中通没命中收货城市，遍历其他快递公司
+    # 并发遍历其他快递公司
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_to_com = {executor.submit(_get_traces, raw, c, phone): c for c in COMMON_COMS}
         results = []
@@ -640,19 +650,19 @@ def get_express_traces(waybill: str):
                 "traces": poll_traces,
             })
 
-    # 纯数字运单号二次验证：快递100有时返回假数据
+    # 纯数字运单号二次验证：auto模式可信度高，跳过；非auto模式加校验防假数据
     if traces and raw.isdigit():
         ctx_all = ' '.join(t.get('context','') for t in traces)
-        # 检查是否命中仓库城市
-        if not any(c in ctx_all for c in WAREHOUSE_CITIES):
-            return JSONResponse({"success": False, "message": "轨迹不匹配"})
-        
-        # 二次查询验证一致性（纯数字运单号，快递100可能返回假数据）
-        import time
-        time.sleep(1)
-        com2, traces2 = _detect_com_and_traces(raw, phone=phone)
-        if not traces2:
-            return JSONResponse({"success": False, "message": "数据不可信（二次验证无结果）"})
+        if com != 'auto':
+            # 检查是否命中仓库城市
+            if not any(c in ctx_all for c in WAREHOUSE_CITIES):
+                return JSONResponse({"success": False, "message": "轨迹不匹配"})
+            # 二次查询验证一致性
+            import time
+            time.sleep(1)
+            com2, traces2 = _detect_com_and_traces(raw, phone=phone)
+            if not traces2:
+                return JSONResponse({"success": False, "message": "数据不可信（二次验证无结果）"})
 
     if traces:
         return JSONResponse({
