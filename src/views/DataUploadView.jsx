@@ -258,7 +258,10 @@ export default function DataUploadView() {
               >
                 {label}
               </button>
-            ))}</div></div></>}
+            ))}
+          </div>
+        </div>
+      </>}
       </Modal>
       {/* 变化卡片区 */}
       <div className="grid grid-cols-2 gap-4">
