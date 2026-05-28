@@ -86,6 +86,21 @@ export default function App() {
     else setShowMain(false)
   }, [user])
 
+  // 监听 ML 授权回调的 postMessage
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e.data || typeof e.data !== 'object') return
+      if (e.data.type === 'AUTH_SUCCESS') {
+        showToast(`店铺「${e.data.shop}」授权成功！`, 'success')
+        setSidebarItem('store-data')
+      } else if (e.data.type === 'AUTH_FAILED') {
+        showToast(`授权失败：${e.data.error}`, 'error')
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [])
+
   if (!user) {
     return <LoginView onLogin={(res) => setUser({ id: res.user_id, username: res.username, role: res.role })} />
   }
