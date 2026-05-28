@@ -813,10 +813,20 @@ def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1,
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     bindings = [site, mode]
-    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, category_node_id, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    has_cat_node = False
+    sql = (
+        "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, "
+        "seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, "
+        "fulfillment, thumbnail_url, product_url, potential_index, category_node_id, fetched_at "
+        "FROM amazon_products WHERE site=? AND mode=? "
+    )
     if node_id:
-        sql += "AND category_node_id=? "
-        bindings.append(node_id)
+        # 检查数据是否有 category_node_id（旧数据可能没有）
+        cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=? AND category_node_id IS NOT NULL AND category_node_id!=''", (site, mode))
+        has_cat_node = cur.fetchone()[0] > 0
+        if has_cat_node:
+            sql += "AND category_node_id=? "
+            bindings.append(node_id)
     if search:
         sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
         like = f"%{search}%"
@@ -830,7 +840,7 @@ def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1,
     # count
     count_sql = "SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?"
     count_bindings = [site, mode]
-    if node_id:
+    if node_id and has_cat_node:
         count_sql += " AND category_node_id=?"
         count_bindings.append(node_id)
     if search:
