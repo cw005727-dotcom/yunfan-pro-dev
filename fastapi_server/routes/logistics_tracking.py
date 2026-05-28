@@ -336,18 +336,16 @@ def query_kd100_trace(waybill):
 
 
 def compute_stage(t):
-    """根据物流追踪数据计算当前链路阶段"""
+    """根据物流追踪数据计算当前链路阶段（4阶段制）"""
     if t.get('international_tracking'):
-        return 5, '✈️', '已上飞机', '#6366f1'
+        return 3, '✈️', '已发出', '#6366f1'
     if t.get('warehouse_in_date'):
-        return 4, '🏢', '已到官方仓', '#10b981'
+        return 2, '🏢', '官方仓收货', '#10b981'
     if t.get('label_status') == '已贴单':
-        return 3, '🏭', '已进云仓', '#f59e0b'
+        return 1, '🏭', '云仓已贴单', '#f59e0b'
     if t.get('logistics_1688_tracking'):
-        return 2, '🚚', '1688已发货', '#3b82f6'
-    if t.get('logistics_1688_order'):
-        return 1, '📦', '已采购', '#8b5cf6'
-    return 0, '🛒', '已下单', '#94a3b8'
+        return 0, '🚚', '平台已发货', '#3b82f6'
+    return -1, '❌', '未发货', '#94a3b8'
 
 
 @router.get("/tracking")
@@ -402,21 +400,28 @@ def get_tracking(
         if order_day == today:
             all_today += 1
 
-        is_purchased = False
+        # 从 operational_orders 补充业务字段
+        op_extra = {'salesperson': '', 'amount_usd': 0, 'profit': 0, 'buyer_name': '', 'city': ''}
         if order_number:
             try:
                 cur2 = conn.cursor()
                 cur2.execute(
-                    "SELECT status FROM operational_orders WHERE order_number = ?",
+                    "SELECT salesperson, amount_usd, profit, buyer_name, city, status FROM operational_orders WHERE order_number = ? LIMIT 1",
                     (order_number,)
                 )
                 op_row = cur2.fetchone()
-                if op_row and op_row[0] and '已采购' in op_row[0]:
-                    is_purchased = True
+                if op_row:
+                    op_extra['salesperson'] = op_row[0] or ''
+                    op_extra['amount_usd'] = round(op_row[1] or 0, 2)
+                    op_extra['profit'] = round(op_row[2] or 0, 2)
+                    op_extra['buyer_name'] = op_row[3] or ''
+                    op_extra['city'] = op_row[4] or ''
             except:
                 pass
 
-        if is_purchased:
+        # 有物流单号 = 平台已发货（替代之前的「已采购」统计）
+        has_tracking = bool(ls1688_t)
+        if has_tracking:
             purchased_count += 1
 
         # thumbnail 优先级: logistics_tracking.thumbnail > operational_orders.thumbnail > product_performance
@@ -450,9 +455,13 @@ def get_tracking(
             'label_status': label_status or '',
             'warehouse_in_date': wh_date or '',
             'international_tracking': intl_tracking or '',
-            'is_purchased': is_purchased,
             'shipped_at': shipped_at or '',
             'thumbnail': thumbnail,
+            'salesperson': op_extra['salesperson'],
+            'amount_usd': op_extra['amount_usd'],
+            'profit': op_extra['profit'],
+            'buyer_name': op_extra['buyer_name'],
+            'city': op_extra['city'],
         }
         stage_code, stage_icon, stage_name, stage_color = compute_stage(t)
         t['stage_code'] = stage_code

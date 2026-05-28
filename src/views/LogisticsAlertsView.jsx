@@ -157,8 +157,8 @@ function LifecycleTimeline({ currentStep }) {
   const [animWidth, setAnimWidth] = React.useState('0px');
   React.useEffect(() => {
     let timer;
-    const targetPct = Math.min((currentStep / 4) * 100, 100);
-    const targetW = 'calc(' + targetPct + '% - ' + (currentStep >= 4 ? 0 : 0) + 'px)';
+    const targetPct = Math.min((Math.max(currentStep, 0) / 3) * 100, 100);
+    const targetW = 'calc(' + targetPct + '% - 0px)';
     let growing = true;
     const tick = () => {
       if (growing) { setAnimWidth(targetW); growing = false; timer = setTimeout(tick, 2500); }
@@ -169,11 +169,10 @@ function LifecycleTimeline({ currentStep }) {
     return () => clearTimeout(timer);
   }, [currentStep]);
   const steps = [
-    { key: 'ordered', label: '平台下单' },
-    { key: 'shipped', label: '1688发货' },
-    { key: 'labeled', label: '已贴单' },
-    { key: 'inbound', label: '已入仓' },
-    { key: 'air', label: '已上飞机' }
+    { key: 'shipped', label: '平台已发货' },
+    { key: 'labeled', label: '云仓已贴单' },
+    { key: 'inbound', label: '官方仓收货' },
+    { key: 'air', label: '已发出' }
   ];
   return (
     <div className="relative flex items-center justify-between max-w-[320px] ml-0 px-0">
@@ -251,11 +250,11 @@ export default function LogisticsAlertsView_V5() {
                 purchase_tracking: o.logistics_1688_tracking,
                 waybill_no: o.logistics_1688_tracking,
                 prepare_time: o.warehouse_in_date,
-                delivery_time: o.international_tracking ? o.order_date : '',
-                amount_usd: 0,
-                profit: 0,
-                buyer_name: '',
-                city: '',
+                delivery_time: '',
+                amount_usd: o.amount_usd || 0,
+                profit: o.profit || 0,
+                buyer_name: o.buyer_name || '',
+                city: o.city || '',
                 carrier: '',
                 tracking_no: o.international_tracking,
                 thumbnail: o.thumbnail || '',
@@ -290,11 +289,11 @@ export default function LogisticsAlertsView_V5() {
           thirdday_h24_shipped: data.thirdday_h24_shipped,
           thirdday_over24_unshipped: data.thirdday_over24_unshipped,
           today_total: data.today_total,
-          today_purchased: data.purchased_count || data.purchased_count_today || 0,
-          today_inbound: allOrders.filter(o => o.stage_code >= 3).length,
-          today_labeled: allOrders.filter(o => o.stage_code >= 4).length,
-          today_shipped: allOrders.filter(o => o.stage_code >= 5).length,
-          today_shipped_rate: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 5).length / allOrders.length * 100) : 0,
+          today_purchased: data.purchased_count || 0,
+          today_inbound: allOrders.filter(o => o.stage_code >= 2).length,
+          today_labeled: allOrders.filter(o => o.stage_code >= 1).length,
+          today_shipped: allOrders.filter(o => o.stage_code >= 3).length,
+          today_shipped_rate: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 3).length / allOrders.length * 100) : 0,
           today_issues: data.over_48h_warning,
           rate_48h: allOrders.length > 0 ? Math.round(allOrders.filter(o => o.stage_code >= 2).length / allOrders.length * 100) : 0,
           stats_24h: data.stats_24h,
@@ -311,13 +310,13 @@ export default function LogisticsAlertsView_V5() {
     fetchData();
   }, [fetchData]);
 
-  // 国内物流链路步骤：0下单 1平台发货 2已贴单 3已入仓 4已上飞机
+  // 国内物流链路步骤：0平台已发货 1云仓已贴单 2官方仓收货 3已发出
   const getStep = (order) => {
-    if (order.international_tracking && order.warehouse_in_date) return 4;  // 已入仓 + 国际单号 = 已上飞机
-    if (order.warehouse_in_date) return 3;       // 已入仓
-    if (order.label_status === '已贴单') return 2;
-    if (order.logistics_1688_tracking) return 1;
-    return 0;
+    if (order.international_tracking) return 3;
+    if (order.warehouse_in_date) return 2;
+    if (order.label_status === '已贴单') return 1;
+    if (order.logistics_1688_tracking) return 0;
+    return -1;
   };
 
   const filteredOrders = React.useMemo(() => {
@@ -523,12 +522,12 @@ export default function LogisticsAlertsView_V5() {
                 </div>
                 
                 <div className="space-y-0">
-                  {/* 竖线展示：下单时间 → 发货时间 → 运输中 → 预计到仓时间 */}
+                  {/* 竖线展示：平台已发货 → 云仓已贴单 → 官方仓收货 → 已发出 */}
                   {[
-                    { label: '下单时间', time: currentOrder.order_date, active: true },
-                    { label: '发货时间', time: currentOrder.logistics_1688_tracking ? (currentOrder.order_date || '已发货') : '', active: !!currentOrder.logistics_1688_tracking },
-                    { label: '运输中', time: currentOrder.logistics_1688_tracking && !currentOrder.warehouse_in_date ? '运输中' : '', active: !!(currentOrder.logistics_1688_tracking && !currentOrder.warehouse_in_date) },
-                    { label: '预计到仓', time: currentOrder.warehouse_in_date ? currentOrder.warehouse_in_date : (currentOrder.logistics_1688_tracking ? '预计1-3天' : ''), active: !!currentOrder.warehouse_in_date },
+                    { label: '平台已发货', time: currentOrder.logistics_1688_tracking ? ((currentOrder.logistics_1688_tracking || '').split(':')[0]) : '未发货', active: !!currentOrder.logistics_1688_tracking },
+                    { label: '云仓已贴单', time: currentOrder.label_status === '已贴单' ? '已贴单' : (currentOrder.logistics_1688_tracking ? '待贴单' : ''), active: currentOrder.label_status === '已贴单' },
+                    { label: '官方仓收货', time: currentOrder.warehouse_in_date ? currentOrder.warehouse_in_date : (currentOrder.label_status === '已贴单' ? '预计1-3天' : ''), active: !!currentOrder.warehouse_in_date },
+                    { label: '已发出', time: currentOrder.international_tracking ? (currentOrder.international_tracking || '').split(':')[0] : (currentOrder.warehouse_in_date ? '待发出' : ''), active: !!currentOrder.international_tracking },
                   ].map((step, i) => (
                     <div key={i} className="relative flex items-start gap-4 pb-5 last:pb-0">
                       <div className="flex flex-col items-center">
