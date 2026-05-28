@@ -45,34 +45,91 @@ COM_PREFIX_MAP = {
 
 # ── 常见快递列表（优先级排序，纯数字单号遍历用） ─────
 COMMON_COMS = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng',
-               'huitongkuaidi', 'youzhengguonei', 'debang', 'jtexpress']
+               'huitongkuaidi', 'youzhengguonei', 'jtexpress']
 
 # 快递公司中文名 → 编码映射（用于从轨迹内容匹配）
+# 快递公司中文名 → 编码映射（用于从轨迹内容匹配）
 COM_NAMES_REV = {
-    '圆通': 'yuantong', '中通': 'zhongtong', '申通': 'shentong',
-    '韵达': 'yunda', '极兔': 'jtexpress', '顺丰': 'shunfeng',
-    '京东': 'jd', '邮政': 'youzhengguonei', '德邦': 'debang',
-    '百世': 'huitongkuaidi',
+    '圆通速递': 'yuantong', '圆通': 'yuantong',
+    '中通快递': 'zhongtong', '中通': 'zhongtong',
+    '申通快递': 'shentong', '申通': 'shentong',
+    '韵达快递': 'yunda', '韵达': 'yunda',
+    '极兔速递': 'jtexpress', '极兔': 'jtexpress',
+    '顺丰速运': 'shunfeng', '顺丰': 'shunfeng',
+    '京东物流': 'jd', '京东': 'jd',
+    '中国邮政': 'youzhengguonei', '邮政': 'youzhengguonei', 'EMS': 'youzhengguonei',
+    '德邦快递': 'debang', '德邦物流': 'debang', '德邦': 'debang',
+    '百世快递': 'huitongkuaidi', '百世': 'huitongkuaidi',
+    '壹米滴答': 'yimidida',
+    '跨越速运': 'kuayue',
+    '安能物流': 'annengwuliu',
+    '天地华宇': 'tiandihuayu',
+    '速尔': 'suer',
+}
+
+# 仓库收货城市列表（用于验证纯数字运单号）
+WAREHOUSE_CITIES = ['东莞', '义乌', '郑州', '广州', '深圳', '上海', '北京']
+# 常见快递列表（纯数字单号遍历用，排除了易误判的德邦）
+COMMON_COMS = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng',
+               'huitongkuaidi', 'youzhengguonei', 'jtexpress']
+
+# 快递公司数字单号格式规则
+COM_NUM_RULES = {
+    'yuantong':      (10, 12),    # 圆通通常10-12位数字
+    'zhongtong':     (12, 12),    # 中通通常12位
+    'shentong':      (12, 15),    # 申通12-15位
+    'yunda':         (13, 13),    # 韵达13位
+    'shunfeng':      (12, 12),    # 顺丰12位
+    'jtexpress':     (12, 15),    # 极兔12-15位
+    'huitongkuaidi': (12, 15),    # 百世12-15位
+    'youzhengguonei':(13, 13),    # 邮政13位
 }
 
 
 def _detect_com(waybill):
     """根据快递单号规则识别快递公司编码（不调外部接口）"""
-    prefix = waybill[:2].upper()
+    if not waybill or not waybill.strip():
+        return '', False
+    
+    raw = waybill.strip()
+    
+    # 检查是否包含中文字符（非合法运单号）
+    import re
+    if re.search(r'[\u4e00-\u9fff]', raw):
+        return '', False
+    
+    # 纯数字：检查位数是否符合常见快递规则
+    if raw.isdigit():
+        length = len(raw)
+        candidates = []
+        for com, (min_len, max_len) in COM_NUM_RULES.items():
+            if min_len <= length <= max_len:
+                candidates.append(com)
+        if candidates:
+            return None, True  # None = 纯数字，需遍历，flag=True表示有效
+        return None, False  # 位数不匹配，无效
+    
+    # 字母前缀匹配
+    prefix = raw[:2].upper()
     if prefix in COM_PREFIX_MAP:
-        return COM_PREFIX_MAP[prefix]
-
-    if waybill.isdigit():
-        return None  # 纯数字返回None，由调用方遍历
-
-    return ''
+        return COM_PREFIX_MAP[prefix], True
+    
+    return '', False
 
 
 def _get_traces_from_waybill(waybill_str):
     """从完整运单号（含:尾号）解析并查轨迹"""
+    if not waybill_str or not waybill_str.strip():
+        return '', []
     parts = waybill_str.split(':')
     raw = parts[0].strip()
-    phone = parts[1].strip() if len(parts) > 1 and parts[1].isdigit() else ''
+    phone = parts[1].strip() if len(parts) > 1 and parts[1].strip().isdigit() else ''
+    com, is_valid = _detect_com(raw)
+    if not is_valid:
+        return '', []
+    if com:
+        traces = _get_traces(raw, com, phone=phone)
+        return com, traces
     com, traces = _detect_com_and_traces(raw, phone=phone)
     return com, traces
 
@@ -163,8 +220,12 @@ def _detect_com_and_traces(waybill, phone=''):
         if len(parts) > 1 and parts[1].strip().isdigit():
             phone = parts[1].strip()
 
+    # 先验证运单号有效性
+    com, is_valid = _detect_com(raw)
+    if not is_valid:
+        return '', []
+
     # 有字母前缀直接查
-    com = _detect_com(raw)
     if com:
         traces = _get_traces(raw, com, phone=phone)
         if traces:
@@ -172,24 +233,17 @@ def _detect_com_and_traces(waybill, phone=''):
         return com, []
 
     # 纯数字单号：有手机尾号时用poll查中通
-    # 需校验轨迹是否到达三个收货城市之一：东莞、义乌、郑州
     if phone:
         poll_traces = _poll_query('zhongtong', raw, phone)
         if poll_traces:
             ctx_all = ' '.join(t.get('context','') for t in poll_traces)
-            valid_cities = ['东莞', '义乌', '郑州']
-            has_valid_city = any(c in ctx_all for c in valid_cities)
+            has_valid_city = any(c in ctx_all for c in WAREHOUSE_CITIES)
             if has_valid_city:
                 return 'zhongtong', poll_traces
 
-    # 中通没命中收货城市，不走中通免费接口（容易出假数据）
-    # 直接遍历其他快递公司
-    top_cos = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng']
-
-    # 并发查其他公司
-    top_cos = ['yuantong', 'zhongtong', 'shentong', 'yunda', 'shunfeng']
+    # 中通没命中收货城市，遍历其他快递公司
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_com = {executor.submit(_get_traces, raw, c, phone): c for c in top_cos}
+        future_to_com = {executor.submit(_get_traces, raw, c, phone): c for c in COMMON_COMS}
         results = []
         for future in concurrent.futures.as_completed(future_to_com):
             c = future_to_com[future]
@@ -197,17 +251,28 @@ def _detect_com_and_traces(waybill, phone=''):
                 traces = future.result()
                 if traces:
                     score = len(traces)
-                    for t in traces:
-                        ctx = t.get('context', '')
-                        for zh_name, code in COM_NAMES_REV.items():
-                            if zh_name in ctx:
-                                score += 5 if code == c else -2
+                    ctx_all = ' '.join(t.get('context','') for t in traces)
+                    # 命中仓库收货城市加分
+                    city_count = sum(1 for city in WAREHOUSE_CITIES if city in ctx_all)
+                    score += city_count * 3
+                    # 上下文提到本快递公司名加分
+                    for zh_name, code in COM_NAMES_REV.items():
+                        if code == c and zh_name in ctx_all:
+                            score += 5
+                    # 上下文提到其他快递公司名扣分
+                    for zh_name, code in COM_NAMES_REV.items():
+                        if code != c and zh_name in ctx_all:
+                            score -= 2
                     results.append((score, c, traces))
             except Exception:
                 continue
 
     if results:
-        results.sort(key=lambda x: x[0], reverse=True)
+        results.sort(key=lambda x: -x[0])
+        # 如果最高分和次高分差距不到2分，认为存在歧义
+        if len(results) >= 2 and results[0][0] - results[1][0] < 2:
+            # 返回数据量更大的那个
+            results.sort(key=lambda x: (-x[0], -len(x[2])))
         return results[0][1], results[0][2]
     return '', []
 
@@ -575,11 +640,10 @@ def get_express_traces(waybill: str):
                 "traces": poll_traces,
             })
 
-    # 最终检查：纯数字单号必须命中三个收货城市之一
+    # 最终检查：纯数字单号必须命中仓库收货城市
     if traces and raw.isdigit():
         ctx_all = ' '.join(t.get('context','') for t in traces)
-        valid_cities = ['东莞', '义乌', '郑州']
-        if not any(c in ctx_all for c in valid_cities):
+        if not any(c in ctx_all for c in WAREHOUSE_CITIES):
             return JSONResponse({"success": False, "message": "轨迹不匹配"})
 
     if traces:

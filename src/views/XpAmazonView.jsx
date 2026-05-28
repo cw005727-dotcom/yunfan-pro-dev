@@ -186,21 +186,8 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setSelectedCat(topId)
     setSelectedSub('')
     const top = categories.find(c => c.id === topId)
-    if (top?.children?.length) {
-      setSubCategories(top.children)
-    } else {
-      setSubCategories([])
-    }
-    // 选一级类目就加载数据，二级类目可选
+    // 选一级类目就加载数据
     handlePull(topId, top.name)
-  }
-
-  const [subCategories, setSubCategories] = useState([])
-
-  const handleSubCatChange = (subId) => {
-    setSelectedSub(subId)
-    const sub = subCategories.find(c => c.id === subId)
-    if (sub) handlePull(subId, sub.name)
   }
 
   const handleExport = () => {
@@ -286,7 +273,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
                value={selectedCat || ''}
                onChange={e => {
                  const val = e.target.value
-                 if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); setProducts([]); return }
+                 if (!val) { setSelectedCat(''); setSelectedSub(''); setProducts([]); return }
                  handleTopCatChange(val)
                }}
                className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
@@ -296,27 +283,9 @@ export default function XpAmazonView_V5({ defaultMode }) {
                  <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
                ))}
              </select>
-           </div>
-           
-           <div className="min-w-0 max-w-[160px]">
-             <select
-               value={selectedSub || ''}
-               onChange={e => {
-                 const val = e.target.value
-                 if (!val) { setSelectedSub(''); return }
-                 handleSubCatChange(val)
-               }}
-               disabled={!selectedCat || subCategories.length === 0}
-               className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
-             >
-               <option value="">选择子类</option>
-               {subCategories.map(cat => (
-                 <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-               ))}
-             </select>
-           </div>
+             </div>
 
-           <div className="ml-auto flex items-center gap-2 shrink-0">
+             <div className="ml-auto flex items-center gap-2 shrink-0">
              {loading ? (
                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-500 animate-pulse">拉取中...</span>
              ) : (
