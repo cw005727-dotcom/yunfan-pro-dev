@@ -70,3 +70,7 @@ Traceback (most recent call last):
   File "/Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py", line 9, in <module>
     from fastapi_server.config import ML_APP_ID as CLIENT_ID, ML_CLIENT_SECRET
 ModuleNotFoundError: No module named 'fastapi_server'
+Traceback (most recent call last):
+  File "/Users/chensan/yunfan-pro-dev/scripts/cron/refresh_token_cron.py", line 9, in <module>
+    from fastapi_server.config import ML_APP_ID as CLIENT_ID, ML_CLIENT_SECRET
+ModuleNotFoundError: No module named 'fastapi_server'

@@ -365,7 +365,7 @@ async def _handle_webhook(request: Request):
         logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
         # claims 类型的 topic 没有 order_id（用 resource），单独处理
         # marketplace_items 也没有 order_id（商品变更通知），忽略即可
-        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_shipments') and not order_id:
+        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_shipments', 'items') and not order_id:
             raise HTTPException(status_code=400, detail="Missing order id")
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去（claims 不用）
         if order_id:
@@ -463,12 +463,17 @@ async def _handle_webhook(request: Request):
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
 
             # 写入实时通知表（前端「实时推送」专用）
-            conn.execute(
-                "INSERT INTO realtime_notifications (topic, content, site_id, order_id, received_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))",
-                (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
-                 monitor_site or data.get('site_id', ''),
-                 str(order_id) if order_id else '')
-            )
+            # claims 重复推送：用 INSERT OR IGNORE + 唯一索引防重
+            # 其他 topic 正常插入（Unique 约束不满足时忽略，不报错）
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO realtime_notifications (topic, content, site_id, order_id, received_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))",
+                    (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
+                     monitor_site or data.get('site_id', ''),
+                     str(order_id) if order_id else '')
+                )
+            except Exception as e:
+                logger.warning(f"[realtime_notifications] insert failed (possibly duplicate): {e}")
 
             conn.commit()
 

@@ -183,3 +183,24 @@ relay() → topic 分流
   - 价格：约 **0.2 元/张**，需去火山引擎控制台续费
 - `auto_center.py`：移除 CozeClient 依赖，仅保留 image workflow（其他暂返回 501）
 - **前端无需改动**：API 返回格式完全兼容（result_data.image_urls/images/prompt_used）
+
+## v4.32.2 (2026-05-28)
+### Webhook 修复 + notification_processor systemd 服务
+
+#### P0-1: `items` topic 加入豁免列表
+- `webhook.py:368` 的 topic 豁免 tuple 添加 `'items'`，避免 items 类型通知被错误拒绝
+
+#### P0-2: notification_processor systemd 服务
+- 创建 `scripts/workers/notification-processor.service`
+- 部署后 systemctl enable + start 保证开机自启
+
+#### P1-1: claims 重复写入 realtime_notifications
+- INSERT 改为 INSERT OR IGNORE + try/except 兜底
+- 已有唯一索引 `idx_realtime_notif_dedup(topic, order_id, content)` 防重
+
+#### P1-2: 本地 DB `read_status` → `read`
+- 本地 `mercadolibre.db` 改列名 `ALTER TABLE realtime_notifications RENAME COLUMN read_status TO read`
+- 代码保持不变（查 `read`），与服务器一致
+
+#### P2-1: 本地 ml_notifications 已完成 ✅
+- attempts、error、created_at 列已存在，无需改动
