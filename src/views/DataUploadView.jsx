@@ -219,49 +219,49 @@ export default function DataUploadView() {
               <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
               <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', textAlign: 'left' }}>选择站点</div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {[
-              { site: 'MLB', label: '🇧🇷 巴西', color: '#009c3b' },
-              { site: 'MLM', label: '🇲🇽 墨西哥', color: '#006847' },
-              { site: 'MLA', label: '🇦🇷 阿根廷', color: '#74acdf' },
-              { site: 'MCO', label: '🇨🇴 哥伦比亚', color: '#ffcd00' },
-            ].map(({ site, label, color }) => (
-              <button
-                key={site}
-                onClick={async () => {
-                  setSiteModalOpen(false);
-                  if (!pendingFile) return;
-                  const shopId = ({'主营店铺': '4802768831', '测试1': '9107675308', '2店': '7991941853'})[selectedShop] || '';
-                  const formData = new FormData();
-                  formData.append('file', pendingFile);
-                  formData.append('site_id', site);
-                  setSiteUploading(true);
-                  try {
-                    const url = pendingEndpoint + '?site_id=' + site + (shopId ? '&shop_id=' + shopId : '');
-                    const res = await fetch(url, { method: 'POST', body: formData });
-                    const data = await res.json();
-                    message.success(data.message || '上传成功');
-                    if (pendingEndpoint === '/upload/links') {
-                      message.info('图片正在后台拉取，请稍后刷新页面查看');
-                    }
-                  } catch (err) {
-                    message.error('上传失败: ' + err.message);
-                  } finally {
-                    setSiteUploading(false);
-                    setPendingFile(null);
-                  }
-                }}
-                style={{
-                  padding: '16px 24px', borderRadius: '10px', border: `2px solid ${color}`,
-                  background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: '600',
-                  color: color, transition: 'all 0.2s'
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </>}
+                {[
+                  { site: 'MLB', label: '🇧🇷 巴西', color: '#009c3b' },
+                  { site: 'MLM', label: '🇲🇽 墨西哥', color: '#006847' },
+                  { site: 'MLA', label: '🇦🇷 阿根廷', color: '#74acdf' },
+                  { site: 'MCO', label: '🇨🇴 哥伦比亚', color: '#ffcd00' },
+                ].map(({ site, label, color }) => (
+                  <button
+                    key={site}
+                    onClick={async () => {
+                      setSiteModalOpen(false);
+                      if (!pendingFile) return;
+                      const shopId = ({'主营店铺': '4802768831', '测试1': '9107675308', '2店': '7991941853'})[selectedShop] || '';
+                      const formData = new FormData();
+                      formData.append('file', pendingFile);
+                      formData.append('site_id', site);
+                      setSiteUploading(true);
+                      try {
+                        const url = pendingEndpoint + '?site_id=' + site + (shopId ? '&shop_id=' + shopId : '');
+                        const res = await fetch(url, { method: 'POST', body: formData });
+                        const data = await res.json();
+                        message.success(data.message || '上传成功');
+                        if (pendingEndpoint === '/upload/links') {
+                          message.info('图片正在后台拉取，请稍后刷新页面查看');
+                        }
+                      } catch (err) {
+                        message.error('上传失败: ' + err.message);
+                      } finally {
+                        setSiteUploading(false);
+                        setPendingFile(null);
+                      }
+                    }}
+                    style={{
+                      padding: '16px 24px', borderRadius: '10px', border: `2px solid ${color}`,
+                      background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: '600',
+                      color: color, transition: 'all 0.2s'
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
       </Modal>
       {/* 变化卡片区 */}
       <div className="grid grid-cols-2 gap-4">
