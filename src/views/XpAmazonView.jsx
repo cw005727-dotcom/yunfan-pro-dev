@@ -161,7 +161,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
     setError('')
     setProducts([])
     try {
-      const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
+      const endpointMap = { hot: '/api/amazon/hot', new: '/api/amazon/new' }
       const endpoint = endpointMap[mode] || '/api/amazon/hot'
       const res = await fetch(endpoint, {
         method: 'POST',
