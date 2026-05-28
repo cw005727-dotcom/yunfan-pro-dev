@@ -173,8 +173,6 @@ export default function StoreDataView_V5() {
   const [rankView, setRankView] = useState('profit');
   const SITE_NAMES = { MLB: '🇧🇷 巴西', MLM: '🇲🇽 墨西哥', MLA: '🇦🇷 阿根廷', MLC: '🇨🇱 智利', MCO: '🇨🇴 哥伦比亚', MLU: '🇺🇾 乌拉圭', BR: '🇧🇷 巴西', MX: '🇲🇽 墨西哥', AR: '🇦🇷 阿根廷', CL: '🇨🇱 智利', CO: '🇨🇷 哥伦比亚' };
 
-  const [stats, setStats] = useState(null);
-
   const fetchData = useCallback(() => {
     const params = {};
     if (selectedSalesperson) params.salesperson = selectedSalesperson;
@@ -295,7 +293,7 @@ export default function StoreDataView_V5() {
              <div className="h-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                 <div>
                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">取消率监控 <AntTooltip title="计算公式: 本期取消订单 / 本期总订单"><AlertCircle size={12} /></AntTooltip></div>
-                   <div className="text-[42px] font-black text-rose-600 leading-none mb-1">{stats ? (((stats.total_cancel_pre || 0) + (stats.total_cancel_post || 0)) / (stats.total_orders || 1) * 100).toFixed(1) : 0}%</div>
+                   <div className="text-[42px] font-black text-rose-600 leading-none mb-1">{stats ? ((stats.total_cancel_pre || 0) / (stats.total_orders || 1) * 100).toFixed(1) : 0}%</div>
                 </div>
                 <div className="pt-4 border-t border-slate-50">
                    <div className="text-[12px] font-bold text-slate-500 flex items-center gap-1">低于类目阈值 <ArrowUpRight size={14} className="text-rose-500" strokeWidth={3} /></div>

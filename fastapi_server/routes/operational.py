@@ -79,9 +79,9 @@ def base_where(salesperson, site, store_name, date_from, date_to):
 
 
 def agg_filter(conn, where_sql, params):
-    """统计主数据：排除 取消-发货前 + 取消-已取消 + 找货-没汇总"""
+    """统计主数据：排除 找货-没汇总（取消单单独算，取消率=发货前取消/有效基数）"""
     cur = conn.cursor()
-    exclude_sql = " AND status NOT IN ('取消-发货前','取消-已取消','找货-没汇总')"
+    exclude_sql = " AND status NOT IN ('找货-没汇总')"
     cur.execute(
         "SELECT COUNT(*), COALESCE(SUM(amount_usd),0), COALESCE(SUM(profit),0), "
         "COALESCE(SUM(purchase_cost),0) FROM operational_orders WHERE 1=1" + where_sql + exclude_sql,
@@ -175,7 +175,7 @@ def get_daily(
     conn = get_conn()
     cur = conn.cursor()
     w, p = base_where(salesperson, site, store_name, date_from, date_to)
-    w += " AND status NOT IN ('取消-发货前','取消-已取消','找货-没汇总')"
+    w += " AND status NOT IN ('找货-没汇总')"
     sql = (
         "SELECT date(replace(order_date,'/','-')), COUNT(*), "
         "COALESCE(SUM(amount_usd),0), COALESCE(SUM(profit),0) "
@@ -208,7 +208,7 @@ def get_stores(
     if site:        where.append(" site = ? ");        params.append(site)
     if date_from:   where.append(" date(replace(order_date,'/','-')) >= ? "); params.append(dt(date_from))
     if date_to:     where.append(" date(replace(order_date,'/','-')) <= ? "); params.append(dt(date_to))
-    where.append(" status NOT IN ('取消-发货前','取消-已取消','找货-没汇总') ")
+    where.append(" status NOT IN ('找货-没汇总') ")
     wc = (" AND " + " AND ".join(where)) if where else ""
     sql = (
         "SELECT COALESCE(salesperson,'未知'), COALESCE(site,'未知'), COALESCE(source,'未知'), "
