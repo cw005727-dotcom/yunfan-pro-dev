@@ -160,6 +160,7 @@ async def upload_links(
                 conn = sqlite3.connect(str(DB_PATH))
                 for idx, item_id in enumerate(item_ids):
                     try:
+                        _provider.clear_cache()
                         token = _provider.get_valid_token()
                         if not token:
                             continue

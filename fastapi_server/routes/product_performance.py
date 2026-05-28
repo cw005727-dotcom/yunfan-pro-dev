@@ -274,6 +274,7 @@ async def repull_performance_images():
     import requests, json, time as _time
 
     provider = get_ml_token_provider()
+    provider.clear_cache()  # 强制清缓存，拿最新 token
     token = provider.get_valid_token()
     if not token:
         return JSONResponse({'success': False, 'message': '无法获取 ML access_token，请重新授权'}, status_code=401)
