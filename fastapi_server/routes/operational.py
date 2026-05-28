@@ -36,6 +36,8 @@ def extract_store_name(source):
     return s.strip() or '未知'
 
 
+EXCLUDED_SALESPERSONS = {'1502886', 'dc', 'DC', 'yy', 'YY', '大川', 'yfkj1', 'YFkj1', 'YFkj', ''}
+
 def base_where(salesperson, site, store_name, date_from, date_to):
     w, p = [], []
     if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
@@ -45,6 +47,9 @@ def base_where(salesperson, site, store_name, date_from, date_to):
         w.append(" source LIKE ? "); p.append(f"%{store_name}%")
     if date_from:   w.append(" date(replace(order_date,'/','-')) >= ? "); p.append(dt(date_from))
     if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
+    # 全局排除无效运营
+    w.append(f" salesperson NOT IN ({','.join('?' * len(EXCLUDED_SALESPERSONS))}) ")
+    p.extend(EXCLUDED_SALESPERSONS)
     wc = " AND ".join(w)
     return (" AND " + wc) if wc else "", p
 
@@ -232,7 +237,12 @@ def get_store_names(site: Optional[str] = Query(None), salesperson: Optional[str
 def get_salespersons():
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT DISTINCT COALESCE(salesperson,'未知') FROM operational_orders ORDER BY salesperson")
+    cur.execute(
+        "SELECT DISTINCT salesperson FROM operational_orders WHERE salesperson NOT IN ("
+        + ','.join('?' * len(EXCLUDED_SALESPERSONS))
+        + ") AND salesperson IS NOT NULL AND salesperson != '' ORDER BY salesperson",
+        list(EXCLUDED_SALESPERSONS)
+    )
     rows = cur.fetchall()
     conn.close()
     return JSONResponse({"salespersons": [r[0] for r in rows]})

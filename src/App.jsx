@@ -4,6 +4,8 @@ import TopMonitoringBar from './components/TopMonitoringBar'
 import Icon from './components/Icon'
 import { useAppContext } from './context/AppContext'
 import LoginView from './views/LoginView'
+import { ConfigProvider } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
 
 // 直接 import 所有视图，不用 lazy
 import XpAmazonView from './views/XpAmazonView'
@@ -111,6 +113,7 @@ export default function App() {
   const label = routeLabels[sidebarItem] || '云帆跨境 Pro'
 
   return (
+    <ConfigProvider locale={zhCN}>
     <div className={`h-screen flex flex-col bg-white overflow-hidden transition-all duration-500 ${showMain ? 'opacity-100' : 'opacity-0'}`}
          style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <TopMonitoringBar />
@@ -145,5 +148,6 @@ export default function App() {
       {mobileOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
       {toast && <div className="fixed bottom-6 right-6 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg text-sm">{toast.message}</div>}
     </div>
+    </ConfigProvider>
   )
 }
