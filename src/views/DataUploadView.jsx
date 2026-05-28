@@ -182,7 +182,6 @@ export default function DataUploadView() {
           title="物流数据上传"
           accept=".xlsx,.xls"
           endpoint="/upload/logistics"
-          onUpload={() => { message.success('上传成功'); window.location.reload(); }}
         />
       </div>
 
