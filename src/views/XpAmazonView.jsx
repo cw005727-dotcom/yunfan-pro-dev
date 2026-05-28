@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Icon from '../components/Icon'
-import { apiClient } from '../api/client'
+import * as XLSX from 'xlsx'
 
 const SITES = [
   { id: 'US', name: '🇺🇸 美国站' },
@@ -103,24 +103,14 @@ export default function XpAmazonView_V5({ defaultMode }) {
   const [selectedCat, setSelectedCat] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
   const mode = defaultMode || 'hot'
-  const [prevMode, setPrevMode] = useState(mode)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
-  // mode变化时自动拉取数据
-  if (mode !== prevMode) {
-    setPrevMode(mode)
-    setProducts([])
-    setSelectedCat('')
-    setSelectedSub('')
-    setSubCategories([])
-  }
-  // 新品模式自动拉取
-  if (mode === 'new' && products.length === 0 && handlePull) {
-    handlePull('', '')
-  }
-
   const [catLoading, setCatLoading] = useState(false)
-  // 新品模式：mode或site变化时拉取全量
+  const [error, setError] = useState('')
+  const [visibleCount, setVisibleCount] = useState(40)
+  const scrollRef = useRef(null)
+
+  // 新品模式：直接调 API
   useEffect(() => {
     if (mode === 'new') {
       setLoading(true)
@@ -136,12 +126,7 @@ export default function XpAmazonView_V5({ defaultMode }) {
     }
   }, [mode, site])
 
-  const [error, setError] = useState('')
-  const [visibleCount, setVisibleCount] = useState(40)
-  const scrollRef = useRef(null)
-
   const [exporting, setExporting] = useState(false)
-  const [exportTask, setExportTask] = useState(null)
   const currencyMap = { US: '$', MX: 'MX$', BR: 'R$' }
 
   // 加载类目树
@@ -171,10 +156,10 @@ export default function XpAmazonView_V5({ defaultMode }) {
 
   // 选类目后自动拉取 Sorftime 数据
   const handlePull = useCallback(async (nodeId, catName) => {
+    if (!nodeId) return
     setLoading(true)
     setError('')
     setProducts([])
-    if (!nodeId && mode !== 'new') return
     try {
       const endpointMap = { hot: '/api/amazon/hot', potential: '/api/amazon/potential', new: '/api/amazon/new' }
       const endpoint = endpointMap[mode] || '/api/amazon/hot'
@@ -218,33 +203,45 @@ export default function XpAmazonView_V5({ defaultMode }) {
     if (sub) handlePull(subId, sub.name)
   }
 
-  const handleExport = async () => {
+  const handleExport = () => {
     if (products.length === 0 || exporting) return
     setExporting(true)
-    setExportTask('exporting')
+    // 立刻构建导出，完成后保持导出中状态1秒再恢复
     try {
-      const asins = products.map(p => p.asin).filter(Boolean)
-      const res = await apiClient.post('/amazon/export', { asins, site, mode })
-      if (res && res.task_id) {
-        setExportTask(res)
-      } else {
-        console.error('导出请求失败:', res)
-        setExportTask(null)
-        setExporting(false)
-      }
+      const rows = products.map(p => ({
+        '站点': site,
+        'ASIN': p.asin,
+        '标题': p.title || p.标题,
+        '品牌': p.brand || p.品牌,
+        '价格': p.price || p.价格,
+        '月销量': p.monthly_sales || p.月销量 || 0,
+        '评分': p.rating || p.星级,
+        '评论数': p.review_count || p.评论数 || 0,
+        '上架天数': p.listed_days || p.上架天数 || 0,
+        '链接': `https://www.amazon.${site.toLowerCase() === 'us' ? 'com' : site.toLowerCase() === 'mx' ? 'com.mx' : 'br'}/dp/${p.asin}`
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Amazon_V5_Data')
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([wbout], { type: 'application/octet-stream' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Amazon_${site}_${mode}_${new Date().toISOString().slice(0,10)}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
     } catch (err) {
       console.error('导出失败:', err)
-      setExportTask(null)
-      setExporting(false)
     }
-  }
-
-  const handleDownload = () => {
-    if (exportTask && exportTask.download_url) {
-      window.open(exportTask.download_url, '_blank')
-      setExportTask(null)
-      setExporting(false)
-    }
+    // 够1.5秒再恢复，不管导出多快
+    var t0 = Date.now()
+    ;(function check() {
+      if (Date.now() - t0 < 1500) setTimeout(check, 100)
+      else setExporting(false)
+    })()
   }
 
   // 无限滚动
@@ -284,50 +281,40 @@ export default function XpAmazonView_V5({ defaultMode }) {
              ))}
            </div>
 
-           {mode !== 'new' && (
-             <>
-             <div className="min-w-0 max-w-[160px]">
-               <select
-                 value={selectedCat || ''}
-                 onChange={e => {
-                   const val = e.target.value
-                   if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); setProducts([]); return }
-                   handleTopCatChange(val)
-                 }}
-                 className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
-               >
-                 <option value="">{catLoading ? '加载中...' : '选择大类'}</option>
-                 {categories.map(cat => (
-                   <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-                 ))}
-               </select>
-             </div>
-             
-             <div className="min-w-0 max-w-[160px]">
-               <select
-                 value={selectedSub || ''}
-                 onChange={e => {
-                   const val = e.target.value
-                   if (!val) { setSelectedSub(''); return }
-                   handleSubCatChange(val)
-                 }}
-                 disabled={!selectedCat || subCategories.length === 0}
-                 className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
-               >
-                 <option value="">选择子类</option>
-                 {subCategories.map(cat => (
-                   <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-                 ))}
-               </select>
-             </div>
-             </>
-           )}
-           {/* 新品模式：不显示类目选择，显示全量数据标签 */}
-           {mode === 'new' && (
-             <div className="flex items-center gap-2 px-2">
-               <span className="text-[10px] font-bold text-violet-500 bg-violet-50 px-2 py-1 rounded-lg">全量新品</span>
-             </div>
-           )}
+           <div className="min-w-0 max-w-[160px]">
+             <select
+               value={selectedCat || ''}
+               onChange={e => {
+                 const val = e.target.value
+                 if (!val) { setSelectedCat(''); setSelectedSub(''); setSubCategories([]); setProducts([]); return }
+                 handleTopCatChange(val)
+               }}
+               className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+             >
+               <option value="">{catLoading ? '加载中...' : '选择大类'}</option>
+               {categories.map(cat => (
+                 <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
+               ))}
+             </select>
+           </div>
+           
+           <div className="min-w-0 max-w-[160px]">
+             <select
+               value={selectedSub || ''}
+               onChange={e => {
+                 const val = e.target.value
+                 if (!val) { setSelectedSub(''); return }
+                 handleSubCatChange(val)
+               }}
+               disabled={!selectedCat || subCategories.length === 0}
+               className="w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+             >
+               <option value="">选择子类</option>
+               {subCategories.map(cat => (
+                 <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
+               ))}
+             </select>
+           </div>
 
            <div className="ml-auto flex items-center gap-2 shrink-0">
              {loading ? (
@@ -336,8 +323,8 @@ export default function XpAmazonView_V5({ defaultMode }) {
                <span className="text-[9px] font-bold text-slate-300">Sorftime 实时</span>
              )}
              {products.length > 0 && (
-               <button onClick={exportTask && exportTask.download_url ? handleDownload : handleExport} disabled={exporting} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
-                 <Icon name="download" size={10} /> {exportTask && exportTask.download_url ? '下载文件' : exporting ? '生成中...' : '导出'}
+               <button onClick={handleExport} disabled={exporting} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                 <Icon name="download" size={10} /> {exporting ? '导出中...' : '导出'}
                </button>
              )}
            </div>

@@ -794,245 +794,111 @@ def list_sites():
         {"id": "BR", "name": "🇧🇷 巴西", "flag": "BR"},
     ]
 
-@router.post("/hot")
-async def pull_hot_products(req: HotReq):
-    """
-    爆品模式：调用 product_search，每页20条，取5次共100条，
-    前端按月销量(sales)降序排列。
-    不做销量/评分下限过滤，只做 max_listed_days 过滤。
-    """
-    import logging
-    logger = logging.getLogger("uvicorn.error")
-    logger.warning(f"[AMAZON HOT] site={req.site} node_id={req.node_id} search={req.search}")
-    site = req.site.upper()
-    if site not in ("US", "MX", "BR"):
-        raise HTTPException(400, "站点仅支持 US / MX / BR")
-
-    all_products = []
-    # 每次20条，5次=100条
-    for page in range(1, 6):
-        args = {
-            "amzSite": site,
-            "page": page,
-        }
-        if req.search:
-            args["searchName"] = req.search
-        raw = mcp_call("product_search", args)
-        try:
-            chunk = json.loads(raw) if isinstance(raw, str) else raw
-        except Exception:
-            chunk = []
-        chunk = chunk if isinstance(chunk, list) else []
-        for p in chunk:
-            norm = normalize_product(p, site)
-            norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
-            norm["big_category"] = p.get("所属大类", "")
-            norm["sub_category"] = p.get("所属细分类目", "")
-            norm["seller_country"] = p.get("卖家国籍", "")
-            norm["fba_fee"] = p.get("FBA费用", 0)
-            weight_raw = p.get("重量", 0)
-            try: norm["weight"] = float(weight_raw)
-            except: norm["weight"] = 0
-            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-                continue
-            all_products.append(norm)
-
-    return {"products": all_products, "total": len(all_products), "errors": []}
-
-@router.post("/potential")
-async def pull_potential_products(req: NewReq):
-    import logging
-    logger = logging.getLogger("uvicorn.error")
-    logger.warning(f"[AMAZON POT] site={req.site} node_id={req.node_id} page={req.page}")
-    """
-    潜力产品模式。
-    - US/GB/DE: 用 potential_product（最准确）
-    - MX/BR: 用 product_search + sortby_potential_index=True（BR potential_product 有bug）
-    """
-    site = req.site.upper()
-    if site not in ("US", "MX", "BR"):
-        raise HTTPException(400, "站点仅支持 US / MX / BR")
-
-    products = []
-
-    if site == "US":
-        # potential_product 对 US 有效
-        args = {"amzSite": site, "page": req.page}
-        if req.search:
-            args["searchName"] = req.search
-        raw = mcp_call("potential_product", args)
-        try:
-            data = json.loads(raw) if isinstance(raw, str) else raw
-        except Exception:
-            data = []
-        if isinstance(data, dict) and "error" in data:
-            errors = [data["error"]]
-            products = []
-        else:
-            products = data if isinstance(data, list) else []
-            errors = []
-    else:
-        # MX / BR: 用 product_search + sortby_potential_index
-        # ⚠️ product_search 的 nodeId 对 MX/BR 不生效（返回相同产品）；改用 searchName 搜索中文类目名
-        args = {
-            "amzSite": site,
-            "sortby_potential_index": True,
-            "page": req.page,
-        }
-        if req.search:
-            args["searchName"] = req.search
-        raw = mcp_call("product_search", args)
-        try:
-            data = json.loads(raw) if isinstance(raw, str) else raw
-        except Exception:
-            data = []
-        products = data if isinstance(data, list) else []
-        errors = []
-
-    all_products = []
-    errors = []
-    # 每次20条，5次=100条
-    for page in range(1, 6):
-        if site == "US":
-            args = {"amzSite": site, "page": page}
-            if req.search:
-                args["searchName"] = req.search
-            raw = mcp_call("potential_product", args)
-        else:
-            args = {
-                "amzSite": site,
-                "sortby_potential_index": True,
-                "page": page,
-            }
-            if req.search:
-                args["searchName"] = req.search
-            raw = mcp_call("product_search", args)
-        try:
-            chunk = json.loads(raw) if isinstance(raw, str) else raw
-        except Exception:
-            chunk = []
-        if isinstance(chunk, dict) and "error" in chunk:
-            errors.append(chunk["error"])
-            continue
-        chunk = chunk if isinstance(chunk, list) else []
-        for p in chunk:
-            norm = normalize_product(p, site)
-            norm["potential_index"] = (
-                p.get("potential_index") or p.get("产品潜力指数") or 0
-            )
-            norm["big_category"] = p.get("所属大类", "")
-            norm["sub_category"] = p.get("所属细分类目", "")
-            norm["seller_country"] = p.get("卖家国籍", "")
-            norm["fba_fee"] = p.get("FBA费用", 0)
-            weight_raw = p.get("重量", 0)
-            try: norm["weight"] = float(weight_raw)
-            except: norm["weight"] = 0
-            if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-                continue
-            all_products.append(norm)
-
-    return {"products": all_products, "total": len(all_products), "errors": errors}
-
-@router.post("/new")
-async def pull_new_products(req: NewReq):
-    """
-    新品模式：
-    - US: potential_product（全量60条潜力品）
-    - MX/BR: potential_product 可能无效，用 product_search + sortby_potential_index
-    """
-    import logging
-    logger = logging.getLogger("uvicorn.error")
-    logger.warning(f"[AMAZON NEW] site={req.site} node_id={req.node_id} search={req.search}")
-    site = req.site.upper()
-    if site not in ("US", "MX", "BR"):
-        raise HTTPException(400, "站点仅支持 US / MX / BR")
-
-    all_products = []
-    if site == "US":
-        for page in range(1, 4):  # 3次=60条
-            args = {"amzSite": site, "page": page}
-            raw = mcp_call("potential_product", args)
-            try:
-                chunk = json.loads(raw) if isinstance(raw, str) else raw
-            except Exception:
-                chunk = []
-            chunk = chunk if isinstance(chunk, list) else []
-            for p in chunk:
-                norm = normalize_product(p, site)
-                norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
-                norm["big_category"] = p.get("所属大类", "")
-                norm["sub_category"] = p.get("所属细分类目", "")
-                norm["seller_country"] = p.get("卖家国籍", "")
-                norm["fba_fee"] = p.get("FBA费用", 0)
-                weight_raw = p.get("重量", 0)
-                try: norm["weight"] = float(weight_raw)
-                except: norm["weight"] = 0
-                if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-                    continue
-                all_products.append(norm)
-    else:
-        # MX/BR: product_search + sortby_potential_index
-        for page in range(1, 4):
-            args = {"amzSite": site, "sortby_potential_index": True, "page": page}
-            raw = mcp_call("product_search", args)
-            try:
-                chunk = json.loads(raw) if isinstance(raw, str) else raw
-            except Exception:
-                chunk = []
-            chunk = chunk if isinstance(chunk, list) else []
-            for p in chunk:
-                norm = normalize_product(p, site)
-                norm["potential_index"] = p.get("potential_index") or p.get("产品潜力指数") or 0
-                norm["big_category"] = p.get("所属大类", "")
-                norm["sub_category"] = p.get("所属细分类目", "")
-                norm["seller_country"] = p.get("卖家国籍", "")
-                norm["fba_fee"] = p.get("FBA费用", 0)
-                weight_raw = p.get("重量", 0)
-                try: norm["weight"] = float(weight_raw)
-                except: norm["weight"] = 0
-                if req.max_listed_days and norm["listed_days"] > req.max_listed_days:
-                    continue
-                all_products.append(norm)
-
-    return {"products": all_products, "total": len(all_products), "errors": []}
-
-# ── 数据库写入─────────────────────────────────────────────────────────────
-UPSERT_PRODUCT = """
-INSERT INTO amazon_products (
-    asin, site, mode, title, price, weight, monthly_sales, monthly_revenue,
-    brand, review_count, rating, seller_country, node_id, node_name,
-    big_category, sub_category, listed_days, launch_date, fba_fee,
-    fulfillment, thumbnail_url, product_url, potential_index, status, fetched_at
-) VALUES (
-    :asin, :site, :mode, :title, :price, :weight, :monthly_sales, :monthly_revenue,
-    :brand, :review_count, :rating, :seller_country, :node_id, :node_name,
-    :big_category, :sub_category, :listed_days, :launch_date, :fba_fee,
-    :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours')
-)
-ON CONFLICT(asin, site, mode) DO UPDATE SET
-    title=excluded.title, price=excluded.price, weight=excluded.weight,
-    monthly_sales=excluded.monthly_sales, monthly_revenue=excluded.monthly_revenue,
-    brand=excluded.brand, review_count=excluded.review_count, rating=excluded.rating,
-    seller_country=excluded.seller_country, node_id=excluded.node_id,
-    node_name=excluded.node_name, big_category=excluded.big_category,
-    sub_category=excluded.sub_category, listed_days=excluded.listed_days,
-    launch_date=excluded.launch_date, fba_fee=excluded.fba_fee,
-    fulfillment=excluded.fulfillment, thumbnail_url=excluded.thumbnail_url,
-    product_url=excluded.product_url, potential_index=excluded.potential_index,
-    status=excluded.status,
-    fetched_at=datetime('now', '+8 hours')
-"""
-
-def _upsert_products_db(products: list, site: str, mode: str):
-    """将商品列表批量写入 amazon_products 表"""
+def _query_amazon_from_db(site: str, mode: str, search: str = "", page: int = 1, limit: int = 50) -> dict:
+    """从 amazon_products 表查询商品，按月销量降序"""
     import sqlite3
     _ensure_amazon_table()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+    bindings = [site, mode]
+    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    if search:
+        sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
+        like = f"%{search}%"
+        bindings.extend([like, like, like])
+    sql += "ORDER BY monthly_sales DESC LIMIT ? OFFSET ?"
+    offset = (page - 1) * limit
+    bindings.extend([limit, offset])
+    cur.execute(sql, bindings)
+    rows = cur.fetchall()
+    cols = [d[0] for d in cur.description]
+    cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?", [site, mode])
+    total = cur.fetchone()[0]
+    conn.close()
+    products = [dict(zip(cols, r)) for r in rows]
+    return {"products": products, "total": total, "errors": []}
+
+
+@router.post("/hot")
+async def pull_hot_products(req: HotReq):
+    """爆品模式：从数据库读取，按月销量降序"""
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    logger.warning(f"[AMAZON DB] hot site={req.site}")
+    site = req.site.upper()
+    if site not in ("US", "MX", "BR"):
+        raise HTTPException(400, "站点仅支持 US / MX / BR")
+    return _query_amazon_from_db(site, "hot", search=req.search or "", page=req.page or 1)
+
+@router.post("/potential")
+async def pull_potential_products(req: NewReq):
+    """潜力产品模式：从数据库读取，按潜力指数降序"""
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    logger.warning(f"[AMAZON DB] potential site={req.site}")
+    site = req.site.upper()
+    if site not in ("US", "MX", "BR"):
+        raise HTTPException(400, "站点仅支持 US / MX / BR")
+    import sqlite3
+    _ensure_amazon_table()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    bindings = [site, "potential"]
+    sql = "SELECT asin, title, price, monthly_sales, monthly_revenue, brand, review_count, rating, seller_country, big_category, sub_category, listed_days, launch_date, fba_fee, weight, fulfillment, thumbnail_url, product_url, potential_index, fetched_at FROM amazon_products WHERE site=? AND mode=? "
+    if req.search:
+        sql += "AND (title LIKE ? OR big_category LIKE ? OR sub_category LIKE ?) "
+        like = f"%{req.search}%"
+        bindings.extend([like, like, like])
+    sql += "ORDER BY potential_index DESC, monthly_sales DESC LIMIT ? OFFSET ?"
+    limit = 50
+    page_num = req.page or 1
+    offset = (page_num - 1) * limit
+    bindings.extend([limit, offset])
+    cur.execute(sql, bindings)
+    rows = cur.fetchall()
+    cols = [d[0] for d in cur.description]
+    cur.execute("SELECT COUNT(*) FROM amazon_products WHERE site=? AND mode=?", [site, "potential"])
+    total = cur.fetchone()[0]
+    conn.close()
+    products = [dict(zip(cols, r)) for r in rows]
+    return {"products": products, "total": total, "errors": []}
+
+@router.post("/new")
+async def pull_new_products(req: NewReq):
+    """新品模式：从数据库读取，按月销量降序"""
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    logger.warning(f"[AMAZON DB] new site={req.site}")
+    site = req.site.upper()
+    if site not in ("US", "MX", "BR"):
+        raise HTTPException(400, "站点仅支持 US / MX / BR")
+    return _query_amazon_from_db(site, "new", search=req.search or "", page=req.page or 1)
+
+# ── 数据库写入─────────────────────────────────────────────────────────────
+def _upsert_products_db(products: list, site: str, mode: str):
+    """先删 site+mode 的旧数据，再批量写入（全量替换，避免 UNIQUE 冲突浪费）"""
+    import sqlite3
+    _ensure_amazon_table()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    # 先删该 site+mode 的旧数据
+    cur.execute("DELETE FROM amazon_products WHERE site=? AND mode=?", [site, mode])
+    # 批量插入新数据
     for p in products:
         p['site'] = site
         p['mode'] = mode
-        cur.execute(UPSERT_PRODUCT, p)
+        cur.execute("""
+        INSERT INTO amazon_products (
+            title, price, weight, monthly_sales, monthly_revenue,
+            brand, review_count, rating, seller_country, node_id, node_name,
+            big_category, sub_category, listed_days, launch_date, fba_fee,
+            fulfillment, thumbnail_url, product_url, potential_index, status, fetched_at
+        ) VALUES (
+            :title, :price, :weight, :monthly_sales, :monthly_revenue,
+            :brand, :review_count, :rating, :seller_country, :node_id, :node_name,
+            :big_category, :sub_category, :listed_days, :launch_date, :fba_fee,
+            :fulfillment, :thumbnail_url, :product_url, :potential_index, 'pending', datetime('now', '+8 hours')
+        )""", p)
     conn.commit()
     conn.close()
 

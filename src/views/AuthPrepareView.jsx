@@ -210,7 +210,7 @@ export default function AuthPrepareView_V5() {
               icon="key"
               label="店铺授权"
               desc="连接 Mercado Libre API 权限"
-              tip="💡 请使用数字编号命名店铺"
+              tip="💡 建议使用“编号-站点”格式（如 01-MX）"
               ctaLabel="立即授权"
               onCta={() => setShowAuthModal(true)}
             />
@@ -221,7 +221,7 @@ export default function AuthPrepareView_V5() {
               icon="server"
               label="云仓授权"
               desc="同步库存与物流对接"
-              tip="⚠️ 建议使用云仓注册名称"
+              tip="⚠️ 授权后可同步官方仓及第三方海外仓库存"
               ctaLabel="去配置"
               onCta={() => window.open('https://pdkyc.com', '_blank')}
             />
@@ -232,7 +232,7 @@ export default function AuthPrepareView_V5() {
               icon="credit-card"
               label="回款准备"
               desc="绑定 PingPong 收款账户"
-              tip="💡 满 500 美金每周五结算"
+              tip="💡 满 500 美金结算，自动核算每笔订单净利润"
               ctaLabel="立即启用"
               onCta={() => window.open('https://us.pingpongx.com/entrance/signup?cb=true&inviteCode=Vf6Jre044', '_blank')}
             />

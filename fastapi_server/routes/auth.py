@@ -107,6 +107,19 @@ async def register(data: RegisterRequest):
 
             conn.commit()
             logger.info(f"[Auth] 新用户注册：{data.username}，角色：{invite_role}")
+
+            # 7. 注册后异步拉取声誉
+            try:
+                import sys as _sys
+                from pathlib import Path as _Path
+                _root = _Path(__file__).resolve().parent.parent.parent
+                _sys.path.insert(0, str(_root))
+                from pull_reputation import pull_reputation
+                pull_reputation()
+                logger.info(f"[Auth] 注册后声誉拉取完成")
+            except Exception as e:
+                logger.warning(f"[Auth] 注册后声誉拉取失败（不影响注册）：{e}")
+
             return AuthResponse(
                 ok=True,
                 message="注册成功",

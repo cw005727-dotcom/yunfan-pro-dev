@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DollarSign, ShoppingCart, Box, Wallet } from 'lucide-react';
-import { Card, Row, Col, Statistic, Select, Segmented, Spin, Tag, Typography, Space, Empty } from 'antd';
+import { Card, Row, Col, Statistic, Select, Spin, Tag, Typography, Space, Empty, DatePicker } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+const { RangePicker } = DatePicker;
 import { Line as AntLine, Pie } from '@ant-design/charts';
 import Icon from '../components/Icon.jsx';
 
@@ -13,11 +14,7 @@ const SITE_MAP = {
   'MCO': '🇨🇴 哥伦比亚', 'MLC': '🇨🇱 智利', 'MLU': '🇺🇾 乌拉圭',
 };
 const API_BASE = '/api';
-const DATE_OPTIONS = [
-  { label: '近7天', value: 7 },
-  { label: '近30天', value: 30 },
-  { label: '近90天', value: 90 },
-];
+
 
 function useShops() {
   const [shops, setShops] = useState(['大姐店']);
@@ -110,7 +107,8 @@ function GMVTrendChart({ data }) {
 // ─── 主视图 ──────────────────────────────────────────────────────────────
 
 export default function DataOverviewView() {
-  const [dateRange, setDateRange] = useState(30);
+  const [customRange, setCustomRange] = useState(null); // [start, end] 自定义
+  const [forceVer] = useState(Date.now()); // 强制刷新hash
   const [filter, setFilter] = useState('ALL');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -118,38 +116,103 @@ export default function DataOverviewView() {
 
   const filterOptions = ['ALL', ...shops];
 
+  function fetchOperationalStats(params) {
+  const p = new URLSearchParams();
+  if (params.site && params.site !== 'ALL') p.append('site', params.site);
+  if (params.date_from) p.append('date_from', params.date_from);
+  if (params.date_to) p.append('date_to', params.date_to);
+  return fetch(`${API_BASE}/operational/stats?${p.toString()}`).then(r => r.json());
+}
+
+function fetchOperationalDaily(params) {
+  const p = new URLSearchParams();
+  if (params.site && params.site !== 'ALL') p.append('site', params.site);
+  if (params.date_from) p.append('date_from', params.date_from);
+  if (params.date_to) p.append('date_to', params.date_to);
+  return fetch(`${API_BASE}/operational/daily?${p.toString()}`).then(r => r.json());
+}
+
+function buildDataFromOperational(stats, daily) {
+  const totalOrders = stats.total_orders || 0;
+  const totalGmv = stats.total_gmv || 0;
+  const totalProfit = stats.total_profit || 0;
+  return {
+    metrics: {
+      total_gmv: totalGmv,
+      total_units: totalOrders,
+      total_orders: totalOrders,
+      actual_payout: totalProfit,
+      gmv_trend: 0,
+      orders_trend: 0,
+      units_trend: 0,
+      aov: totalOrders > 0 ? (totalGmv / totalOrders).toFixed(2) : 0,
+    },
+    trends: (daily.daily || []).map(d => ({
+      date: d.date,
+      gmv: d.gmv_usd || 0,
+    })),
+    store_distribution: [],
+    rankings: { top_gmv: [] },
+  };
+}
+
+  function getDateRange(custom) {
+    if (custom && custom.length === 2 && custom[0] && custom[1]) {
+      const fmt = (d) => {
+        if (typeof d?.format === 'function') return d.format('YYYY-MM-DD');
+        if (typeof d === 'string') return d;
+        if (d instanceof Date) return d.toISOString().slice(0, 10);
+        return d;
+      };
+      return { date_from: fmt(custom[0]), date_to: fmt(custom[1]) };
+    }
+    return {};
+  }
+  const handleRangeChange = (dates) => {
+    if (!dates || !dates[0] || !dates[1]) {
+      setCustomRange(null);
+      return;
+    }
+    setCustomRange(dates);
+  };
+
+  // 数据刷新：依赖 customRange
+  const refreshKey = JSON.stringify([customRange, filter]);
+
   useEffect(() => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (filter !== 'ALL') params.append('group', filter);
-    params.append('days', dateRange);
-    params.append('_t', Date.now());
-    
-    fetch(`${API_BASE}/stats_overview?${params.toString()}`, { 
-      headers: { 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' } 
-    })
-      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { setData(d); setLoading(false); })
+    const { date_from, date_to } = getDateRange(customRange);
+    const opts = { site: filter, date_from, date_to };
+    Promise.all([
+      fetchOperationalStats(opts),
+      fetchOperationalDaily(opts),
+    ])
+      .then(([stats, daily]) => {
+        setData(buildDataFromOperational(stats, daily));
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
-  }, [dateRange, filter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
-  // 自动刷新：每60秒（之前30秒）
+  // 自动刷新：每60秒
   const abortPollRef = useRef(null);
   const fetchPoll = useCallback(() => {
     if (abortPollRef.current) abortPollRef.current.abort();
     const ctrl = new AbortController();
     abortPollRef.current = ctrl;
-    const params = new URLSearchParams();
-    if (filter !== 'ALL') params.append('group', filter);
-    params.append('days', dateRange);
-    fetch(`${API_BASE}/stats_overview?${params.toString()}`, {
-      headers: { 'X-Admin-Token': import.meta.env.VITE_ADMIN_TOKEN || 'YUNFAN_ADMIN_2026' },
-      signal: ctrl.signal,
-    })
-      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => { if (!ctrl.signal.aborted) setData(d); })
+    const { date_from, date_to } = getDateRange(customRange);
+    const opts = { site: filter, date_from, date_to };
+    Promise.all([
+      fetchOperationalStats(opts),
+      fetchOperationalDaily(opts),
+    ])
+      .then(([stats, daily]) => {
+        if (!ctrl.signal.aborted) setData(buildDataFromOperational(stats, daily));
+      })
       .catch(() => {});
-  }, [dateRange, filter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   useEffect(() => {
     fetchPoll();
@@ -189,13 +252,19 @@ export default function DataOverviewView() {
                 label: SITE_MAP[f] || f,
               }))}
             />
-            <Segmented
-              value={dateRange}
-              onChange={setDateRange}
-              options={DATE_OPTIONS.map(d => ({
-                label: d.label,
-                value: d.value,
-              }))}
+            <DatePicker
+              value={customRange?.[0] || null}
+              onChange={(d) => handleRangeChange(d ? [d, customRange?.[1] || null] : null)}
+              placeholder="开始"
+              size="small"
+              style={{ width: 130 }}
+            />
+            <DatePicker
+              value={customRange?.[1] || null}
+              onChange={(d) => handleRangeChange(customRange?.[0] ? [customRange[0], d] : null)}
+              placeholder="结束"
+              size="small"
+              style={{ width: 130 }}
             />
           </Space>
         </Col>

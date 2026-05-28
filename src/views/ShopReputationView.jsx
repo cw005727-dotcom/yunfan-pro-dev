@@ -53,10 +53,13 @@ function SiteStatusBlock({ siteData, config }) {
   }
 
   const status = String(siteData.status || 'green');
+  const isNewbie = status === 'newbie';
   const isWarning = status === 'yellow';
   const isError = status === 'red';
   
-  const statusClass = isError 
+  const statusClass = isNewbie
+    ? 'bg-slate-100 text-slate-400 border-slate-200 border-[1.5px]'
+    : isError 
     ? 'bg-rose-100 text-rose-800 border-rose-500 animate-pulse-red border-[1.5px]' 
     : isWarning 
     ? 'bg-amber-100 text-amber-800 border-amber-300 border'

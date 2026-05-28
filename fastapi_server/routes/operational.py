@@ -61,7 +61,9 @@ def count_cancels(conn, where_sql, params):
 
 
 def margin(p, c):
-    return round(p / c * 100, 2) if c else None
+    if not c or not p:
+        return 0
+    return round(p / c * 100, 2)
 
 
 @router.get("/stats")

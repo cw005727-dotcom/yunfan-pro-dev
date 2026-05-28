@@ -21,9 +21,17 @@ SITE_MAPPING = {
 }
 
 
+def _pget(r: dict, field: str, site_prefix: str) -> any:
+    """优先取站点前缀字段（即使是 0 也取），再 fallback 到通用字段"""
+    site_key = f'{site_prefix}_{field}'
+    if site_key in r:
+        return r[site_key] if r[site_key] is not None else 0
+    return r.get(field, 0) or 0
+
+
 def format_rate(val):
     """统一格式化百分比字段（ML 返回 0.0714 表示 7.14%）"""
-    if not val or val == '%':
+    if val is None or val == '%' or val == '':
         return "0.00%"
     if isinstance(val, (int, float)):
         return f"{val * 100:.2f}%"
@@ -75,9 +83,9 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
         for site_id in ALL_SITES:
             p = site_id.lower()
             level = r.get(f'{p}_reputation_level') or r.get('reputation_level') or ''
-            complaints_rate = r.get(f'{p}_complaints_rate') if r.get(f'{p}_complaints_rate') else r.get('complaints_rate')
-            delayed_rate = r.get(f'{p}_delayed_rate') if r.get(f'{p}_delayed_rate') else r.get('delayed_rate')
-            cancellations_rate = r.get(f'{p}_cancellations_rate') if r.get(f'{p}_cancellations_rate') else r.get('cancellations_rate')
+            complaints_rate = r.get(f'{p}_complaints_rate') if r.get(f'{p}_complaints_rate') is not None else r.get('complaints_rate')
+            delayed_rate = r.get(f'{p}_delayed_rate') if r.get(f'{p}_delayed_rate') is not None else r.get('delayed_rate')
+            cancellations_rate = r.get(f'{p}_cancellations_rate') if r.get(f'{p}_cancellations_rate') is not None else r.get('cancellations_rate')
 
             status = compute_status(level)
             data.append({
@@ -102,14 +110,14 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
                 "claims_history": r.get('claims_history') or 'N/A',
                 "alert_date": r.get('alert_date'),
                 "last_updated": r.get('last_updated') or '',
-                "new_claims": r.get(f'{p}_new_claims') or r.get('new_claims') or 0,
+                "new_claims": _pget(r, 'new_claims', p),
                 "total_claims": r.get('total_complaints') or 0,
-                "new_violations": r.get(f'{p}_new_violations') or r.get('new_violations') or 0,
+                "new_violations": _pget(r, 'new_violations', p),
                 "total_violations": r.get('total_violations') or 0,
                 "new_messages": r.get('new_messages') or 0,
                 "total_messages": r.get('total_messages') or 0,
-                "new_delayed": r.get(f'{p}_new_delayed') or r.get('new_delayed') or 0,
-                "new_cancel": r.get(f'{p}_new_cancel') or r.get('new_cancel') or 0,
+                "new_delayed": _pget(r, 'new_delayed', p),
+                "new_cancel": _pget(r, 'new_cancel', p),
                 "total_cancellations": r.get('total_cancellations') or 0,
                 "score": compute_score(status),
             })
