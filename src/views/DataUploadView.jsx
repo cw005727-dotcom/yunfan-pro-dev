@@ -236,12 +236,13 @@ export default function DataUploadView() {
                       setSiteModalOpen(false);
                       if (!pendingFile) return;
                       const shopId = ({'主营店铺': '4802768831', '测试1': '9107675308', '2店': '7991941853'})[selectedShop] || '';
+                      if (!shopId) { message.error('店铺ID异常，请重新选择'); setSiteUploading(false); return; }
                       const formData = new FormData();
                       formData.append('file', pendingFile);
                       formData.append('site_id', site);
                       setSiteUploading(true);
                       try {
-                        const url = pendingEndpoint + '?site_id=' + site + (shopId ? '&shop_id=' + shopId : '');
+                        const url = pendingEndpoint + '?site_id=' + site + '&shop_id=' + shopId;
                         const res = await fetch(url, { method: 'POST', body: formData });
                         const data = await res.json();
                         message.success(data.message || '上传成功');
