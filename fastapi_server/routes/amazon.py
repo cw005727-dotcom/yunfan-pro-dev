@@ -998,7 +998,7 @@ def _upsert_products_db(products: list, site: str, mode: str, category_node_id: 
 
 def _normalize_for_db(p: dict, site: str) -> dict:
     """将 MCP 商品数据规范化为数据库字段"""
-    asin = str(p.get('asin') or p.get('ASIN') or p.get('Asin') or '')
+    asin = str(p.get('asin') or p.get('ASIN') or p.get('Asin') or p.get('产品ASIN码') or '')
     site_map = {'US': 'com', 'MX': 'com.mx', 'BR': 'com.br'}
     sl = site_map.get(site, 'com')
     thumbnail = p.get('主图') or p.get('thumbnail') or p.get('image_url') or ''
