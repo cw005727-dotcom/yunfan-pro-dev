@@ -640,11 +640,19 @@ def get_express_traces(waybill: str):
                 "traces": poll_traces,
             })
 
-    # 最终检查：纯数字单号必须命中仓库收货城市
+    # 纯数字运单号二次验证：快递100有时返回假数据
     if traces and raw.isdigit():
         ctx_all = ' '.join(t.get('context','') for t in traces)
+        # 检查是否命中仓库城市
         if not any(c in ctx_all for c in WAREHOUSE_CITIES):
             return JSONResponse({"success": False, "message": "轨迹不匹配"})
+        
+        # 二次查询验证一致性（纯数字运单号，快递100可能返回假数据）
+        import time
+        time.sleep(1)
+        com2, traces2 = _detect_com_and_traces(raw, phone=phone)
+        if not traces2:
+            return JSONResponse({"success": False, "message": "数据不可信（二次验证无结果）"})
 
     if traces:
         return JSONResponse({
