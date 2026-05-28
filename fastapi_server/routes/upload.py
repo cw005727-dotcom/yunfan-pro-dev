@@ -342,6 +342,13 @@ async def upload_logistics(file: UploadFile = File(...)):
         conn.close()
         os.unlink(tmp_path)
 
+        # 自动补查新增物流单号的轨迹（已有shipped_at的自动跳过）
+        try:
+            import requests as _r
+            _r.get('http://localhost:8506/api/logistics/fetch-traces?limit=20', timeout=30)
+        except:
+            pass
+
         return {'success': True, 'imported': imported, 'skipped': skipped,
                 'message': f'导入成功 {imported} 条，跳过 {skipped} 条'}
     except HTTPException:

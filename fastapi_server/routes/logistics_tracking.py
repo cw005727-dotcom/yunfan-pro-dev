@@ -577,8 +577,8 @@ def get_tracking(
 
 
 @router.get("/fetch-traces")
-def fetch_traces():
-    """拉取前5条有物流单号但无shipped_at的订单轨迹"""
+def fetch_traces(limit: int = 5):
+    """拉取有物流单号但无shipped_at的订单轨迹，批量补齐shipped_at"""
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -588,8 +588,8 @@ def fetch_traces():
         AND (shipped_at IS NULL OR shipped_at = '')
         AND (is_ignored IS NULL OR is_ignored = 0)
         AND (status IS NULL OR status NOT IN ('已取消','取消'))
-        LIMIT 5
-    """)
+        LIMIT ?
+    """, (limit,))
     rows = cur.fetchall()
     results = []
     for order_number, waybill in rows:
