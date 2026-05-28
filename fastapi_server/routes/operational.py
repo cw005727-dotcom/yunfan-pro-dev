@@ -56,13 +56,11 @@ def _is_excluded(sp):
 
 
 def _exclude_clause():
-    """返回排除测试账号的SQL条件（用于数据查询）"""
-    parts = ["salesperson IS NULL OR salesperson = ''"]
-    parts.append(f" salesperson NOT IN ({','.join('?' * len(EXCLUDED_SALESPERSONS))})")
-    return " AND (" + " OR ".join(parts) + ")"
-
-# 用于拼接参数的占位列表
-_EXCLUDED_LIST = list(EXCLUDED_SALESPERSONS)
+    """返回排除测试账号的SQL条件"""
+    # 排除：空 + EXCLUDED_SET 里的所有值
+    excluded = [''] + list(EXCLUDED_SALESPERSONS)
+    placeholders = ','.join('?' * len(excluded))
+    return f" salesperson NOT IN ({placeholders}) "
 
 
 def base_where(salesperson, site, store_name, date_from, date_to):
@@ -73,10 +71,9 @@ def base_where(salesperson, site, store_name, date_from, date_to):
         w.append(" source LIKE ? "); p.append(f"%{store_name}%")
     if date_from:   w.append(" date(replace(order_date,'/','-')) >= ? "); p.append(dt(date_from))
     if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
-    # 全局排除测试/无效账号
     if not salesperson:
         w.append(_exclude_clause())
-        p.extend(_EXCLUDED_LIST)
+        p.extend([''] + list(EXCLUDED_SALESPERSONS))
     wc = " AND ".join(w)
     return (" AND " + wc) if wc else "", p
 
