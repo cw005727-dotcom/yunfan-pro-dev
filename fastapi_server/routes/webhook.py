@@ -365,7 +365,7 @@ async def _handle_webhook(request: Request):
         logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
         # claims 类型的 topic 没有 order_id（用 resource），单独处理
         # marketplace_items 也没有 order_id（商品变更通知），忽略即可
-        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_shipments', 'items') and not order_id:
+        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_messages', 'marketplace_shipments', 'items') and not order_id:
             raise HTTPException(status_code=400, detail="Missing order id")
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去（claims 不用）
         if order_id:
@@ -458,6 +458,10 @@ async def _handle_webhook(request: Request):
                 monitor_store = data.get('user_id')
                 monitor_details = {"claim_id": claim_id, "status": data.get('status'), "type": data.get('type'), "reason": reason_text, "source": "webhook"}
                 urgent = True
+
+            elif topic in ('marketplace_items', 'marketplace_messages'):
+                # 商品变更/消息通知：无需处理，记录日志即可
+                logger.info(f"[Webhook Relay] acknowledged {topic} (no action needed)")
 
             else:
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
