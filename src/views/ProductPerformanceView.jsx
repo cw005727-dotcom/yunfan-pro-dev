@@ -43,9 +43,9 @@ export default function ProductPerformanceView() {
   const [totalPages, setTotalPages] = useState(1)
   const [sort, setSort] = useState('unique_visits')
   const [order, setOrder] = useState('desc')
-  const [statusFilter, setStatusFilter] = useState('全部')
   const [issueFilter, setIssueFilter] = useState('全部')
   const [siteFilter, setSiteFilter] = useState('全部')
+  const [shopFilter, setShopFilter] = useState('全部')
   const [selectedItem, setSelectedItem] = useState(null)
   const pageSize = 24
 
@@ -60,9 +60,10 @@ export default function ProductPerformanceView() {
     setLoading(true)
     try {
       const params = new URLSearchParams({ sort, order, page, page_size: pageSize })
-      if (statusFilter !== '全部') params.set('status', statusFilter)
       if (issueFilter !== '全部') params.set('issue', issueFilter)
       if (siteFilter !== '全部') params.set('site_id', siteFilter)
+      const shopIdMap = {'主营店铺': '4802768831', '测试1': '9107675308', '2店': '7991941853'}
+      if (shopFilter !== '全部' && shopIdMap[shopFilter]) params.set('shop_id', shopIdMap[shopFilter])
 
       const res = await fetch(`/api/performance/list?${params}`, { signal: controller.signal })
       if (controller.signal.aborted) return
@@ -78,7 +79,7 @@ export default function ProductPerformanceView() {
     } finally {
       if (!controller.signal.aborted) setLoading(false)
     }
-  }, [sort, order, page, statusFilter, issueFilter, siteFilter])
+  }, [sort, order, page, issueFilter, siteFilter, shopFilter])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -186,6 +187,21 @@ export default function ProductPerformanceView() {
         </div>
 
         {/* 状态筛选 */}
+        {/* 店铺筛选 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#6b7280' }}>店铺：</span>
+          {['全部', '主营店铺', '测试1', '2店'].map(s => (
+            <button key={s} onClick={() => { setShopFilter(s); setPage(1) }} style={{
+              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              background: shopFilter === s ? '#059669' : '#f3f4f6',
+              color: shopFilter === s ? 'white' : '#374151',
+              fontSize: '13px', fontWeight: shopFilter === s ? '500' : '400'
+            }}>
+              {s}
+            </button>
+          ))}
+        </div>
+
         {/* 站点筛选 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '13px', color: '#6b7280' }}>站点：</span>
@@ -201,20 +217,7 @@ export default function ProductPerformanceView() {
           ))}
         </div>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', color: '#6b7280' }}>状态：</span>
-          {['全部', '激活', '未激活'].map(s => (
-            <button key={s} onClick={() => { setStatusFilter(s); setPage(1) }} style={{
-              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              background: statusFilter === s ? '#4f46e5' : '#f3f4f6',
-              color: statusFilter === s ? 'white' : '#374151',
-              fontSize: '13px', fontWeight: statusFilter === s ? '500' : '400'
-            }}>
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
+              </div>
 
       {/* 加载状态 */}
       {loading ? (

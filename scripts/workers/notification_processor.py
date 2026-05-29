@@ -4,7 +4,13 @@ import os, sqlite3, json, time, logging
 from datetime import datetime, timezone, timedelta
 
 import socket
-DATA_DIR = '/home/admin/data' if socket.gethostname() == 'iZj6chblbqrz1cmahnevj3Z' else '/home/admin/yunfan-pro-dev'
+HOST = socket.gethostname()
+if HOST == 'VM-0-3-ubuntu':
+    DATA_DIR = '/home/ubuntu/yunfan-pro-dev'
+elif HOST == 'iZj6chblbqrz1cmahnevj3Z':
+    DATA_DIR = '/home/admin/data'
+else:
+    DATA_DIR = '/home/admin/yunfan-pro-dev'
 SERVER_DB = os.path.join(DATA_DIR, 'mercadolibre.db')
 LOG_FILE  = os.path.join(DATA_DIR, 'notification_processor.log')
 
@@ -53,36 +59,49 @@ def log_to_monitoring(level, message, store_id=None, site_id=None, details=None)
 def ensure_claims(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS claims (
-            id TEXT PRIMARY KEY,
-            order_id TEXT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            claim_id TEXT UNIQUE,
+            resource TEXT,
+            user_id TEXT,
             site_id TEXT,
+            topic TEXT,
+            application_id TEXT,
             status TEXT,
-            type TEXT,
             reason TEXT,
+            claim_type TEXT,
+            claimants_type TEXT,
+            order_id TEXT,
+            fulfillment_type TEXT,
             amount REAL,
             currency_id TEXT,
-            opened_by TEXT,
-            last_update TEXT,
+            opened_at TEXT,
+            closed_at TEXT,
+            last_updated TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
             source TEXT
         )
     """)
 
-def upsert_claim(conn, claim_id, order_id, site_id, status, claim_type, reason, amount, currency, opened_by):
+def upsert_claim(conn, claim_id, order_id, site_id, status, claim_type, reason, amount, currency, opened_by, resource='', user_id='', topic='marketplace_claims', app_id=''):
     ensure_claims(conn)
     conn.execute("""
         INSERT OR REPLACE INTO claims
-        (id, order_id, site_id, status, type, reason, amount, currency_id, opened_by, last_update, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (claim_id, resource, user_id, site_id, topic, application_id, status, reason, claim_type, claimants_type, order_id, amount, currency_id, last_updated, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         str(claim_id),
-        str(order_id) if order_id else '',
+        str(resource) if resource else '',
+        str(user_id) if user_id else '',
         str(site_id) if site_id else '',
+        str(topic) if topic else '',
+        str(app_id) if app_id else '',
         str(status) if status else '',
-        str(claim_type) if claim_type else '',
         str(reason) if reason else '',
+        str(claim_type) if claim_type else '',
+        str(opened_by) if opened_by else '',
+        str(order_id) if order_id else '',
         float(amount) if amount else 0.0,
         str(currency) if currency else '',
-        str(opened_by) if opened_by else '',
         bj_now(),
         'processor'
     ))
@@ -145,8 +164,8 @@ def process_notification(notif):
 
             try:
                 import base64, os
-                key_file = '/home/admin/yunfan-pro-dev/.ml_token_key'
-                enc_file = '/home/admin/yunfan-pro-dev/ml_tokens.enc'
+                key_file = os.path.join(DATA_DIR, '.ml_token_key')
+                enc_file = os.path.join(DATA_DIR, 'ml_tokens.enc')
                 if os.path.exists(key_file) and os.path.exists(enc_file):
                     key = open(key_file).read().strip()
                     enc = open(enc_file).read()
@@ -205,7 +224,7 @@ def worker_loop():
             conn = sqlite3.connect(SERVER_DB)
             pending = conn.execute(
                 "SELECT id, ml_id, resource, user_id, topic, application_id "
-                "FROM ml_notifications WHERE status='pending' ORDER BY received_at LIMIT 10"
+                "FROM ml_notifications WHERE status='pending' ORDER BY created_at LIMIT 10"
             ).fetchall()
             conn.close()
 

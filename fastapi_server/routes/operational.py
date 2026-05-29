@@ -58,9 +58,9 @@ def _is_excluded(sp):
 def _exclude_clause():
     """返回排除测试账号的SQL条件"""
     # 排除：空 + EXCLUDED_SET 里的所有值
-    excluded = [''] + list(EXCLUDED_SALESPERSONS)
+    excluded = [e for e in EXCLUDED_SALESPERSONS if e]
     placeholders = ','.join('?' * len(excluded))
-    return f" salesperson NOT IN ({placeholders}) "
+    return f" (COALESCE(salesperson, '') NOT IN ({placeholders})) "
 
 
 def base_where(salesperson, site, store_name, date_from, date_to):
@@ -73,7 +73,7 @@ def base_where(salesperson, site, store_name, date_from, date_to):
     if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
     if not salesperson:
         w.append(_exclude_clause())
-        p.extend([''] + list(EXCLUDED_SALESPERSONS))
+        p.extend([e for e in EXCLUDED_SALESPERSONS if e])
     wc = " AND ".join(w)
     return (" AND " + wc) if wc else "", p
 
@@ -209,6 +209,12 @@ def get_stores(
     if date_from:   where.append(" date(replace(order_date,'/','-')) >= ? "); params.append(dt(date_from))
     if date_to:     where.append(" date(replace(order_date,'/','-')) <= ? "); params.append(dt(date_to))
     where.append(" status NOT IN ('找货-没汇总') ")
+    # 排除测试账号
+    excluded_vals = [e for e in EXCLUDED_SALESPERSONS if e]
+    if excluded_vals:
+        placeholders = ','.join('?' * len(excluded_vals))
+        where.append(" (COALESCE(salesperson, '') NOT IN (" + placeholders + ")) ")
+        params.extend(excluded_vals)
     wc = (" AND " + " AND ".join(where)) if where else ""
     sql = (
         "SELECT COALESCE(salesperson,'未知'), COALESCE(site,'未知'), COALESCE(source,'未知'), "
@@ -233,7 +239,7 @@ def get_stores(
 def get_sites():
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT DISTINCT COALESCE(site,'未知') FROM operational_orders ORDER BY site")
+    cur.execute("SELECT DISTINCT site FROM operational_orders WHERE site IS NOT NULL AND site != '' ORDER BY site")
     rows = cur.fetchall()
     conn.close()
     return JSONResponse({"sites": [r[0] for r in rows]})
@@ -253,7 +259,7 @@ def get_store_names(site: Optional[str] = Query(None), salesperson: Optional[str
     )
     rows = cur.fetchall()
     conn.close()
-    names = sorted(set(extract_store_name(r[0]) for r in rows if r[0]))
+    names = sorted(set(n for n in (extract_store_name(r[0]) for r in rows if r[0]) if n != '未知'))
     return JSONResponse({"store_names": names})
 
 

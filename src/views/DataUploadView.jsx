@@ -13,7 +13,7 @@ const stripCarrier = (str) => {
   return s || '-';
 };
 
-function UploadCard({ icon: Icon, title, accept, endpoint, onUpload }) {
+function UploadCard({ icon: Icon, title, accept, endpoint, onUpload, afterUpload }) {
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = useCallback(async (file) => {
@@ -24,20 +24,21 @@ function UploadCard({ icon: Icon, title, accept, endpoint, onUpload }) {
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
+    let d;
     try {
       const r = await fetch(`${API}${endpoint}`, { method: 'POST', body: formData });
-      const d = await r.json();
+      try { d = await r.json(); } catch { d = {}; }
       if (!r.ok) { message.error(d.detail || '上传失败'); setUploading(false); return false; }
       setUploading(false);
       message.success(`导入成功 ${d.imported} 条，跳过 ${d.skipped || 0} 条`);
-      setTimeout(() => window.location.reload(), 1500);
+      if (afterUpload) { try { afterUpload(d); } catch(e) { console.error(e); } }
       return false;
     } catch (e) {
       message.error('上传失败：' + e.message);
       setUploading(false);
       return false;
     }
-  }, [endpoint, onUpload]);
+  }, [endpoint, onUpload, afterUpload]);
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
@@ -134,18 +135,19 @@ export default function DataUploadView() {
       .catch(() => {});
   }, []);
 
-  const handleOrdersUpload = useCallback(() => {
-    // 上传后刷新变化数据
-    fetch(`${API}/changes?change_type=profit&limit=100`)
-      .then(r => r.json())
-      .then(data => setProfitChanges(Array.isArray(data) ? data : []))
-      .catch(() => {});
-    fetch(`${API}/changes?change_type=logistics&limit=100`)
-      .then(r => r.json())
-      .then(data => setLogisticsChanges(Array.isArray(data) ? data : []))
-      .catch(() => {});
-    // 通知其他页面数据已更新（店铺数据趋势页会自动重新拉取）
-    localStorage.setItem('yunfan_data_updated', Date.now().toString());
+  const handleOrdersUpload = useCallback((result) => {
+    // 上传成功后手动刷新变化卡片数据
+    const refresh = () => {
+      fetch(`${API}/changes?change_type=profit&limit=100`)
+        .then(r => r.json())
+        .then(data => setProfitChanges(data.changes || []))
+        .catch(() => {});
+      fetch(`${API}/changes?change_type=logistics&limit=100`)
+        .then(r => r.json())
+        .then(data => setLogisticsChanges(data.changes || []))
+        .catch(() => {});
+    };
+    refresh();
   }, []);
 
   return (
@@ -157,7 +159,7 @@ export default function DataUploadView() {
           title="订单数据上传"
           accept=".xlsx,.xls"
           endpoint="/upload/orders"
-          onUpload={handleOrdersUpload}
+          afterUpload={handleOrdersUpload}
         />
         <UploadCard
           icon={Link2}

@@ -32,7 +32,7 @@ def get_notifications():
                    COALESCE(s.nickname, '') as store_nickname
             FROM orders_v2 o
             LEFT JOIN stores s ON o.user_id = s.user_id
-            WHERE o.status != 'cancelled'
+            WHERE (o.status IS NULL OR o.status != 'cancelled')
               AND o.order_date > datetime('now', '-7 days')
             ORDER BY o.order_date DESC
             LIMIT 50
@@ -160,11 +160,11 @@ def get_notifications():
 
         # violation: 投诉违规（优先从 ml_notifications+monitoring_logs 取）
         rows = cur.execute("""
-            SELECT ml_id, resource, user_id, topic, received_at, status
+            SELECT ml_id, resource, user_id, topic, created_at, status
             FROM ml_notifications
             WHERE topic = 'marketplace_claims'
               AND status IN ('pending', 'processed')
-            ORDER BY received_at DESC
+            ORDER BY created_at DESC
             LIMIT 30
         """).fetchall()
         # 如果 ml_notifications 没数据，从 monitoring_logs 取警告
@@ -211,7 +211,7 @@ def get_realtime_notifications():
     with get_db_connection() as db:
         cur = db.cursor()
         rows = cur.execute("""
-            SELECT id, topic, content, site_id, order_id, received_at, read_status
+            SELECT id, topic, content, site_id, order_id, received_at, read
             FROM realtime_notifications
             ORDER BY id DESC
             LIMIT 100

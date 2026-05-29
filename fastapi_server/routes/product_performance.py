@@ -191,6 +191,7 @@ async def get_performance_list(
     status: str = Query(None),
     issue: str = Query(None),
     site_id: str = Query(None),
+    shop_id: int = Query(None),
 ):
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -202,7 +203,10 @@ async def get_performance_list(
     if status and status != '全部':
         where += " AND status = ?"
         params.append(status)
-    if site_id and site_id != '全部':
+    if shop_id and shop_id != 0:
+        where += " AND shop_id = ?"
+        params.append(shop_id)
+    if site_id and site_id != "全部":
         where += " AND site_id = ?"
         params.append(site_id)
 
@@ -212,7 +216,7 @@ async def get_performance_list(
                unique_visits, order_count, unique_buyers, units_sold,
                gross_sales_usd, share_percent, visitor_convert_rate,
                visitor_buy_convert_rate, thumbnail, pictures, pictures_count,
-               ai_issue_type, ai_issue_desc, ai_suggestion, site_id
+               ai_issue_type, ai_issue_desc, ai_suggestion, site_id, shop_id
         FROM product_performance
         WHERE {where}
         ORDER BY unique_visits DESC

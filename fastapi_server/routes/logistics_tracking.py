@@ -144,6 +144,12 @@ def _get_traces(waybill, com, phone=''):
         if poll_traces:
             return poll_traces
 
+    # auto模式有手机尾号时，优先试中通poll
+    if com == 'auto' and phone:
+        poll_traces = _poll_query('zhongtong', waybill, phone)
+        if poll_traces:
+            return poll_traces
+
     # 没有手机号时，中通/顺丰用免费接口
     if com in ('zhongtong', 'shunfeng', 'jd'):
         return _get_traces_free(waybill, com)
@@ -213,7 +219,6 @@ def _get_traces_free(waybill, com):
 
 def _detect_com_and_traces(waybill, phone=''):
     """识别快递公司并查询轨迹，优先用 auto 自动识别，失败再并发遍历兜底"""
-    import concurrent.futures
     raw = waybill.split(':')[0].split('|')[0].strip()
     # 从完整字符串提取手机尾号
     if not phone and ':' in waybill:
@@ -230,8 +235,33 @@ def _detect_com_and_traces(waybill, phone=''):
     auto_traces = _get_traces(raw, 'auto', phone=phone)
     if auto_traces:
         return 'auto', auto_traces
-    # auto 查不到说明快递100不认识这个单号，纯数字直接返回无结果（避免兜底拿到假数据）
+    # auto 查不到，纯数字用免费接口并发兜底
     if raw.isdigit():
+        import concurrent.futures
+        priority_coms = ['zhongtong', 'yuantong', 'shentong', 'yunda', 'shunfeng', 
+                         'jtexpress', 'huitongkuaidi', 'youzhengguonei']
+        best_com = ''
+        best_traces = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_com = {executor.submit(_get_traces_free, raw, c): c for c in priority_coms}
+            for future in concurrent.futures.as_completed(future_to_com):
+                try:
+                    traces = future.result(timeout=10)
+                    if traces:
+                        ctx_all = ' '.join(t.get('context','') for t in traces)
+                        # 中通数据量最大时优先采信（防止极兔/韵达等冒用）
+                        com_name = future_to_com[future]
+                        score = len(traces)
+                        if com_name == 'zhongtong':
+                            score += 5  # 中通加分，可信度更高
+                        if any(c in ctx_all for c in WAREHOUSE_CITIES):
+                            if score > len(best_traces):
+                                best_com = com_name
+                                best_traces = traces
+                except:
+                    continue
+        if best_traces:
+            return best_com, best_traces
         return '', []
 
     # === 方案2: 有字母前缀直接查 ===
@@ -306,18 +336,16 @@ def query_kd100_trace(waybill):
 
 
 def compute_stage(t):
-    """根据物流追踪数据计算当前链路阶段"""
+    """根据物流追踪数据计算当前链路阶段（4阶段制）"""
     if t.get('international_tracking'):
-        return 5, '✈️', '已上飞机', '#6366f1'
-    if t.get('warehouse_in_date'):
-        return 4, '🏢', '已到官方仓', '#10b981'
+        return 3, '✈️', '已发出', '#6366f1'
+    if t.get('status') == '已入库':
+        return 2, '🏢', '官方仓收货', '#10b981'
     if t.get('label_status') == '已贴单':
-        return 3, '🏭', '已进云仓', '#f59e0b'
+        return 1, '🏭', '云仓已贴单', '#f59e0b'
     if t.get('logistics_1688_tracking'):
-        return 2, '🚚', '1688已发货', '#3b82f6'
-    if t.get('logistics_1688_order'):
-        return 1, '📦', '已采购', '#8b5cf6'
-    return 0, '🛒', '已下单', '#94a3b8'
+        return 0, '🚚', '平台已发货', '#3b82f6'
+    return -1, '❌', '未发货', '#94a3b8'
 
 
 @router.get("/tracking")
@@ -372,57 +400,62 @@ def get_tracking(
         if order_day == today:
             all_today += 1
 
-        is_purchased = False
+        # 从 operational_orders 补充业务字段
+        op_extra = {'salesperson': '', 'amount_usd': 0, 'profit': 0, 'buyer_name': '', 'city': ''}
         if order_number:
             try:
                 cur2 = conn.cursor()
                 cur2.execute(
-                    "SELECT status FROM operational_orders WHERE order_number = ?",
+                    "SELECT salesperson, amount_usd, profit, buyer_name, city, status FROM operational_orders WHERE order_number = ? LIMIT 1",
                     (order_number,)
                 )
                 op_row = cur2.fetchone()
-                if op_row and op_row[0] and '已采购' in op_row[0]:
-                    is_purchased = True
+                if op_row:
+                    op_extra['salesperson'] = op_row[0] or ''
+                    op_extra['amount_usd'] = round(op_row[1] or 0, 2)
+                    op_extra['profit'] = round(op_row[2] or 0, 2)
+                    op_extra['buyer_name'] = op_row[3] or ''
+                    op_extra['city'] = op_row[4] or ''
             except:
                 pass
 
-        if is_purchased:
+        # 有物流单号 = 平台已发货（替代之前的「已采购」统计）
+        has_tracking = bool(ls1688_t)
+        if has_tracking:
             purchased_count += 1
 
-        # thumbnail 优先级: logistics_tracking.thumbnail > operational_orders.thumbnail > product_performance
-        thumbnail = lt_thumbnail or ''
-        if not thumbnail and order_number:
+        # thumbnail 优先级: operational_orders.thumbnail > logistics_tracking.thumbnail（ML API批量拉取）
+        thumbnail = ''
+        if order_number:
             try:
                 cur2 = conn.cursor()
                 cur2.execute("SELECT thumbnail FROM operational_orders WHERE order_number = ? LIMIT 1", (order_number,))
                 t_row = cur2.fetchone()
                 if t_row and t_row[0]:
                     thumbnail = t_row[0]
-                if not thumbnail:
-                    cur2.execute("""
-                        SELECT p.thumbnail FROM product_performance p
-                        INNER JOIN operational_orders o ON (p.sku = o.sku OR p.item_id = o.asin)
-                        WHERE o.order_number = ? LIMIT 1
-                    """, (order_number,))
-                    p_row = cur2.fetchone()
-                    if p_row and p_row[0]:
-                        thumbnail = p_row[0]
             except:
                 pass
+        if not thumbnail and lt_thumbnail:
+            thumbnail = lt_thumbnail
 
         t = {
             'order_number': order_number,
             'site': site_v or '',
             'store_name': store_name or '',
             'order_date': order_date or '',
+            'status': status_val or '',
             'logistics_1688_order': ls1688 or '',
             'logistics_1688_tracking': ls1688_t or '',
             'label_status': label_status or '',
             'warehouse_in_date': wh_date or '',
             'international_tracking': intl_tracking or '',
-            'is_purchased': is_purchased,
             'shipped_at': shipped_at or '',
             'thumbnail': thumbnail,
+            'salesperson': op_extra['salesperson'],
+            'amount_usd': op_extra['amount_usd'],
+            'profit': op_extra['profit'],
+            'buyer_name': op_extra['buyer_name'],
+            'city': op_extra['city'],
         }
         stage_code, stage_icon, stage_name, stage_color = compute_stage(t)
         t['stage_code'] = stage_code
@@ -544,8 +577,8 @@ def get_tracking(
 
 
 @router.get("/fetch-traces")
-def fetch_traces():
-    """拉取前5条有物流单号但无shipped_at的订单轨迹"""
+def fetch_traces(limit: int = 5):
+    """拉取有物流单号但无shipped_at的订单轨迹，批量补齐shipped_at"""
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -555,8 +588,8 @@ def fetch_traces():
         AND (shipped_at IS NULL OR shipped_at = '')
         AND (is_ignored IS NULL OR is_ignored = 0)
         AND (status IS NULL OR status NOT IN ('已取消','取消'))
-        LIMIT 5
-    """)
+        LIMIT ?
+    """, (limit,))
     rows = cur.fetchall()
     results = []
     for order_number, waybill in rows:
@@ -579,7 +612,7 @@ def fetch_traces():
 
 @router.get("/fetch-thumbnails")
 def fetch_thumbnails(limit: int = 30):
-    """用 listing_id + site 调 ML API 拿缩略图，补齐 logistics_tracking"""
+    """用 order_number 调 ML 订单API拿缩略图，补齐 logistics_tracking"""
     from ..middleware.auth import get_ml_token_provider
     import time
 
@@ -592,36 +625,55 @@ def fetch_thumbnails(limit: int = 30):
     conn = get_conn()
     cur = conn.cursor()
 
-    # 找 logistics_tracking 有 listing_id 但没有 thumbnail 的
-    # listing_id 已包含站点前缀（如 MLA1739915551），直接用它调API
+    # 找 logistics_tracking 没有 thumbnail 的订单（排除已取消）
     cur.execute("""
-        SELECT order_number, listing_id
+        SELECT order_number
         FROM logistics_tracking
-        WHERE IFNULL(listing_id, '') != ''
-        AND (thumbnail IS NULL OR thumbnail = '')
+        WHERE (thumbnail IS NULL OR thumbnail = '')
         AND (is_ignored IS NULL OR is_ignored = 0)
         AND (status IS NULL OR status NOT IN ('已取消','取消'))
         LIMIT ?
     """, (limit,))
     rows = cur.fetchall()
 
+    # 先查 operational_orders 中有没有图
     results = []
-    for order_number, listing_id in rows:
-        ml_id = listing_id  # listing_id 已经包含站点前缀，直接就是完整的item_id
+    for (order_number,) in rows:
+        cur2 = conn.cursor()
+        cur2.execute("SELECT thumbnail FROM operational_orders WHERE order_number = ? LIMIT 1", (order_number,))
+        op_row = cur2.fetchone()
+        if op_row and op_row[0]:
+            cur.execute("UPDATE logistics_tracking SET thumbnail = ? WHERE order_number = ?", (op_row[0], order_number))
+            results.append({"order_number": order_number, "source": "operational_orders", "thumbnail": op_row[0], "success": True})
+            continue
+
+        # 调 ML 订单API获取 item ID → items API 取图
         try:
-            r = requests.get(f'https://api.mercadolibre.com/marketplace/items/{ml_id}', headers=headers, timeout=8)
+            r = requests.get(f'https://api.mercadolibre.com/marketplace/orders/{order_number}', headers=headers, timeout=8)
             if r.status_code == 200:
-                d = r.json()
-                thumb_url = d.get('thumbnail', '') or d.get('secure_thumbnail', '')
-                if thumb_url:
-                    cur.execute("UPDATE logistics_tracking SET thumbnail = ? WHERE order_number = ?", (thumb_url, order_number))
-                    results.append({"order_number": order_number, "listing_id": listing_id, "thumbnail": thumb_url, "success": True})
+                od = r.json()
+                items = od.get('order_items') or []
+                if items:
+                    item_id = items[0].get('item', {}).get('id', '')
+                    if item_id:
+                        ir = requests.get(f'https://api.mercadolibre.com/items/{item_id}', headers=headers, timeout=8)
+                        if ir.status_code == 200:
+                            thumb_url = ir.json().get('thumbnail', '') or ir.json().get('secure_thumbnail', '')
+                            if thumb_url:
+                                cur.execute("UPDATE logistics_tracking SET thumbnail = ? WHERE order_number = ?", (thumb_url, order_number))
+                                results.append({"order_number": order_number, "source": "ml_api", "thumbnail": thumb_url, "success": True})
+                            else:
+                                results.append({"order_number": order_number, "success": False, "reason": "ML无图片"})
+                        else:
+                            results.append({"order_number": order_number, "success": False, "reason": f"items HTTP {ir.status_code}"})
+                    else:
+                        results.append({"order_number": order_number, "success": False, "reason": "订单无商品ID"})
                 else:
-                    results.append({"order_number": order_number, "listing_id": listing_id, "success": False, "reason": "无图片"})
+                    results.append({"order_number": order_number, "success": False, "reason": "订单无商品"})
             else:
-                results.append({"order_number": order_number, "listing_id": listing_id, "success": False, "reason": f"HTTP {r.status_code}"})
+                results.append({"order_number": order_number, "success": False, "reason": f"orders HTTP {r.status_code}"})
         except Exception as e:
-            results.append({"order_number": order_number, "listing_id": listing_id, "success": False, "reason": str(e)[:50]})
+            results.append({"order_number": order_number, "success": False, "reason": str(e)[:50]})
         time.sleep(0.3)
 
     conn.commit()

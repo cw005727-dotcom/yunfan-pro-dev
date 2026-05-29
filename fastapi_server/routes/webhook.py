@@ -329,12 +329,16 @@ def handle_claims(conn, data: dict):
         logger.warning(f"[Claims webhook] failed to write ml_notifications: {e}")
 
 
+# 兼容旧版 ML webhook 路径
 @router.post("/relay")
 async def relay(request: Request):
-    """
-    统一接收 ML 所有 webhook 通知，按 topic 分流处理。
-    兼容 JSON 和 form-urlencoded。
-    """
+    """统一接收 ML 所有 webhook 通知（旧路径），按 topic 分流处理。"""
+    return await _handle_webhook(request)
+
+# 兼容旧版错误路径 /api/ml/webhook/relay
+@router.post("/ml/webhook/relay")
+async def ml_relay(request: Request):
+    """兼容旧版 ML webhook 路径 /api/ml/webhook/relay"""
     return await _handle_webhook(request)
 
 async def _handle_webhook(request: Request):
@@ -360,7 +364,8 @@ async def _handle_webhook(request: Request):
                 order_id = m.group(1)
         logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
         # claims 类型的 topic 没有 order_id（用 resource），单独处理
-        if topic not in ('marketplace_claims',) and not order_id:
+        # marketplace_items 也没有 order_id（商品变更通知），忽略即可
+        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_messages', 'marketplace_shipments', 'items') and not order_id:
             raise HTTPException(status_code=400, detail="Missing order id")
         # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去（claims 不用）
         if order_id:
@@ -401,13 +406,16 @@ async def _handle_webhook(request: Request):
 
             elif topic in ('shipments', 'marketplace_shipments'):
                 handle_shipments(conn, data)
+                # 用发货单号做显示（订单号可能获取不到）
+                raw_resource = data.get('resource', '') or ''
+                sid = raw_resource.split('/')[-1] if raw_resource else order_id or '-'
                 logistic_company = data.get('logistic_company') or data.get('tracking_method') or '-'
                 rcv_city = data.get('receiver_city') or '-'
                 est_del = data.get('estimated_delivery_date') or ''
                 if est_del:
                     est_del = est_del[:10]
                 monitor_msg = (
-                    f"🚚 物流更新：订单 {order_id} → "
+                    f"🚚 物流更新：发货单 {sid} → "
                     f"{logistic_company} / "
                     f"{data.get('shipping_status', '-')}"
                 )
@@ -417,7 +425,7 @@ async def _handle_webhook(request: Request):
                     monitor_msg += f" / 预计{est_del}"
                 monitor_site = data.get('site_id')
                 monitor_details = {
-                    "order_id": str(order_id),
+                    "shipment_id": sid,
                     "source": "webhook",
                     "logistics": True,
                     "logistic_company": logistic_company,
@@ -451,16 +459,25 @@ async def _handle_webhook(request: Request):
                 monitor_details = {"claim_id": claim_id, "status": data.get('status'), "type": data.get('type'), "reason": reason_text, "source": "webhook"}
                 urgent = True
 
+            elif topic in ('marketplace_items', 'marketplace_messages'):
+                # 商品变更/消息通知：无需处理，记录日志即可
+                logger.info(f"[Webhook Relay] acknowledged {topic} (no action needed)")
+
             else:
                 logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
 
             # 写入实时通知表（前端「实时推送」专用）
-            conn.execute(
-                "INSERT INTO realtime_notifications (topic, content, site_id, order_id, received_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))",
-                (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
-                 monitor_site or data.get('site_id', ''),
-                 str(order_id) if order_id else '')
-            )
+            # claims 重复推送：用 INSERT OR IGNORE + 唯一索引防重
+            # 其他 topic 正常插入（Unique 约束不满足时忽略，不报错）
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO realtime_notifications (topic, content, site_id, order_id, received_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))",
+                    (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
+                     monitor_site or data.get('site_id', ''),
+                     str(order_id) if order_id else '')
+                )
+            except Exception as e:
+                logger.warning(f"[realtime_notifications] insert failed (possibly duplicate): {e}")
 
             conn.commit()
 
