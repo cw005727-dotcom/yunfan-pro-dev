@@ -120,37 +120,37 @@ def get_header_map(headers: tuple) -> dict[str, str]:
 
 
 def upsert_order(cursor, row_data: dict, source_file: str, conn=None):
-    """Upsert一条订单，unique key = order_number，同时记录 profit/logistics 变化"""
+    """Upsert一条订单，unique key = order_number，同时记录 profit/status 变化"""
     order_number = row_data.get("order_number")
     row_data["source_file"] = source_file
     row_data["updated_at"] = datetime.now().isoformat()
 
-    # 对比旧数据，记录 profit/logistics 变化
+    # 对比旧数据，记录 profit/status 变化
     if order_number and conn:
         old_row = cursor.execute(
-            "SELECT profit, logistics, thumbnail, site, store_name FROM operational_orders WHERE order_number = ?",
+            "SELECT profit, status, COALESCE(thumbnail,''), COALESCE(site,''), COALESCE(store,'') FROM operational_orders WHERE order_number = ?",
             (order_number,)
         ).fetchone()
         if old_row:
-            old_profit, old_logistics = old_row[0], old_row[1]
+            old_profit, old_status = old_row[0], old_row[1]
             new_profit = row_data.get("profit")
-            new_logistics = row_data.get("logistics")
-            thumbnail = row_data.get("thumbnail") or (old_row[2] if old_row[2] else "")
-            site = row_data.get("site") or (old_row[3] if old_row[3] else "")
-            store_name = row_data.get("store") or (old_row[4] if old_row[4] else "")
+            new_status = row_data.get("status")
+            thumbnail = row_data.get("thumbnail") or old_row[2]
+            site = row_data.get("site") or old_row[3]
+            store_name = row_data.get("store") or old_row[4]
 
-            # profit 变化
+            # profit 变化 → 利润变化卡片
             if str(old_profit or "") != str(new_profit or ""):
                 cursor.execute("""
                     INSERT INTO order_changes (order_number, change_type, old_value, new_value, thumbnail, site, store_name)
                     VALUES (?, 'profit', ?, ?, ?, ?, ?)
                 """, (order_number, str(old_profit or ""), str(new_profit or ""), thumbnail, site, store_name))
-            # logistics 变化
-            if str(old_logistics or "") != str(new_logistics or ""):
+            # status 变化（已采购→在途中等） → 物流变化卡片
+            if str(old_status or "") != str(new_status or ""):
                 cursor.execute("""
                     INSERT INTO order_changes (order_number, change_type, old_value, new_value, thumbnail, site, store_name)
                     VALUES (?, 'logistics', ?, ?, ?, ?, ?)
-                """, (order_number, str(old_logistics or ""), str(new_logistics or ""), thumbnail, site, store_name))
+                """, (order_number, str(old_status or ""), str(new_status or ""), thumbnail, site, store_name))
 
     placeholders = ", ".join(["?"] * len(row_data))
     col_names = ", ".join(row_data.keys())
