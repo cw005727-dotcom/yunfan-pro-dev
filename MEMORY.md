@@ -11,3 +11,34 @@
 - **Fallback**：之前有 MXAPI Nano Banana兜底方案（0.07元/张），但已放弃不用
 - **旧代码**：CozeClient 类已废弃，仅保留 ImageGenClient
 - **前端兼容**：返回格式不变，无需改动
+
+## weread_card.js 小卡片配置（2026-05-28）
+
+### 文件
+- /Users/chensan/Desktop/weread_card.js
+
+### 字号规则
+| 内容字数 | 字号 |
+|---------|------|
+| ≤32字 | 15pt |
+| >32字 | 14pt |
+
+### 书名
+- 字号：17pt bold
+- 超9字：降为15pt
+- 去掉了《》符号
+
+### 间距
+- 书名到内容：16pt
+- 内容行间距：6pt
+
+### 背景色
+- 浅色：#FAFAFA
+- 深色：#1C1C1E
+
+### 书籍/笔记切换
+- 书籍：每天换一本
+- 笔记：每2小时换一条
+
+### Token
+- Bearer wrk-hh…_QAA
