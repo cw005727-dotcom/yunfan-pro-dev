@@ -327,7 +327,7 @@ export default function LogisticsAlertsView_V5() {
       case 'thirdday': return orders.filter(o => o.order_date && o.order_date.startsWith(stats?.thirdday_date || ''));
       case 'labeled': return orders.filter(o => o.label_status === '已贴单');
       case 'warehouse': return orders.filter(o => o.warehouse_in_date && o.warehouse_in_date.trim() !== '');
-      case 'warning': return orders.filter(o => { try { return (new Date() - new Date(o.order_date.replace(/\//g, '-')))/(1000*60*60) > 48 && !o.logistics_1688_tracking; } catch { return false; } });
+      case 'warning': return orders.filter(o => { try { const orderDate = new Date(o.order_date.replace(/\//g, '-').replace(' ', 'T') + ':00+08:00'); return (new Date() - orderDate) / (1000*60*60) > 48 && !o.logistics_1688_tracking; } catch { return false; } });
       default: return orders;
     }
   }, [orders, activeCard, stats]);
@@ -335,7 +335,7 @@ export default function LogisticsAlertsView_V5() {
   const getRiskLevel = (order) => {
     if (!order.order_date) return null;
     try {
-      const orderDate = new Date(order.order_date.replace(/\//g, '-'));
+      const orderDate = new Date(order.order_date.replace(/\//g, '-').replace(' ', 'T') + ':00+08:00');
       const hours = (new Date() - orderDate) / (1000 * 60 * 60);
       if (hours > 72 && getStep(order) < 2) return { level: '72H+', color: 'text-rose-600 bg-rose-50 border-rose-100', text: '极高风险: 72H未入库' };
       if (hours > 48 && getStep(order) < 2) return { level: '48H+', color: 'text-amber-600 bg-amber-50 border-amber-100', text: '高风险: 48H未入库' };
