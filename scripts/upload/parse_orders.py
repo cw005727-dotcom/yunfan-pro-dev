@@ -18,7 +18,7 @@ COLUMN_MAP = {
     "业务员": "salesperson",
     "来源": "source",
     "公司店铺": "store",
-    "状态": "status",
+    "订单状态": "status",
     "金额": "amount_usd",
     "费用": "fee",
     "税费": "tax",
