@@ -153,40 +153,23 @@ function WarningCard({ stats }) {
   );
 }
 
-function LifecycleTimeline({ currentStep }) {
-  const [animWidth, setAnimWidth] = React.useState('0px');
-  React.useEffect(() => {
-    let timer;
-    const targetPct = Math.min((Math.max(currentStep, 0) / 3) * 100, 100);
-    const targetW = 'calc(' + targetPct + '% - 0px)';
-    let growing = true;
-    const tick = () => {
-      if (growing) { setAnimWidth(targetW); growing = false; timer = setTimeout(tick, 2500); }
-      else { setAnimWidth('0px'); growing = true; timer = setTimeout(tick, 400); }
-    };
-    setAnimWidth('0px');
-    timer = setTimeout(tick, 300);
-    return () => clearTimeout(timer);
-  }, [currentStep]);
-  const steps = [
-    { key: 'shipped', label: '平台已发货' },
-    { key: 'labeled', label: '云仓已贴单' },
-    { key: 'inbound', label: '官方仓收货' },
-    { key: 'air', label: '已发出' }
-  ];
+function LifecycleTimeline({ steps }) {
+  const activeCount = steps.filter(Boolean).length;
+  const pct = Math.min((activeCount / 3) * 100, 100);
+  const labels = ['平台已发货', '云仓已贴单', '官方仓收货', '已发出'];
   return (
     <div className="relative flex items-center justify-between max-w-[320px] ml-0 px-0">
       <div className="absolute left-5 right-5 top-[9px] h-0 border-t border-dashed border-slate-200" />
       <div className="absolute left-5 top-[8px] h-[2px] bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
-        style={{ width: animWidth }} />
-      {steps.map((s, idx) => {
-        const isActive = idx <= currentStep;
+        style={{ width: 'calc(' + pct + '% - 0px)' }} />
+      {labels.map((label, idx) => {
+        const isActive = steps[idx];
         return (
-          <div key={s.key} className="relative flex flex-col items-center gap-0.5 z-10">
+          <div key={idx} className="relative flex flex-col items-center gap-0.5 z-10">
             <div className={(isActive ? 'bg-emerald-500 scale-110 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white border-2 border-slate-300') + ' w-3 h-3 rounded-full transition-all duration-500 ease-out'}>
               {isActive && <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute opacity-40" />}
             </div>
-            <span className={(isActive ? 'text-emerald-600' : 'text-slate-400') + ' text-[9px] font-black tracking-tight whitespace-nowrap transition-colors duration-300'}>{s.label}</span>
+            <span className={(isActive ? 'text-emerald-600' : 'text-slate-400') + ' text-[9px] font-black tracking-tight whitespace-nowrap transition-colors duration-300'}>{label}</span>
           </div>
         );
       })}
@@ -311,12 +294,13 @@ export default function LogisticsAlertsView_V5({ user }) {
   }, [fetchData]);
 
   // 国内物流链路步骤：0平台已发货 1云仓已贴单 2官方仓收货 3已发出
-  const getStep = (order) => {
-    if (order.international_tracking) return 3;
-    if (order.status === '已入库') return 2;
-    if (order.label_status === '已贴单') return 1;
-    if (order.logistics_1688_tracking) return 0;
-    return -1;
+  const orderSteps = (order) => {
+    return [
+      !!(order.logistics_1688_tracking && !/[\u4e00-\u9fff]/.test(order.logistics_1688_tracking)),
+      order.label_status === '已贴单',
+      order.status === '已入库',
+      !!order.international_tracking,
+    ];
   };
 
   const filteredOrders = React.useMemo(() => {
@@ -454,7 +438,7 @@ export default function LogisticsAlertsView_V5({ user }) {
                         </div>
                       </td>
                       <td className="px-3 py-4 text-left">
-                        <LifecycleTimeline currentStep={getStep(order)} />
+                        <LifecycleTimeline steps={orderSteps(order)} />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-70" onClick={(e) => { e.stopPropagation(); setCurrentOrder(order); setDrawerVisible(true); fetchExpressTraces(order.logistics_1688_tracking); }}>
