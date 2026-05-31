@@ -343,7 +343,8 @@ def compute_stage(t):
         return 2, '🏢', '官方仓收货', '#10b981'
     if t.get('label_status') == '已贴单':
         return 1, '🏭', '云仓已贴单', '#f59e0b'
-    if t.get('logistics_1688_tracking'):
+    trk = (t.get('logistics_1688_tracking') or '').strip()
+    if trk and not any('一' <= c <= '鿿' for c in trk):
         return 0, '🚚', '平台已发货', '#3b82f6'
     return -1, '❌', '未发货', '#94a3b8'
 
@@ -489,7 +490,8 @@ def get_tracking(
             except:
                 continue
         hours = (now - od).total_seconds() / 3600
-        has_shipped = bool(o['logistics_1688_tracking'])
+        trk_val = (o.get('logistics_1688_tracking') or '').strip()
+        has_shipped = bool(trk_val) and not any('一' <= c <= '鿿' for c in trk_val)
 
         if hours <= 24:
             if has_shipped:
@@ -524,7 +526,8 @@ def get_tracking(
             if od_str != day_str:
                 continue
             total += 1
-            has_tracking = bool(o.get('logistics_1688_tracking'))
+            trk3 = (o.get('logistics_1688_tracking') or '').strip()
+            has_tracking = bool(trk3) and not any('一' <= c <= '鿿' for c in trk3)
             if not has_tracking:
                 over24 += 1
                 continue
