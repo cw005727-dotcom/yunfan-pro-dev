@@ -93,9 +93,8 @@ function MainLogisticsCard({ stats, day, title, delay = 0 }) {
   if (day === 'daybefore') prefix = 'daybefore';
   if (day === 'thirdday') prefix = 'thirdday';
   const total = stats?.[prefix + '_total'] || 0;
-  const h12 = stats?.[prefix + '_h12_shipped'] || 0;
-  const h24 = stats?.[prefix + '_h24_shipped'] || 0;
-  const over24 = stats?.[prefix + '_over24_unshipped'] || 0;
+  const shipped = stats?.[prefix + '_shipped'] || 0;
+  const unshipped = stats?.[prefix + '_unshipped'] || 0;
   const dateLabel = stats?.[prefix + '_date'] || '';
 
   return (
@@ -117,9 +116,8 @@ function MainLogisticsCard({ stats, day, title, delay = 0 }) {
                 <span className="text-emerald-200 text-[10px] font-bold tracking-wider">总订单</span>
               </div>
               <div className="flex justify-between text-[13px] font-black">
-                <span className="text-emerald-200">12h已发 <span className="text-white">{h12}</span></span>
-                <span className="text-emerald-200">24h已发 <span className="text-white">{h24}</span></span>
-                <span className="text-emerald-200">未发 <span className="text-white">{over24}</span></span>
+                <span className="text-emerald-200">已发 <span className="text-white">{shipped}</span></span>
+                <span className="text-emerald-200">未发 <span className="text-white">{unshipped}</span></span>
               </div>
             </div>
           </div>
@@ -258,19 +256,16 @@ export default function LogisticsAlertsView_V5({ user }) {
           warehouse_received: data.warehouse_received || 0,
           yesterday_date: data.yesterday_date,
           yesterday_total: data.yesterday_total,
-          yesterday_h12_shipped: data.yesterday_h12_shipped,
-          yesterday_h24_shipped: data.yesterday_h24_shipped,
-          yesterday_over24_unshipped: data.yesterday_over24_unshipped,
+          yesterday_shipped: data.yesterday_shipped,
+          yesterday_unshipped: data.yesterday_unshipped,
           daybefore_date: data.daybefore_date,
           daybefore_total: data.daybefore_total,
-          daybefore_h12_shipped: data.daybefore_h12_shipped,
-          daybefore_h24_shipped: data.daybefore_h24_shipped,
-          daybefore_over24_unshipped: data.daybefore_over24_unshipped,
+          daybefore_shipped: data.daybefore_shipped,
+          daybefore_unshipped: data.daybefore_unshipped,
           thirdday_date: data.thirdday_date,
           thirdday_total: data.thirdday_total,
-          thirdday_h12_shipped: data.thirdday_h12_shipped,
-          thirdday_h24_shipped: data.thirdday_h24_shipped,
-          thirdday_over24_unshipped: data.thirdday_over24_unshipped,
+          thirdday_shipped: data.thirdday_shipped,
+          thirdday_unshipped: data.thirdday_unshipped,
           today_total: data.today_total,
           today_purchased: data.purchased_count || 0,
           today_inbound: allOrders.filter(o => o.stage_code >= 2).length,
@@ -355,9 +350,8 @@ export default function LogisticsAlertsView_V5({ user }) {
                 <div className="mt-2">
                   <div className="text-[20px] font-black text-blue-700 tracking-tight leading-none">{stats?.daybefore_total || 0}<span className="text-[12px] opacity-80 ml-1">单</span></div>
                   <div className="mt-1.5 flex justify-between text-[11px] font-bold">
-                    <span className="text-emerald-600">12h已发 {stats?.daybefore_h12_shipped || 0}</span>
-                    <span className="text-blue-600">24h已发 {stats?.daybefore_h24_shipped || 0}</span>
-                    <span className="text-amber-600">未发 {stats?.daybefore_over24_unshipped || 0}</span>
+                    <span className="text-emerald-600">已发 {stats?.daybefore_shipped || 0}</span>
+                    <span className="text-amber-600">未发 {stats?.daybefore_unshipped || 0}</span>
                   </div>
                 </div>
              </div>
@@ -366,9 +360,8 @@ export default function LogisticsAlertsView_V5({ user }) {
                 <div className="mt-2">
                   <div className="text-[20px] font-black text-violet-700 tracking-tight leading-none">{stats?.thirdday_total || 0}<span className="text-[12px] opacity-80 ml-1">单</span></div>
                   <div className="mt-1.5 flex justify-between text-[11px] font-bold">
-                    <span className="text-emerald-600">12h已发 {stats?.thirdday_h12_shipped || 0}</span>
-                    <span className="text-blue-600">24h已发 {stats?.thirdday_h24_shipped || 0}</span>
-                    <span className="text-amber-600">未发 {stats?.thirdday_over24_unshipped || 0}</span>
+                    <span className="text-emerald-600">已发 {stats?.thirdday_shipped || 0}</span>
+                    <span className="text-amber-600">未发 {stats?.thirdday_unshipped || 0}</span>
                   </div>
                 </div>
              </div>
