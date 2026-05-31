@@ -3,7 +3,7 @@
 import sys, os, time, json, urllib.parse, urllib.request, sqlite3
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from fastapi_server.config import ML_APP_ID as CLIENT_ID, ML_CLIENT_SECRET
