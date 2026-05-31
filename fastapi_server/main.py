@@ -95,13 +95,16 @@ from .routes import (
     sync, webhook, holidays, cms, auth,
     product_research, admin, amazon, upload, operational, product_performance
 )
+from .routes.inbox import router as inbox_router
 from .routes.notifications import router as notifications_router
 from .routes.auto_center import router as auto_center_router
 from .routes.logistics_tracking import router as logistics_tracking_router
 from .routes.logistics_intl import router as logistics_intl_router
 from .routes.alibaba1688 import router as alibaba1688_router
+from .routes.financials import router as financials_router
 
 app.include_router(stores.router)
+app.include_router(financials_router)
 app.include_router(orders.router)
 app.include_router(products.router)
 app.include_router(logistics.router)
@@ -126,6 +129,7 @@ app.include_router(notifications_router)
 app.include_router(admin.router)
 app.include_router(auto_center_router)
 app.include_router(amazon.router)
+app.include_router(inbox_router)
 app.include_router(operational.router)
 app.include_router(logistics_tracking_router)
 app.include_router(logistics_intl_router)
