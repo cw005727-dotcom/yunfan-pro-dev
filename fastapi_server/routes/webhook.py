@@ -458,6 +458,16 @@ async def _process_webhook_async(data: dict, topic: str, raw_resource: str):
                 monitor_details = {"claim_id": claim_id, "status": data.get('status'), "type": data.get('type'), "reason": reason_text, "source": "webhook"}
                 urgent = True
 
+            elif topic == 'orders_feedback':
+                resource = data.get('resource', '') or ''
+                order_id = resource.split('/')[-2] if '/feedback' in resource else ''
+                monitor_msg = f"\xe2\xad\x90 \xe8\xaf\x84\xe4\xbb\xb7\xe9\x80\x9a\xe7\x9f\xa5\xef\xbc\x9a\xe8\xae\xa2\xe5\x8d\x95 {order_id}"
+
+            elif topic == 'payments':
+                resource = data.get('resource', '') or ''
+                payment_id = resource.split('/')[-1] if resource else ''
+                monitor_msg = f"\xf0\x9f\x92\xb3 \xe4\xbb\x98\xe6\xac\xbe\xe9\x80\x9a\xe7\x9f\xa5\xef\xbc\x9a{payment_id}"
+
             elif topic in ('marketplace_items', 'marketplace_messages', 'items'):
                 logger.info(f"[Webhook Async] acknowledged {topic} (no action needed)")
 
