@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api", tags=["上传"])
 
 
 @router.post("/upload/orders")
-async def upload_orders(file: UploadFile = File(...)):
+async def upload_orders(file: UploadFile = File(...), owner: str = None):
     """上传订单Excel，解析入库到 operational_orders 表"""
     if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="仅支持 .xlsx / .xls 文件")
@@ -37,7 +37,7 @@ async def upload_orders(file: UploadFile = File(...)):
 
     try:
         from upload.parse_orders import parse_and_import as parse_orders_excel
-        result = parse_orders_excel(tmp_path, source_file=file.filename)
+        result = parse_orders_excel(tmp_path, source_file=file.filename, owner=owner)
         if result.get('error'):
             raise HTTPException(status_code=422, detail=result['error'])
         return result
@@ -54,6 +54,7 @@ async def upload_links(
     file: UploadFile = File(...),
     site_id: str = "MLB",
     shop_id: int = Query(0, description="店铺ID（stores.user_id）"),
+    owner: str = Query(None, description="上传者用户名"),
 ):
     """上传商品性能Excel，解析入库到 product_performance 表
     解析后立即返回，图片在后台上异步拉取，不阻塞请求。
@@ -103,7 +104,7 @@ async def upload_links(
             item_id = str(item_id_raw)
             item_ids.append(item_id)
 
-            data = {'item_id': item_id, 'site_id': site_id}
+            data = {'item_id': item_id, 'site_id': site_id, 'owner_username': owner or ''}
             for col_idx, value in enumerate(row):
                 header = headers[col_idx] if col_idx < len(headers) else None
                 if header and header in field_map:
@@ -246,7 +247,7 @@ def ensure_logistics_tracking_table():
 ensure_logistics_tracking_table()
 
 @router.post("/upload/logistics")
-async def upload_logistics(file: UploadFile = File(...)):
+async def upload_logistics(file: UploadFile = File(...), owner: str = None):
     """上传物流追踪Excel"""
     if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="仅支持 .xlsx / .xls 文件")
@@ -314,8 +315,8 @@ async def upload_logistics(file: UploadFile = File(...)):
                     (order_number, site, store_name, order_date, status,
                      listing_id, sku,
                      logistics_1688_order, logistics_1688_tracking, label_status,
-                     warehouse_in_date, international_tracking, is_ignored)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0)
+                     warehouse_in_date, international_tracking, is_ignored, owner_username)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0,?)
                     ON CONFLICT(order_number) DO UPDATE SET
                         site=excluded.site, store_name=excluded.store_name,
                         order_date=excluded.order_date, status=excluded.status,

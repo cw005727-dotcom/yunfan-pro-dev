@@ -163,7 +163,7 @@ def upsert_order(cursor, row_data: dict, source_file: str, conn=None):
     cursor.execute(sql, list(row_data.values()))
 
 
-def parse_and_import(xlsx_path: str, source_file: str = None) -> dict:
+def parse_and_import(xlsx_path: str, source_file: str = None, owner: str = None) -> dict:
     """解析Excel并导入数据库，返回统计"""
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
     ws = wb.active
@@ -194,7 +194,7 @@ def parse_and_import(xlsx_path: str, source_file: str = None) -> dict:
 
     for row_idx, row in enumerate(rows[1:], start=2):
         try:
-            row_data = {}
+            row_data = {"owner_username": owner or ""}
             for col_idx, db_key in header_map.items():
                 if col_idx >= len(row):
                     continue

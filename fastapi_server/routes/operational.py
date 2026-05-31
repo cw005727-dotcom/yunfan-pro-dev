@@ -63,12 +63,14 @@ def _exclude_clause():
     return f" (COALESCE(salesperson, '') NOT IN ({placeholders})) "
 
 
-def base_where(salesperson, site, store_name, date_from, date_to):
+def base_where(salesperson, site, store_name, date_from, date_to, owner=None):
     w, p = [], []
     if salesperson: w.append(" salesperson = ? "); p.append(salesperson)
     if site:        w.append(" site = ? ");        p.append(site)
     if store_name:
         w.append(" source LIKE ? "); p.append(f"%{store_name}%")
+    if owner:
+        w.append(" owner_username = ? "); p.append(owner)
     if date_from:   w.append(" date(replace(order_date,'/','-')) >= ? "); p.append(dt(date_from))
     if date_to:     w.append(" date(replace(order_date,'/','-')) <= ? "); p.append(dt(date_to))
     if not salesperson:
@@ -116,6 +118,7 @@ def margin(p, c):
 @router.get("/stats")
 def get_stats(
     salesperson: Optional[str] = Query(None),
+    owner: Optional[str] = Query(None),
     site:        Optional[str] = Query(None),
     store_name:  Optional[str] = Query(None),
     date_from:   Optional[str] = Query(None),
@@ -126,7 +129,7 @@ def get_stats(
     month_start = date.today().replace(day=1).strftime("%Y-%m-%d")
 
     # 总计
-    w, p = base_where(salesperson, site, store_name, date_from, date_to)
+    w, p = base_where(salesperson, site, store_name, date_from, date_to, owner)
     total = agg_filter(conn, w, p)
     tc = count_cancels(conn, w, p)
     total.update(tc)
@@ -167,6 +170,7 @@ def get_stats(
 @router.get("/daily")
 def get_daily(
     salesperson: Optional[str] = Query(None),
+    owner: Optional[str] = Query(None),
     site:        Optional[str] = Query(None),
     store_name:  Optional[str] = Query(None),
     date_from:   Optional[str] = Query(None),
@@ -174,7 +178,7 @@ def get_daily(
 ):
     conn = get_conn()
     cur = conn.cursor()
-    w, p = base_where(salesperson, site, store_name, date_from, date_to)
+    w, p = base_where(salesperson, site, store_name, date_from, date_to, owner)
     w += " AND status NOT IN ('找货-没汇总')"
     sql = (
         "SELECT date(replace(order_date,'/','-')), COUNT(*), "
@@ -196,6 +200,7 @@ def get_daily(
 @router.get("/stores")
 def get_stores(
     salesperson: Optional[str] = Query(None),
+    owner: Optional[str] = Query(None),
     site:        Optional[str] = Query(None),
     store_name:  Optional[str] = Query(None),
     date_from:   Optional[str] = Query(None),
