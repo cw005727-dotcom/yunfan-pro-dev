@@ -9,22 +9,23 @@
 - 风险: (conditions TBD)
 - 无效: (conditions TBD)
 """
-import sqlite3, json, requests, time
+import sqlite3, json, requests, time, os, sys
 from datetime import datetime, timezone, timedelta
-from scripts.utils.token_manager import simple_decrypt
+from pathlib import Path
 
-DB_PATH = '/home/admin/yunfan-pro-dev/mercadolibre.db'
-TOKEN_KEY_PATH = '/home/admin/.ml_token_key'
-TOKEN_ENC_PATH = '/home/admin/yunfan-pro-dev/ml_tokens.enc'
+# 项目根目录，脚本放在 scripts/sync/，所以向上两级
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DB_PATH = str(PROJECT_ROOT / 'mercadolibre.db')
+
+# 用 token_manager 统一拿 token
+sys.path.insert(0, str(PROJECT_ROOT))
+from scripts.utils.token_manager import load_tokens
 
 BJ_TZ = timezone(timedelta(hours=8))
 
 def get_token():
-    with open(TOKEN_ENC_PATH) as f:
-        enc = f.read()
-    with open(TOKEN_KEY_PATH) as f:
-        key = f.read().strip()
-    return json.loads(simple_decrypt(enc, key))['access_token']
+    tokens = load_tokens()
+    return tokens['access_token']
 
 def now_bj():
     return datetime.now(BJ_TZ).strftime('%Y-%m-%d %H:%M:%S')
@@ -42,13 +43,12 @@ def fetch_live_data(item_id, headers):
     except:
         pass
 
-    # 2. purchase_experience 评分
+    # 2. purchase_experience 评分（0-100分）
     try:
-        pe = requests.get(f'https://api.mercadolibre.com/marketplace/items/{item_id}/purchase_experience', headers=headers, timeout=6)
+        pe = requests.get(f'https://api.mercadolibre.com/reputation/items/{item_id}/purchase_experience/integrators', headers=headers, timeout=6)
         if pe.status_code == 200:
             d = pe.json()
-            if isinstance(d, list) and d:
-                rep_value = d[0].get('reputation', {}).get('value', -1)
+            rep_value = d.get('reputation', {}).get('value', -1)
     except:
         pass
 
