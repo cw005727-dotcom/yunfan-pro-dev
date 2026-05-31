@@ -204,18 +204,27 @@ def get_notifications():
 
 
 @router.get("/notifications/realtime")
-def get_realtime_notifications():
+def get_realtime_notifications(owner: str = None):
     """
     返回 webhook 实时推送的通知（按时间倒序）
     """
     with get_db_connection() as db:
         cur = db.cursor()
-        rows = cur.execute("""
-            SELECT id, topic, content, site_id, order_id, received_at, read
-            FROM realtime_notifications
-            ORDER BY id DESC
-            LIMIT 100
-        """).fetchall()
+        if owner:
+            rows = cur.execute("""
+                SELECT id, topic, content, site_id, order_id, received_at, read
+                FROM realtime_notifications
+                WHERE owner_username = ? OR owner_username = '' OR owner_username IS NULL
+                ORDER BY id DESC
+                LIMIT 100
+            """, (owner,)).fetchall()
+        else:
+            rows = cur.execute("""
+                SELECT id, topic, content, site_id, order_id, received_at, read
+                FROM realtime_notifications
+                ORDER BY id DESC
+                LIMIT 100
+            """).fetchall()
 
     return [
         {

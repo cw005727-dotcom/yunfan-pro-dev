@@ -192,6 +192,7 @@ async def get_performance_list(
     issue: str = Query(None),
     site_id: str = Query(None),
     shop_id: int = Query(None),
+    owner: str = Query(None),
 ):
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -206,6 +207,9 @@ async def get_performance_list(
     if shop_id and shop_id != 0:
         where += " AND shop_id = ?"
         params.append(shop_id)
+    if owner:
+        where += " AND owner_username = ?"
+        params.append(owner)
     if site_id and site_id != "全部":
         where += " AND site_id = ?"
         params.append(site_id)

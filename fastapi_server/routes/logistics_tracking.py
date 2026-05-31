@@ -354,6 +354,7 @@ def get_tracking(
     date: str = None,
     search: str = None,
     limit: int = 500,
+    owner: str = None,
 ):
     """返回全链路追踪数据：按日期分组+统计"""
     conn = get_conn()
