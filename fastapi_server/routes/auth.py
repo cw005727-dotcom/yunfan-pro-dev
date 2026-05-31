@@ -114,8 +114,15 @@ async def register(data: RegisterRequest):
                 from pathlib import Path as _Path
                 _root = _Path(__file__).resolve().parent.parent.parent
                 _sys.path.insert(0, str(_root))
-                from pull_reputation import pull_reputation
-                pull_reputation()
+                import threading
+                def _do_pull():
+                    try:
+                        import sys as _sys, os as _os
+                        _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+                        from pull_reputation import pull_reputation
+                        pull_reputation()
+                    except: pass
+                threading.Thread(target=_do_pull, daemon=True).start()
                 logger.info(f"[Auth] 注册后声誉拉取完成")
             except Exception as e:
                 logger.warning(f"[Auth] 注册后声誉拉取失败（不影响注册）：{e}")
