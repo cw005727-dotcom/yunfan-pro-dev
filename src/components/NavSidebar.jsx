@@ -73,8 +73,8 @@ const NavSidebar = memo(function NavSidebar({ user, topTab, sidebarItem, onTabCh
           <Icon name="command" className="text-white" size={16} />
         </div>
         <div className="flex flex-col">
-          <span className="text-slate-950 text-[14px] font-black tracking-tighter leading-none uppercase">YUNFAN PRO</span>
-          <span className="text-emerald-700/60 text-[7px] font-black uppercase tracking-[1.5px] mt-1.5 leading-none">Cloud Intelligence</span>
+          <span className="text-slate-950 text-[16px] font-black tracking-tighter leading-none">云帆跨境</span>
+          <span className="text-slate-500 text-[12px] font-black tracking-tight leading-none mt-1">美客多工作台</span>
         </div>
       </div>
 
