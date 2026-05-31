@@ -349,48 +349,52 @@ async def _handle_webhook(request: Request):
     else:
         body = await request.json()
 
-    try:
-        data = body  # 直接用原始 dict，不走 Pydantic 验证
-        if not data:
-            raise HTTPException(status_code=400, detail="Empty payload")
+    data = body
+    if not data:
+        return {"ok": False, "error": "Empty payload", "topic": "unknown"}
 
-        topic = data.get('topic', 'orders_v2')
-        # ML marketplace_orders webhook 格式：resource="/orders/123456"（order_id 在 resource 字段里）
-        raw_resource = data.get('resource', '') or ''
+    topic = data.get('topic', 'orders_v2')
+    raw_resource = data.get('resource', '') or ''
+
+    # 第一时间返回 200，告知 ML 已收到（500ms 时限要求）
+    # 后续处理异步执行，不阻塞 webhook 响应
+    import asyncio
+
+    # 启动后台任务处理，不 await
+    asyncio.create_task(_process_webhook_async(data, topic, raw_resource))
+
+    return {"ok": True, "topic": topic, "id": raw_resource.split('/')[-1] if raw_resource else ""}
+
+
+async def _process_webhook_async(data: dict, topic: str, raw_resource: str):
+    """延后处理 webhook 通知，不影响 200 响应时效"""
+    try:
         order_id = data.get('id') or data.get('order_id')
         if not order_id and raw_resource:
             m = re.search(r'/orders/(\d+)', raw_resource)
             if m:
                 order_id = m.group(1)
-        logger.info(f"[Webhook Relay] topic={topic} id={order_id} resource={raw_resource[:50]}")
-        # claims 类型的 topic 没有 order_id（用 resource），单独处理
-        # marketplace_items 也没有 order_id（商品变更通知），忽略即可
-        if topic not in ('marketplace_claims', 'marketplace_items', 'marketplace_messages', 'marketplace_shipments', 'items') and not order_id:
-            raise HTTPException(status_code=400, detail="Missing order id")
-        # handle_orders 只认 data['id']，把解析出来的 order_id 塞进去（claims 不用）
+
+        logger.info(f"[Webhook Async] topic={topic} id={order_id} resource={raw_resource[:50]}")
+
+        # claims / items / marketplace_items / marketplace_messages 这些没有 order_id
         if order_id:
             data['id'] = order_id
 
-        # marketplace_orders / marketplace_orders_on_site 缺少详情字段，先通过 API 补充
-        if topic in ('marketplace_orders', 'marketplace_orders_on_site'):
+        # marketplace_orders 缺少详情字段，通过 API 补充
+        if topic in ('marketplace_orders', 'marketplace_orders_on_site') and order_id:
             enrich_marketplace_order(data, order_id)
-            # API enrichment 可能仍失败：用当前北京时间做兜底订单时间
-            # handle_orders 会把 order_date 传给 to_beijing()（+12h），所以这里不用它
-            # 改用直接 UPDATE：在 handle_orders 插入后，再 UPDATE order_date 为正确值
-            if not data.get('order_date'):
-                data['_bj_now'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # 预填 monitoring 信息（事务 commit 后再写）
+        # 预填 monitoring 信息
         monitor_msg = None
         monitor_store = None
         monitor_site = None
         monitor_details = None
-        urgent = False  # 索赔默认紧急
+        urgent = False
 
         with get_db_connection() as conn:
             if topic in ('orders', 'orders_v2', 'marketplace_orders', 'marketplace_orders_on_site'):
                 handle_orders(conn, data)
-                # 兜底：修正 marketplace_orders/orders_on_site 的 order_date（handle_orders 里的 to_beijing 会把北京时间加12h）
                 if topic in ('marketplace_orders', 'marketplace_orders_on_site') and data.get('_bj_now'):
                     cursor2 = conn.cursor()
                     cursor2.execute("UPDATE orders_v2 SET order_date=? WHERE id=?",
@@ -402,38 +406,26 @@ async def _handle_webhook(request: Request):
                 monitor_store = data.get('user_id')
                 monitor_site = data.get('site_id')
                 monitor_details = {"order_id": str(order_id), "source": "webhook", "status": data.get('status'), "amount": amount}
-                urgent = False
 
             elif topic in ('shipments', 'marketplace_shipments'):
                 handle_shipments(conn, data)
-                # 用发货单号做显示（订单号可能获取不到）
-                raw_resource = data.get('resource', '') or ''
                 sid = raw_resource.split('/')[-1] if raw_resource else order_id or '-'
                 logistic_company = data.get('logistic_company') or data.get('tracking_method') or '-'
                 rcv_city = data.get('receiver_city') or '-'
                 est_del = data.get('estimated_delivery_date') or ''
                 if est_del:
                     est_del = est_del[:10]
-                monitor_msg = (
-                    f"🚚 物流更新：发货单 {sid} → "
-                    f"{logistic_company} / "
-                    f"{data.get('shipping_status', '-')}"
-                )
+                monitor_msg = f"🚚 物流更新：发货单 {sid} → {logistic_company} / {data.get('shipping_status', '-')}"
                 if rcv_city and rcv_city != '-':
                     monitor_msg += f" / 收货：{rcv_city}"
                 if est_del:
                     monitor_msg += f" / 预计{est_del}"
                 monitor_site = data.get('site_id')
                 monitor_details = {
-                    "shipment_id": sid,
-                    "source": "webhook",
-                    "logistics": True,
-                    "logistic_company": logistic_company,
-                    "shipping_status": data.get('shipping_status'),
-                    "receiver_city": rcv_city,
-                    "estimated_delivery_date": est_del
+                    "shipment_id": sid, "source": "webhook", "logistics": True,
+                    "logistic_company": logistic_company, "shipping_status": data.get('shipping_status'),
+                    "receiver_city": rcv_city, "estimated_delivery_date": est_del
                 }
-                urgent = False
 
             elif topic == 'questions':
                 handle_questions(conn, data)
@@ -441,13 +433,11 @@ async def _handle_webhook(request: Request):
                 monitor_msg = f"💬 新咨询：{site} 咨询 {str(data.get('item_id', ''))[:30]}"
                 monitor_site = data.get('site_id')
                 monitor_details = {"source": "webhook"}
-                urgent = False
 
             elif topic == 'marketplace_claims':
                 handle_claims(conn, data)
                 site = SITE_NAMES.get(data.get('site_id', ''), data.get('site_id', ''))
-                resource = data.get('resource', '')
-                match = re.search(r'/claims/([^\s/]+)', resource)
+                match = re.search(r'/claims/([^\s/]+)', raw_resource)
                 claim_id = match.group(1) if match else order_id or ''
                 reason = data.get('reason', {})
                 reason_text = reason.get('description', '') if isinstance(reason, dict) else ''
@@ -459,40 +449,45 @@ async def _handle_webhook(request: Request):
                 monitor_details = {"claim_id": claim_id, "status": data.get('status'), "type": data.get('type'), "reason": reason_text, "source": "webhook"}
                 urgent = True
 
-            elif topic in ('marketplace_items', 'marketplace_messages'):
-                # 商品变更/消息通知：无需处理，记录日志即可
-                logger.info(f"[Webhook Relay] acknowledged {topic} (no action needed)")
+            elif topic in ('marketplace_items', 'marketplace_messages', 'items'):
+                logger.info(f"[Webhook Async] acknowledged {topic} (no action needed)")
 
             else:
-                logger.info(f"[Webhook Relay] unhandled topic: {topic}, keys: {list(data.keys())}")
+                logger.info(f"[Webhook Async] unhandled topic: {topic}, keys: {list(data.keys())[:10]}")
 
-            # 写入实时通知表（前端「实时推送」专用）
-            # claims 重复推送：用 INSERT OR IGNORE + 唯一索引防重
-            # 其他 topic 正常插入（Unique 约束不满足时忽略，不报错）
-            try:
-                conn.execute(
-                    "INSERT OR IGNORE INTO realtime_notifications (topic, content, site_id, order_id, received_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))",
-                    (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
-                     monitor_site or data.get('site_id', ''),
-                     str(order_id) if order_id else '')
-                )
-            except Exception as e:
-                logger.warning(f"[realtime_notifications] insert failed (possibly duplicate): {e}")
+            # 写入实时通知表（跳过 marketplace_items / items，太频繁）
+            if topic not in ('marketplace_items', 'items'):
+                try:
+                    # 解析 owner_username
+                    owner = ''
+                    uid = data.get('user_id', '')
+                    if uid:
+                        try:
+                            cur = conn.cursor()
+                            cur.execute("SELECT owner_username FROM stores WHERE ml_user_id = ? LIMIT 1", (str(uid),))
+                            row = cur.fetchone()
+                            if row and row[0]:
+                                owner = row[0]
+                        except:
+                            pass
+                    conn.execute(
+                        "INSERT INTO realtime_notifications (topic, content, site_id, order_id, owner, received_at) VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))",
+                        (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
+                         monitor_site or data.get('site_id', ''),
+                         str(order_id) if order_id else '',
+                         owner)
+                    )
+                except Exception as e:
+                    logger.warning(f"[realtime_notifications] insert failed: {e}")
 
             conn.commit()
 
-        # 事务结束后再写 monitoring_logs，避免数据库锁
         if monitor_msg:
             log_to_monitoring('warning' if urgent else 'info', monitor_msg,
                               store_id=monitor_store, site_id=monitor_site, details=monitor_details)
 
-        return {"ok": True, "topic": topic, "id": order_id or ""}
-
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"[Webhook Relay] error: {e}", exc_info=True)
-        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+        logger.error(f"[Webhook Async] error processing {topic}: {e}", exc_info=True)
 
 
 @router.post("/tongzhi")
