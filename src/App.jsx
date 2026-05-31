@@ -139,7 +139,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {View ? <View key={sidebarItem} defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : 'new'} /> : (
+            {View ? <View key={sidebarItem} user={user} defaultMode={sidebarItem === 'xp-amazon-hot' ? 'hot' : 'new'} /> : (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">该模块正在开发中...</div>
             )}
           </div>

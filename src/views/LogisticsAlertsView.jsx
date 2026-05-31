@@ -195,7 +195,7 @@ function LifecycleTimeline({ currentStep }) {
 }
 
 
-export default function LogisticsAlertsView_V5() {
+export default function LogisticsAlertsView_V5({ user }) {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);

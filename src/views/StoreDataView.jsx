@@ -156,7 +156,7 @@ function RankRow({ index, name, value, sub, max }) {
   );
 }
 
-export default function StoreDataView_V5() {
+export default function StoreDataView_V5({ user }) {
   const [loading, setLoading] = useState(true);
   const [salespersons, setSalespersons] = useState([]);
   const [sites, setSites] = useState([]);
