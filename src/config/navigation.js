@@ -6,7 +6,6 @@ export const NAV_GROUPS = [
     color: '#a855f7',
     items: [
       { id: 'auth', label: '授权管理', icon: 'shield-check' },
-      { id: 'personal', label: '个人中心', icon: 'user' },
       { id: 'notify', label: '通知中心', icon: 'bell' }
     ]
   },
