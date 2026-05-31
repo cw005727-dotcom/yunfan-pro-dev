@@ -87,7 +87,16 @@ async def upload_links(
             '订单数量': 'order_count', '唯一买家': 'unique_buyers',
             '已售件数': 'units_sold', '毛销售额 (USD)': 'gross_sales_usd',
             '占比(%)': 'share_percent', '访客转化率': 'visitor_convert_rate',
-            '访客到购买的转化率': 'visitor_buy_convert_rate'
+            '访客到购买的转化率': 'visitor_buy_convert_rate',
+            # English (ML standard export)
+            'ID of the publication': 'item_id', 'Listing': 'product_name',
+            'Current state': 'status', 'Variation': 'variation',
+            'SKU': 'sku', 'Unique visits': 'unique_visits',
+            'Number of orders': 'order_count', 'Unique buyers': 'unique_buyers',
+            'Units sold': 'units_sold', 'Gross sales (USD)': 'gross_sales_usd',
+            '% share': 'share_percent',
+            'Visit-to-sale conversion rate': 'visitor_convert_rate',
+            'Visit-to-buyer conversion rate': 'visitor_buy_convert_rate',
         }
 
         conn = sqlite3.connect(str(DB_PATH))
