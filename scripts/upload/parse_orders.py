@@ -14,11 +14,13 @@ from pathlib import Path
 # Excel列名 → DB字段名 映射
 COLUMN_MAP = {
     "订单号": "order_number",
+    "编号": "order_number",
     "时间": "order_date",
     "业务员": "salesperson",
     "来源": "source",
     "公司店铺": "store",
     "订单状态": "status",
+    "状态": "status",
     "金额": "amount_usd",
     "费用": "fee",
     "税费": "tax",
