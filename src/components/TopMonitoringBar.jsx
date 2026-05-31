@@ -1,189 +1,98 @@
-import React, { useState, useEffect, useRef } from 'react';
-import Icon from './Icon';
+import { useState, useEffect } from "react";
+import Icon from "./Icon";
 
-const TYPE_CONFIG = {
-  order:      { icon: 'shopping-cart', color: '#10b981', label: 'NEW ORDER' },
-  logistics:  { icon: 'truck',        color: '#3b82f6', label: 'LOGISTICS' },
-  reputation: { icon: 'shield',       color: '#f59e0b', label: 'REPUTATION' },
-  complaint:  { icon: 'alert-circle',  color: '#ef4444', label: 'CLAIM' },
-  violation:  { icon: 'x-circle',     color: '#ef4444', label: 'POLICY' },
-  message:    { icon: 'message-circle', color: '#8b5cf6', label: 'CHAT' },
-  radar:      { icon: 'zap',          color: '#f59e0b', label: 'RADAR' },
-};
-
-const HEADER_STYLES = `
-  @keyframes scrollText {
-    0% { transform: translateY(0); }
-    15% { transform: translateY(0); }
-    20% { transform: translateY(-20px); }
-    35% { transform: translateY(-20px); }
-    40% { transform: translateY(-40px); }
-    55% { transform: translateY(-40px); }
-    60% { transform: translateY(-60px); }
-    75% { transform: translateY(-60px); }
-    80% { transform: translateY(-80px); }
-    95% { transform: translateY(-80px); }
-    100% { transform: translateY(-100px); }
-  }
-  @keyframes heartbeat {
-    0% { transform: scale(1); opacity: 0.8; }
-    14% { transform: scale(1.3); opacity: 1; }
-    28% { transform: scale(1); opacity: 0.8; }
-    42% { transform: scale(1.3); opacity: 1; }
-    70% { transform: scale(1); opacity: 0.8; }
-  }
-  .sentinel-scroll {
-    display: flex;
-    flex-direction: column;
-    height: 20px;
-    overflow: hidden;
-  }
-  .sentinel-scroll-inner {
-    animation: scrollText 18s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  }
-  .v5-header-glass {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px) saturate(180%);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-  }
-`;
-
-function HeartbeatLine() {
-  return (
-    <div className="flex items-center gap-[2px] h-2">
-      {[1, 2, 3, 4, 5, 6].map(i => (
-        <div 
-          key={i} 
-          className="w-[2px] bg-emerald-500/40 rounded-full" 
-          style={{ 
-            height: `${Math.random() * 100}%`,
-            animation: `heartbeat 2s infinite ${i * 0.2}s` 
-          }} 
-        />
-      ))}
-    </div>
-  );
-}
-
-export default function TopMonitoringBar({ pageTitle }) {
-  const [events, setEvents] = useState([]);
-  const [connected, setConnected] = useState(false);
-  // 时钟不 setInterval，用被动 Date 渲染（页面 re-render 时自然更新）
-  const nowRef = useRef(new Date());
-  const [time, setTime] = useState(() => new Date().toLocaleTimeString('en-US', { hour12: false }));
-  const [unix, setUnix] = useState(() => Math.floor(Date.now() / 1000));
+export default function TopMonitoringBar({ user, pageTitle }) {
+  const [todayStats, setTodayStats] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    // 时钟改为 10 秒一次，不再 1 秒触发 re-render
-    const timer = setInterval(() => {
-      nowRef.current = new Date();
-      setTime(nowRef.current.toLocaleTimeString('en-US', { hour12: false }));
-      setUnix(Math.floor(nowRef.current.getTime() / 1000));
-    }, 10000);
-    
-    const loadAlerts = () => {
-      try {
-        const raw = localStorage.getItem('yunfan_alerts');
-        if (raw) {
-          const d = JSON.parse(raw);
-          setEvents(d.events || []);
-          setConnected(d.connected !== false);
-        }
-      } catch (e) {}
+    const owner = user?.username || "";
+    const loadStats = () => {
+      fetch("/api/operational/stats?owner=" + encodeURIComponent(owner))
+        .then(r => r.json())
+        .then(d => setTodayStats(d))
+        .catch(() => {});
     };
-    loadAlerts();
-    // 告警读取从 8 秒降到 15 秒
-    const interval = setInterval(loadAlerts, 15000);
-    return () => { clearInterval(timer); clearInterval(interval); };
-  }, []);
+    const loadNotifs = () => {
+      fetch("/api/notifications/realtime?owner=" + encodeURIComponent(owner))
+        .then(r => r.json())
+        .then(d => setNotifications(Array.isArray(d) ? d : []))
+        .catch(() => {});
+    };
+    loadStats(); loadNotifs();
+    const si = setInterval(loadStats, 30000);
+    const ni = setInterval(loadNotifs, 10000);
+    const ti = setInterval(() => setNow(new Date()), 10000);
+    return () => { clearInterval(si); clearInterval(ni); clearInterval(ti); };
+  }, [user]);
 
-  const visibleEvents = events.slice(0, 5);
+  const todayOrders = todayStats?.today_orders || 0;
+  const todayGmv = todayStats?.today_gmv || 0;
+  const username = (user?.username || "\u8bbf\u5ba2").split("@")[0];
+  const latestNotif = notifications.length > 0 ? notifications[0] : null;
+  const timeStr = now.toLocaleTimeString("en-US", { hour12: false });
+  const dateStr = now.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
+
+  const scrollKeyframes = "@keyframes tbScroll{0%,75%{transform:translateY(0);opacity:1}85%{transform:translateY(-18px);opacity:0}100%{transform:translateY(0);opacity:1}}.tbScroll{animation:tbScroll 8s ease-in-out infinite}";
 
   return (
-    <div className="h-[64px] v5-header-glass flex items-center px-8 gap-10 shrink-0 relative z-[200]">
-      <style dangerouslySetInnerHTML={{ __html: HEADER_STYLES }} />
-      
-      {/* 1. Context Breadcrumb */}
-      <div className="flex items-center gap-4 shrink-0">
-        <div className="flex flex-col">
-           <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-emerald-600/60 uppercase tracking-[2px] leading-none">Cloud Intel</span>
-              <div className="w-1 h-1 rounded-full bg-slate-200" />
-           </div>
-           <span className="text-[16px] font-black text-slate-900 tracking-tighter mt-1">{pageTitle || 'Command Desk'}</span>
-        </div>
-      </div>
+    <div>
+      <style>{scrollKeyframes}</style>
+      <div className="flex items-center px-5 gap-4 shrink-0 relative z-[200]"
+        style={{ height: 60, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)", borderBottom: "1px solid rgba(148,163,184,0.1)" }}>
 
-      {/* 2. Sentinel Command Center - Micro Detail */}
-      <div className="flex-1 max-w-[560px] h-[38px] bg-white border border-slate-100 rounded-[12px] px-4 flex items-center gap-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
-        
-        <div className="flex items-center gap-3 shrink-0 border-r border-slate-100 pr-4">
-          <div className="relative">
-            <Icon name="radar" size={15} className="text-emerald-500" />
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping opacity-20" />
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
+            <Icon name="zap" className="text-white" size={14} />
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Monitoring</span>
-            <div className="mt-1"><HeartbeatLine /></div>
+            <span className="text-[13px] font-bold text-slate-300 leading-none">
+              {username} &middot; \u9884\u795d\u7206\u5355 \ud83c\udf89
+            </span>
           </div>
         </div>
-        
-        <div className="sentinel-scroll flex-1">
-          <div className="sentinel-scroll-inner">
-            {visibleEvents.length > 0 ? visibleEvents.map((ev, i) => {
-              const cfg = TYPE_CONFIG[ev.type] || { icon: 'activity', color: '#94a3b8', label: 'ACTIVITY' };
-              return (
-                <div key={i} className="h-5 flex items-center gap-3">
-                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 tracking-tighter shrink-0">{cfg.label}</span>
-                  <span className="text-[12px] font-bold text-slate-700 truncate tracking-tight">{ev.label}</span>
-                  <span className="text-[10px] font-mono font-medium text-slate-300 ml-auto tabular-nums">{ev.time}</span>
-                </div>
-              );
-            }) : (
-              <div className="h-5 flex items-center gap-2 text-slate-400 font-bold text-[11px] tracking-tight">
-                <Icon name="loader-2" size={12} className="animate-spin" />
-                SYSTEM READY / SCANNING GLOBAL DATA STREAMS...
-              </div>
-            )}
+
+        <div className="w-px h-8 shrink-0" style={{ background: "rgba(255,255,255,0.08)" }} />
+
+        <div className="flex items-center gap-4 px-5 py-2 rounded-lg shrink-0"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Icon name="shopping-cart" size={14} className="text-emerald-400" />
+            <span className="text-[11px] font-bold text-slate-400">\u4eca\u65e5\u8ba2\u5355</span>
+            <span className="text-[18px] font-black text-white">{todayOrders}</span>
+          </div>
+          <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Icon name="dollar-sign" size={14} className="text-emerald-400" />
+            <span className="text-[11px] font-bold text-slate-400">GMV</span>
+            <span className="text-[18px] font-black text-white">${todayGmv.toFixed(2)}</span>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2 shrink-0 pl-4 border-l border-slate-100">
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none">Sync Status</span>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'}`} />
-              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{connected ? 'Active' : 'Offline'}</span>
+
+        <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg max-w-[400px]"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="relative">
+            <Icon name="bell" size={12} className="text-emerald-400" />
+            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping opacity-50" />
+          </div>
+          <div className="overflow-hidden" style={{ height: 16 }}>
+            <div className="tbScroll">
+              {latestNotif ? (
+                <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap block">{latestNotif.content || latestNotif.topic}</span>
+              ) : (
+                <span className="text-[11px] font-medium text-slate-600 whitespace-nowrap block">\u76d1\u542c\u4e2d...</span>
+              )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 3. Global System Metrics */}
-      <div className="flex items-center gap-8 ml-auto shrink-0">
-        <div className="hidden 2xl:flex items-center gap-6 border-r border-slate-200 pr-8">
-           <div className="flex flex-col items-end">
-             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Latency</span>
-             <span className="text-[12px] font-black text-emerald-600 mt-1 tabular-nums">0.012<span className="text-[9px] opacity-60 ml-0.5">ms</span></span>
-           </div>
-           <div className="flex flex-col items-end">
-             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Load</span>
-             <span className="text-[12px] font-black text-blue-600 mt-1 tabular-nums">4.2<span className="text-[9px] opacity-60 ml-0.5">%</span></span>
-           </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-right flex flex-col justify-center border-r border-slate-100 pr-4 h-8">
-            <span className="text-[15px] font-black text-slate-900 tracking-tighter leading-none tabular-nums">{time}</span>
-            <span className="text-[9px] font-bold text-slate-300 uppercase mt-1 tracking-[1.5px] tabular-nums">UNIX: {unix}</span>
-          </div>
-          <div 
-            onClick={() => onNavigate && onNavigate('notify')}
-            className="w-10 h-10 rounded-[12px] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-emerald-500 hover:bg-white hover:shadow-md transition-all cursor-pointer"
-          >
-            <Icon name="bell" size={18} />
-          </div>
+        <div className="flex-1" />
+
+        <div className="text-right shrink-0">
+          <div className="text-[14px] font-black text-slate-300 leading-none tabular-nums">{timeStr}</div>
+          <div className="text-[8px] font-bold text-slate-600 uppercase mt-1 tracking-[1px]">{dateStr}</div>
         </div>
       </div>
     </div>
