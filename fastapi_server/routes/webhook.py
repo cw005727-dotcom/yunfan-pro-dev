@@ -109,20 +109,29 @@ def to_beijing(ts_str):
 def enrich_marketplace_order(data: dict, order_id: str):
     """marketplace_orders webhook 缺少详情字段，通过 ML API 补充。"""
     try:
-        # 从加密文件加载 token（和中间件逻辑一致）
-        from scripts.utils.token_manager import load_tokens
-        token_data = load_tokens()
-        if not token_data or not token_data.get('access_token'):
-            logger.warning("[enrich] no token in token_manager")
+        # 从 stores 表读 token，按 user_id 匹配
+        from ..config import DB_PATH
+        import sqlite3
+        uid = data.get('user_id', '')
+        conn = sqlite3.connect(str(DB_PATH))
+        cur = conn.cursor()
+        if uid:
+            cur.execute("SELECT access_token FROM stores WHERE ml_user_id=? AND access_token IS NOT NULL AND access_token!='' ORDER BY token_updated_at DESC LIMIT 1", (str(uid),))
+        else:
+            cur.execute("SELECT access_token FROM stores WHERE access_token IS NOT NULL AND access_token!='' ORDER BY token_updated_at DESC LIMIT 1")
+        row = cur.fetchone()
+        conn.close()
+        if not row or not row[0]:
+            logger.warning(f"[enrich] no token for user_id={uid}")
             return
-        token = token_data['access_token']
+        token = row[0]
         headers = {'Authorization': f'Bearer {token}'}
         url = f'https://api.mercadolibre.com/marketplace/orders/{order_id}'
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             od = resp.json()
             # 合并关键字段（优先用 API 数据，保留 webhook payload 作为 fallback）
-            data['site_id'] = od.get('site_id') or data.get('site_id')
+            data['site_id'] = od.get('site_id') or od.get('context', {}).get('site') or data.get('site_id')
             data['status'] = od.get('status') or data.get('status')
             raw_date = od.get('date_created')
             data['order_date'] = to_beijing(raw_date) if raw_date else data.get('order_date')
