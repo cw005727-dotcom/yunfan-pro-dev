@@ -325,7 +325,7 @@ async def upload_logistics(file: UploadFile = File(...), owner: str = None):
                      listing_id, sku,
                      logistics_1688_order, logistics_1688_tracking, label_status,
                      warehouse_in_date, international_tracking, is_ignored, owner_username)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0,?)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     ON CONFLICT(order_number) DO UPDATE SET
                         site=excluded.site, store_name=excluded.store_name,
                         order_date=excluded.order_date, status=excluded.status,
@@ -343,6 +343,7 @@ async def upload_logistics(file: UploadFile = File(...), owner: str = None):
                     data.get('logistics_1688_order'),
                     data.get('logistics_1688_tracking'), data.get('label_status'),
                     data.get('warehouse_in_date'), data.get('international_tracking'),
+                    data.get('is_ignored', 0), data.get('owner_username', owner or ''),
                 ))
                 imported += 1
             except Exception:
