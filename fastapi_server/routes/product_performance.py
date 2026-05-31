@@ -117,13 +117,16 @@ async def get_product_performance(
 
     # 构建WHERE
     where = "1=1"
+    params = []
     if status and status != '全部':
-        where += f" AND status='{status}'"
+        where += " AND status=?"
+        params.append(status)
     if issue and issue != '全部':
-        where += f" AND ai_issue_type='{issue}'"
+        where += " AND ai_issue_type=?"
+        params.append(issue)
 
     # 先查总数
-    c.execute(f"SELECT COUNT(*) as cnt FROM product_performance WHERE {where}")
+    c.execute(f"SELECT COUNT(*) as cnt FROM product_performance WHERE {where}", params)
     total = c.fetchone()['cnt']
 
     # 排序字段映射
