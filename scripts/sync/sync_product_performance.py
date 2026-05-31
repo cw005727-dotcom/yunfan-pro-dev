@@ -43,12 +43,13 @@ def fetch_live_data(item_id, headers):
     except:
         pass
 
-    # 2. purchase_experience 评分（0-100分）
+    # 2. purchase_experience 评分（0-100，ML 官方购物体验评分）
     try:
-        pe = requests.get(f'https://api.mercadolibre.com/reputation/items/{item_id}/purchase_experience/integrators', headers=headers, timeout=6)
+        pe = requests.get(f'https://api.mercadolibre.com/marketplace/items/{item_id}/purchase_experience', headers=headers, timeout=6)
         if pe.status_code == 200:
             d = pe.json()
-            rep_value = d.get('reputation', {}).get('value', -1)
+            if isinstance(d, list) and d:
+                rep_value = d[0].get('reputation', {}).get('value', -1)
     except:
         pass
 
