@@ -116,7 +116,7 @@ export default function App() {
     <ConfigProvider locale={zhCN}>
     <div className={`h-screen flex flex-col bg-white overflow-hidden transition-all duration-500 ${showMain ? 'opacity-100' : 'opacity-0'}`}
          style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <TopMonitoringBar />
+      <TopMonitoringBar user={user} />
       <div className="flex-1 flex overflow-hidden">
         <NavSidebar
           user={user}
