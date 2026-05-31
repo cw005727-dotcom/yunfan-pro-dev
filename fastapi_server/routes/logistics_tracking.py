@@ -475,36 +475,19 @@ def get_tracking(
         orders_by_date[d].append(o)
 
     now = datetime.now()
-    stats_24h = {'shipped': 0, 'unshipped': 0}
-    stats_48h = {'shipped': 0, 'unshipped': 0}
-    over_48h_warning = 0
+    stats_shipped = 0
+    stats_unshipped = 0
 
     for o in orders_list:
         if not o['order_date']:
             continue
-        try:
-            od = datetime.strptime(o['order_date'].replace('/', '-')[:19], '%Y-%m-%d %H:%M:%S')
-        except:
-            try:
-                od = datetime.strptime(o['order_date'].replace('/', '-')[:10], '%Y-%m-%d')
-            except:
-                continue
-        hours = (now - od).total_seconds() / 3600
         trk_val = (o.get('logistics_1688_tracking') or '').strip()
-        has_shipped = bool(trk_val) and not any('一' <= c <= '鿿' for c in trk_val)
-
-        if hours <= 24:
-            if has_shipped:
-                stats_24h['shipped'] += 1
-            else:
-                stats_24h['unshipped'] += 1
-        elif hours <= 48:
-            if has_shipped:
-                stats_48h['shipped'] += 1
-            else:
-                stats_48h['unshipped'] += 1
-        elif hours > 48 and not has_shipped:
-            over_48h_warning += 1
+        if trk_val and any('一' <= c <= '鿿' for c in trk_val):
+            continue
+        if bool(trk_val):
+            stats_shipped += 1
+        else:
+            stats_unshipped += 1
 
     cloud_labeled = sum(1 for o in orders_list if o['label_status'] == '已贴单')
     pending_labeled = sum(1 for o in orders_list if o['label_status'] == '待贴单')
@@ -516,49 +499,24 @@ def get_tracking(
         now_local = datetime.now()
         day_str = (now_local - timedelta(days=day_offset)).strftime('%Y-%m-%d')
         total = 0
-        h12 = 0
-        h24 = 0
-        over24 = 0
+        shipped = 0
+        unshipped = 0
         for o in orders_list:
             if not o['order_date']:
                 continue
             od_str = o['order_date'].replace('/', '-')[:10]
             if od_str != day_str:
                 continue
-            total += 1
             trk3 = (o.get('logistics_1688_tracking') or '').strip()
-            has_tracking = bool(trk3) and not any('一' <= c <= '鿿' for c in trk3)
-            if not has_tracking:
-                over24 += 1
+            if trk3 and any('一' <= c <= '鿿' for c in trk3):
                 continue
-            # 有物流单号即有发货。用shipped_at算差值，没有shipped_at则归入12h内
-            try:
-                order_time = datetime.strptime(o['order_date'].replace('/', '-')[:19], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    order_time = datetime.strptime(o['order_date'].replace('/', '-')[:10], '%Y-%m-%d')
-                except:
-                    over24 += 1
-                    continue
-            shipped_at = o.get('shipped_at', '')
-            if shipped_at:
-                try:
-                    ship_time = datetime.strptime(shipped_at[:19], '%Y-%m-%d %H:%M:%S')
-                    hours_diff = (ship_time - order_time).total_seconds() / 3600
-                except:
-                    hours_diff = 0
+            total += 1
+            if bool(trk3):
+                shipped += 1
             else:
-                # 没有shipped_at但有物流单号=有发货，先归入12h，等1688API通了再精确
-                hours_diff = 0
-            if hours_diff <= 12:
-                h12 += 1
-            elif hours_diff <= 24:
-                h24 += 1
-            else:
-                over24 += 1
+                unshipped += 1
         return {f'{label}_date': day_str, f'{label}_total': total,
-                f'{label}_h12_shipped': h12, f'{label}_h24_shipped': h24,
-                f'{label}_over24_unshipped': over24}
+                f'{label}_shipped': shipped, f'{label}_unshipped': unshipped}
 
     day_stats = {}
     day_stats.update(calc_day_stats(1, 'yesterday'))
@@ -568,9 +526,8 @@ def get_tracking(
     return JSONResponse({
         'today_total': all_today,
         'purchased_count': purchased_count,
-        'stats_24h': stats_24h,
-        'stats_48h': stats_48h,
-        'over_48h_warning': over_48h_warning,
+        'stats_shipped': stats_shipped,
+        'stats_unshipped': stats_unshipped,
         'cloud_labeled': cloud_labeled,
         'pending_labeled': pending_labeled,
         'warehouse_received': warehouse_received,
