@@ -483,14 +483,14 @@ async def _process_webhook_async(data: dict, topic: str, raw_resource: str):
                     if uid:
                         try:
                             cur = conn.cursor()
-                            cur.execute("SELECT owner_username FROM stores WHERE ml_user_id = ? LIMIT 1", (str(uid),))
+                            cur.execute("SELECT owner_username FROM stores WHERE ml_user_id = ? AND owner_username IS NOT NULL AND owner_username != '' ORDER BY token_updated_at DESC LIMIT 1", (str(uid),))
                             row = cur.fetchone()
                             if row and row[0]:
                                 owner = row[0]
                         except:
                             pass
                     conn.execute(
-                        "INSERT INTO realtime_notifications (topic, content, site_id, order_id, owner, received_at) VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))",
+                        "INSERT INTO realtime_notifications (topic, content, site_id, order_id, owner_username, received_at) VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))",
                         (topic, monitor_msg or json.dumps(data, ensure_ascii=False)[:500],
                          monitor_site or data.get('site_id', ''),
                          str(order_id) if order_id else '',
