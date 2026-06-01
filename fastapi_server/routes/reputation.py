@@ -61,7 +61,10 @@ def compute_score(status: str) -> int:
 
 
 @router.get("/shop_reputation")
-async def shop_reputation(group: Optional[str] = Query(None, description="按 group_label 过滤")):
+async def shop_reputation(
+    group: Optional[str] = Query(None, description="按 group_label 过滤"),
+    owner: Optional[str] = Query(None, description="按 owner_username 过滤"),
+):
     """
     返回所有店铺的声誉数据，支持按 group_label 过滤。
 
@@ -74,6 +77,8 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
         cursor = conn.cursor()
         if group:
             cursor.execute("SELECT * FROM stores WHERE group_label = ?", (group,))
+        elif owner:
+            cursor.execute("SELECT * FROM stores WHERE owner_username = ?", (owner,))
         else:
             cursor.execute("SELECT * FROM stores")
         rows = [dict(r) for r in cursor.fetchall()]
@@ -126,7 +131,7 @@ async def shop_reputation(group: Optional[str] = Query(None, description="按 gr
 
 
 @router.post("/shop_reputation/refresh")
-async def refresh_reputation():
+async def refresh_reputation(owner: Optional[str] = Query(None, description="按 owner_username 过滤")):
     """强制触发声誉数据同步（调外部 Python 脚本）"""
     import subprocess
     import sys
@@ -137,8 +142,11 @@ async def refresh_reputation():
         return {"status": "error", "message": f"Script not found: {script_path}"}
 
     try:
+        cmd = [sys.executable, str(script_path)]
+        if owner:
+            cmd.extend(['--owner', owner])
         result = subprocess.run(
-            [sys.executable, str(script_path)],
+            cmd,
             capture_output=True,
             text=True,
             timeout=30,

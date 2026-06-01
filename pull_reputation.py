@@ -27,17 +27,18 @@ def compute_status(level):
         return 'yellow'
     return 'green'
 
-def pull_reputation():
+def pull_reputation(owner: str = None):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT rowid, user_id, nickname, owner_username, access_token, ml_user_id FROM stores "
-            "WHERE access_token IS NOT NULL AND access_token != ''"
+            "WHERE access_token IS NOT NULL AND access_token != '' AND owner_username = ?",
+            (owner,)
         )
         stores = cursor.fetchall()
 
         if not stores:
-            print("[INFO] 没有找到有 token 的店铺")
+            print(f"[INFO] 没有找到有 token 的店铺 (owner={owner})")
             return
 
         updated_count = 0
@@ -164,4 +165,8 @@ def pull_reputation():
         print(f"\n[DONE] 共更新 {updated_count} 个站点数据\n")
 
 if __name__ == "__main__":
-    pull_reputation()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--owner', default=None)
+    args = parser.parse_args()
+    pull_reputation(owner=args.owner)

@@ -151,11 +151,17 @@ def get_stats(
     daily.update(dc)
 
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({
         "total_orders": total["count"], "total_gmv": total["gmv"],
         "total_profit": total["profit"], "total_purchase_cost": total["purchase_cost"],
@@ -165,7 +171,7 @@ def get_stats(
         "monthly_profit": monthly["profit"], "monthly_purchase_cost": monthly["purchase_cost"],
         "monthly_margin": margin(monthly["profit"], monthly["purchase_cost"]),
         "monthly_cancel_pre": monthly["cancel_pre"], "monthly_cancel_post": monthly["cancel_post"],
-        "today_orders": daily["count"] + webhook_today, "today_gmv": daily["gmv"],
+        "today_orders": daily["count"] + webhook_today, "today_gmv": daily["gmv"] + webhook_gmv,
         "today_profit": daily["profit"], "today_purchase_cost": daily["purchase_cost"],
         "today_margin": margin(daily["profit"], daily["purchase_cost"]),
         "today_cancel_pre": daily["cancel_pre"], "today_cancel_post": daily["cancel_post"],
@@ -194,11 +200,17 @@ def get_daily(
     cur.execute(sql, p)
     rows = cur.fetchall()
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({
         "daily": [
             {"date": r[0], "order_count": r[1], "gmv_usd": round(r[2], 2), "profit_cny": round(r[3], 2)}
@@ -240,11 +252,17 @@ def get_stores(
     cur.execute(sql, params)
     rows = cur.fetchall()
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({
         "stores": [
             {"salesperson": r[0], "site": r[1], "store_name": extract_store_name(r[2]),
@@ -262,11 +280,17 @@ def get_sites():
     cur.execute("SELECT DISTINCT site FROM operational_orders WHERE site IS NOT NULL AND site != '' ORDER BY site")
     rows = cur.fetchall()
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({"sites": [r[0] for r in rows]})
 
 
@@ -313,11 +337,17 @@ def get_changes(
         [change_type, limit]
     ).fetchall()
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({"changes": [{"id":r[0],"order_number":r[1],"change_type":r[2],"old_value":r[3],"new_value":r[4],"thumbnail":r[5],"site":r[6],"store_name":r[7],"created_at":r[8]} for r in rows]})
 
 
@@ -340,11 +370,17 @@ def get_logistics_stats(
     )
     rows = cur.fetchall()
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({
         "logistics": [{"name": r[0] or "未知", "count": r[1], "gmv": round(r[2],2), "profit": round(r[3],2)} for r in rows],
         "total_orders": sum(r[1] for r in rows),
@@ -372,9 +408,15 @@ def get_logistics_list(
     )
     rows = cur.fetchall()
     conn.close()
-    import sqlite3 as _sq
+    import sqlite3 as _sq, re as _re
     _c2 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
-    _r2 = _c2.execute("SELECT COUNT(*) FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchone()
+    _r2 = _c2.execute("SELECT content FROM realtime_notifications WHERE topic IN ('marketplace_orders','orders_v2') AND received_at LIKE ? AND (owner_username=? OR owner_username='' OR owner_username IS NULL)", (__import__('datetime').datetime.now().strftime('%Y-%m-%d')+'%', owner or '')).fetchall()
     _c2.close()
-    webhook_today = _r2[0] if _r2 else 0
+    webhook_today = len(_r2)
+    webhook_gmv = 0.0
+    for row in _r2:
+        m = _re.search(r'\$([\d.]+)', row[0] or '')
+        if m:
+            try: webhook_gmv += float(m.group(1))
+            except: pass
     return JSONResponse({"items": [{"order_number":r[0],"logistics":r[1] or "未知","site":r[2],"store_name":r[3],"amount_usd":r[4],"profit":r[5],"status":r[6],"waybill_no":r[7],"tracking_no":r[8],"carrier":r[9],"buyer_name":r[10],"city":r[11],"created_at":r[12]} for r in rows]})
