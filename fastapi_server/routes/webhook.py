@@ -239,7 +239,20 @@ def handle_orders(conn, data: dict):
     raw_date = data.get('order_date') or data.get('date_created') or ''
     order_date_bj = to_beijing(raw_date)
 
-    logger.warning(f"[handle_orders] EXEC: id={str(order_id)} amt={data.get('amount')} paid={data.get('paid_amount')} od_bj={order_date_bj} site={data.get('site_id')}")
+    # 兜底：从 webhook payload 的 order_items 直接算金额（不依赖 enrich_marketplace_order 成功）
+    amount = data.get('amount')
+    if not amount:
+        items = data.get('order_items') or []
+        amount = round(sum(
+            float(i.get('unit_price') or 0) * int(i.get('quantity') or 1)
+            for i in items
+        ), 2) or None
+
+    paid = data.get('paid_amount')
+    if not paid and amount:
+        paid = amount
+
+    logger.warning(f"[handle_orders] EXEC: id={str(order_id)} amt={amount} paid={paid} od_bj={order_date_bj} site={data.get('site_id')}")
     cursor.execute("""
         INSERT OR REPLACE INTO orders_v2
         (id, user_id, site_id, order_date, product_name, quantity, amount,
@@ -257,7 +270,7 @@ def handle_orders(conn, data: dict):
         order_date_bj,
         data.get('product_name'),
         data.get('quantity'),
-        data.get('amount'),
+        amount if amount else None,
         data.get('platform_fee'),
         data.get('tax'),
         data.get('net_profit'),
@@ -271,7 +284,7 @@ def handle_orders(conn, data: dict):
         data.get('thumbnail'),
         data.get('cancel_detail_group'),
         data.get('mediations_count'),
-        data.get('paid_amount'),
+        paid,
         data.get('cancel_code'),
         data.get('logistic_company'),
         data.get('tracking_status'),
