@@ -3,10 +3,14 @@
 GET /api/shop_reputation
 """
 import sqlite3
+import threading
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query
 from ..db import get_db_connection
+
+logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/api", tags=["声誉"])
 
@@ -14,8 +18,8 @@ router = APIRouter(prefix="/api", tags=["声誉"])
 SITE_MAPPING = {
     'MLM': 'MX',
     'MLB': 'BR',
-    'MCO': 'CO',
     'MLA': 'AR',
+    'MCO': 'CO',
     'MLC': 'CL',
     'MLU': 'UY',
 }
@@ -132,41 +136,17 @@ async def shop_reputation(
 
 @router.post("/shop_reputation/refresh")
 async def refresh_reputation(owner: Optional[str] = Query(None, description="按 owner_username 过滤")):
-    """强制触发声誉数据同步（调外部 Python 脚本）"""
-    import subprocess
-    import sys
-    from pathlib import Path
+    """强制触发声誉数据同步（在线程中直接调 pull_reputation，避免跨进程 DB 锁竞争）"""
+    def _run():
+        try:
+            from fastapi_server.reputation_thread import pull_reputation_inprocess
+            pull_reputation_inprocess(owner=owner)
+            logger.info(f"[REPUTATION] 声誉拉取完成 (owner={owner})")
+        except Exception as e:
+            logger.warning(f"[REPUTATION] 声誉拉取失败：{e}")
 
-    script_path = Path(__file__).parent.parent.parent / "pull_reputation.py"
-    if not script_path.exists():
-        return {"status": "error", "message": f"Script not found: {script_path}"}
-
-    try:
-        cmd = [sys.executable, str(script_path)]
-        if owner:
-            cmd.extend(['--owner', owner])
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            cwd=str(script_path.parent),
-        )
-        if result.returncode == 0:
-            return {
-                "status": "ok",
-                "message": "Reputation sync triggered",
-                "output": result.stdout.strip()[-500:] if result.stdout else "",
-            }
-        else:
-            return {
-                "status": "error",
-                "message": f"Script failed: {result.stderr.strip()[-200:]}",
-            }
-    except subprocess.TimeoutExpired:
-        return {"status": "error", "message": "Script timed out after 30s"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    threading.Thread(target=_run, daemon=True).start()
+    return {"status": "ok", "message": "Reputation sync started in background"}
 
 
 @router.get("/reputation/token")
@@ -243,5 +223,3 @@ async def reputation_sync(data: dict):
         conn.commit()
 
     return {"status": "ok", "updated": updated}
-
-
