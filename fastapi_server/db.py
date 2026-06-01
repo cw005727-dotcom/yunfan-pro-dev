@@ -10,8 +10,7 @@ from functools import lru_cache
 
 from .config import DB_PATH
 
-_LOCK_DIR = tempfile.gettempdir()
-_STORE_LOCK = os.path.join(_LOCK_DIR, 'yunfan_pro_store.lock')
+_STORE_LOCK = os.path.join(os.path.dirname(__file__), '..', '.db.lock')
 
 def _acquire_lock():
     lock_fd = open(_STORE_LOCK, 'w')
