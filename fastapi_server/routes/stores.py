@@ -119,11 +119,21 @@ async def _do_auth(code: str, shop_id: str = ""):
     except:
         pass
 
-    # 3. 更新 stores 表：写入 token + site_id + ML 返回的 user_id
+    # 3. 写入 stores 表：授权成功才入库，不留死数据
     from fastapi_server.db import get_db_connection
     now_ts = int(__import__("time").time())
+    # 从 state 拿 nickname/owner
+    decoded_state = {}
+    if shop_id:
+        try:
+            decoded_state = _decode_state(shop_id)
+        except:
+            pass
+    store_nickname = decoded_state.get("nickname", "") or nickname_from_ml or "未命名店铺"
+    store_owner = decoded_state.get("owner", "") or ""
     with get_db_connection() as conn:
         cur = conn.cursor()
+        # 先尝试 UPDATE（兼容旧记录）
         cur.execute(
             """UPDATE stores SET
                 access_token = ?,
@@ -135,6 +145,14 @@ async def _do_auth(code: str, shop_id: str = ""):
                 WHERE user_id = ?""",
             (access_token, refresh_token, now_ts + expires_in, site_id, user_id_from_ml, int(shop_id))
         )
+        if cur.rowcount == 0:
+            # 没有旧记录，INSERT 新记录
+            cur.execute(
+                """INSERT INTO stores
+                   (user_id, nickname, site_id, owner_username, access_token, refresh_token, token_expires_at, status, ml_user_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'green', ?)""",
+                (int(shop_id), store_nickname, site_id, store_owner, access_token, refresh_token, now_ts + expires_in, user_id_from_ml)
+            )
         conn.commit()
 
     # 授权后异步拉取声誉
@@ -279,17 +297,8 @@ async def generate_auth_url(data: dict = Body(None)):
     rnd = random.randint(1000, 9999)
     shop_id = f"{ts:06d}{rnd}"
 
-    # 写一条占位记录（含 owner_username）
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO stores (user_id, nickname, site_id, owner_username) VALUES (?, ?, ?, ?)",
-            (int(shop_id), nickname, "PENDING", owner)
-        )
-        conn.commit()
-
-    # shop_id 通过 state 参数传递
-    state = _encode_state({"shop_id": shop_id})
+    # shop_id + nickname + owner 通过 state 参数传递，授权成功后才入库
+    state = _encode_state({"shop_id": shop_id, "nickname": nickname, "owner": owner})
     auth_url = (
         f"https://global-selling.mercadolibre.com/authorization"
         f"?response_type=code&client_id={ML_APP_ID}"
