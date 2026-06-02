@@ -34,7 +34,7 @@ const issueStyle = (type) => {
   return map[type] || map['📈表现正常']
 }
 
-export default function ProductPerformanceView() {
+export default function ProductPerformanceView({ user }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ '⚠️高曝光低转化': 0, '💡低曝光高转化': 0, '📈表现正常': 0 })
@@ -45,7 +45,6 @@ export default function ProductPerformanceView() {
   const [order, setOrder] = useState('desc')
   const [issueFilter, setIssueFilter] = useState('全部')
   const [siteFilter, setSiteFilter] = useState('全部')
-  const [shopFilter, setShopFilter] = useState('全部')
   const [selectedItem, setSelectedItem] = useState(null)
   const pageSize = 24
 
@@ -62,8 +61,7 @@ export default function ProductPerformanceView() {
       const params = new URLSearchParams({ sort, order, page, page_size: pageSize })
       if (issueFilter !== '全部') params.set('issue', issueFilter)
       if (siteFilter !== '全部') params.set('site_id', siteFilter)
-      const shopIdMap = {'主营店铺': '4802768831', '测试1': '9107675308', '2店': '7991941853'}
-      if (shopFilter !== '全部' && shopIdMap[shopFilter]) params.set('shop_id', shopIdMap[shopFilter])
+      if (user?.username) params.set('owner', user.username)
 
       const res = await fetch(`/api/performance/list?${params}`, { signal: controller.signal })
       if (controller.signal.aborted) return
@@ -79,7 +77,7 @@ export default function ProductPerformanceView() {
     } finally {
       if (!controller.signal.aborted) setLoading(false)
     }
-  }, [sort, order, page, issueFilter, siteFilter, shopFilter])
+  }, [sort, order, page, issueFilter, siteFilter, user])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -96,7 +94,7 @@ export default function ProductPerformanceView() {
 
   const SortIcon = ({ field }) => {
     if (sort !== field) return null
-    return order === 'desc' 
+    return order === 'desc'
       ? <Icon name="arrow-down" size={14} />
       : <Icon name="arrow-up" size={14} />
   }
@@ -186,22 +184,6 @@ export default function ProductPerformanceView() {
           ))}
         </div>
 
-        {/* 状态筛选 */}
-        {/* 店铺筛选 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', color: '#6b7280' }}>店铺：</span>
-          {['全部', '主营店铺', '测试1', '2店'].map(s => (
-            <button key={s} onClick={() => { setShopFilter(s); setPage(1) }} style={{
-              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              background: shopFilter === s ? '#059669' : '#f3f4f6',
-              color: shopFilter === s ? 'white' : '#374151',
-              fontSize: '13px', fontWeight: shopFilter === s ? '500' : '400'
-            }}>
-              {s}
-            </button>
-          ))}
-        </div>
-
         {/* 站点筛选 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '13px', color: '#6b7280' }}>站点：</span>
@@ -216,8 +198,7 @@ export default function ProductPerformanceView() {
             </button>
           ))}
         </div>
-
-              </div>
+      </div>
 
       {/* 加载状态 */}
       {loading ? (
@@ -261,11 +242,7 @@ export default function ProductPerformanceView() {
                   }}>
                     {(item.pictures?.[0] || item.thumbnail) ? (
                       <img
-                        src={(() => {
-                          // 检查 pictures[0] 是否比 thumbnail 大（-O 结尾是原图，-I 是缩略图）
-                          const firstPic = Array.isArray(item.pictures) ? item.pictures[0] : null;
-                          return firstPic || item.thumbnail;
-                        })()}
+                        src={(Array.isArray(item.pictures) ? item.pictures[0] : null) || item.thumbnail}
                         alt={item.product_name}
                         style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
                         onError={e => {
