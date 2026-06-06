@@ -121,8 +121,9 @@ function SiteStatusBlock({ siteData, config }) {
   );
 }
 
-export default function ShopReputationView_V5() {
-  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus, syncResult } = useReputation();
+export default function ShopReputationView_V5({ user }) {
+  const username = user?.username || null;
+  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus, syncResult } = useReputation(null, username);
 
   // 根据同步阶段返回显示文字
   const syncLabel = (() => {
