@@ -32,11 +32,60 @@ async def product_metrics(
 ):
     """
     商品指标列表
-    从 product_metrics 表查询，支持站点和状态筛选
+    优先从 product_metrics 表查询；如果 product_metrics 表为空，
+    2026-06-16: fallback 到 product_performance 表（链接上传的来源），字段映射
     """
     with get_db_connection() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+
+        # 检查 product_metrics 表是否有数据
+        cursor.execute("SELECT COUNT(*) as cnt FROM product_metrics")
+        pm_count = cursor.fetchone()["cnt"]
+        if pm_count == 0:
+            # fallback 到 product_performance
+            site_filter_pp = "site_id = ?" if site and site != "all" else None
+            params_pp = [site] if site and site != "all" else []
+            sql_pp = f"""
+                SELECT item_id, product_name as name, site_id, status,
+                       COALESCE(unique_visits, 0) as exposure,
+                       COALESCE(unique_buyers, 0) as clicks,
+                       COALESCE(order_count, 0) as carts,
+                       COALESCE(units_sold, 0) as sales,
+                       COALESCE(gross_sales_usd, 0) as price,
+                       thumbnail as image_url,
+                       COALESCE(share_percent, 0) as health_score,
+                       updated_at as last_updated
+                FROM product_performance
+                WHERE 1=1
+                {("AND " + site_filter_pp) if site_filter_pp else ""}
+                ORDER BY unique_visits DESC
+                LIMIT 2000
+            """
+            cursor.execute(sql_pp, params_pp)
+            rows = [dict(r) for r in cursor.fetchall()]
+            for row in rows:
+                row['days_listed'] = 0
+                row['is_core'] = 0
+            # 汇总
+            total_exp = sum(r.get('exposure', 0) or 0 for r in rows)
+            total_clk = sum(r.get('clicks', 0) or 0 for r in rows)
+            total_crt = sum(r.get('carts', 0) or 0 for r in rows)
+            return {
+                "items": rows,
+                "summary": {
+                    "total_exposure": total_exp,
+                    "total_clicks": total_clk,
+                    "total_carts": total_crt,
+                    "account_status": "active",
+                    "site_status": {},
+                    "site_status_counts": {"green": 0, "yellow": 0, "red": 0},
+                    "suspended_sites": [],
+                    "suspension_reason": "",
+                    "_source": "product_performance_fallback",
+                }
+            }
+
 
         # ---- 获取大姐店各站点账号状态 ----
         cursor.execute("""

@@ -15,7 +15,7 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
       <div className="p-6 border-b border-slate-700/50">
         <h1 className="text-xl font-bold text-white flex items-center gap-2">
           <span>🚀</span>
-          <span>云帆跨境 PRO</span>
+          <span>美客多工作台 PRO</span>
         </h1>
         <p className="text-[11px] whitespace-nowrap text-slate-600 mt-1">管理后台</p>
       </div>

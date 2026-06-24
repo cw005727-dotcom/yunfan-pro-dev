@@ -69,7 +69,7 @@ export default function LoginView({ onLogin }) {
           </div>
           
           <h1 className="text-[36px] font-black text-white leading-tight tracking-tight mb-2">
-            云帆跨境 PRO
+            美客多工作台 PRO
           </h1>
           <p className="text-emerald-400/80 text-[18px] font-semibold tracking-wide">
             P2-1 多租户运营指挥中心
@@ -124,7 +124,7 @@ export default function LoginView({ onLogin }) {
         
         {/* Mobile Header (Visible on small screens) */}
         <div className="lg:hidden absolute top-12 text-center">
-          <h1 className="text-2xl font-black text-slate-900">云帆跨境 PRO</h1>
+          <h1 className="text-2xl font-black text-slate-900">美客多工作台 PRO</h1>
           <p className="text-slate-500 text-xs mt-1">P2-1 多租户运营指挥中心</p>
         </div>
 

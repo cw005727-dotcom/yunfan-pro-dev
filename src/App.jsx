@@ -4,6 +4,7 @@ import TopMonitoringBar from './components/TopMonitoringBar'
 import Icon from './components/Icon'
 import { useAppContext } from './context/AppContext'
 import LoginView from './views/LoginView'
+import SiteGateView from './views/SiteGateView'
 import { ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 
@@ -104,13 +105,19 @@ export default function App() {
   }, [])
 
   if (!user) {
-    return <LoginView onLogin={(res) => setUser({ id: res.user_id, username: res.username, role: res.role })} />
+    // 站点门：未通过则强制显示 SiteGateView（即使 localStorage 有用户也得先过门）
+    const gatePassed = (() => {
+      try { return localStorage.getItem('chensan_vip_gate_ok') === 'true'; }
+      catch (e) { return false; }
+    })();
+    if (!gatePassed) return <SiteGateView />;
+    return <LoginView onLogin={(res) => setUser({ id: res.user_id, username: res.username, role: res.role })} />;
   }
 
   const View = viewMap[sidebarItem]
   const handleTabChange = (t) => setTopTab(t)
   const handleItemChange = (id) => { setSidebarItem(id); setMobileOpen(false) }
-  const label = routeLabels[sidebarItem] || '云帆跨境 Pro'
+  const label = routeLabels[sidebarItem] || '美客多工作台 Pro'
 
   return (
     <ConfigProvider locale={zhCN}>

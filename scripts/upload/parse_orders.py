@@ -165,8 +165,11 @@ def upsert_order(cursor, row_data: dict, source_file: str, conn=None):
     cursor.execute(sql, list(row_data.values()))
 
 
-def parse_and_import(xlsx_path: str, source_file: str = None, owner: str = None) -> dict:
-    """解析Excel并导入数据库，返回统计"""
+def parse_and_import(xlsx_path: str, source_file: str = None, owner: str = None, db_path: str = None) -> dict:
+    """解析Excel并导入数据库，返回统计
+    2026-06-16: 新增 db_path 参数，让 single 部署能指定 single.db
+    """
+    _target_db = db_path or DB_PATH
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
     ws = wb.active
 
@@ -187,7 +190,7 @@ def parse_and_import(xlsx_path: str, source_file: str = None, owner: str = None)
     if not header_map:
         return {"error": f"未识别到有效列，请检查表头。首行: {headers[:10]}"}
 
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(_target_db))
     cursor = conn.cursor()
 
     imported = 0

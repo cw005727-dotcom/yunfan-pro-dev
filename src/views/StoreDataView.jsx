@@ -66,8 +66,8 @@ function KPIBlockMini({ label, value, sub, colorClass, delay = 0 }) {
 }
 
 function MainProfitCard({ stats, daily, delay = 0 }) {
-  const value = Number(stats?.today_profit || 0).toLocaleString();
-  const gmv = Number(stats?.today_gmv || 0).toLocaleString();
+  const value = Number(stats?.today_profit_dailystats || 0).toLocaleString();
+  const gmv = Number(stats?.today_gmv_dailystats || 0).toLocaleString();
   
   // 计算昨日利润并对比
   const growth = useMemo(() => {
@@ -95,7 +95,7 @@ function MainProfitCard({ stats, daily, delay = 0 }) {
             <span className="text-[11px] font-black text-emerald-100/90 tracking-[2px]">REALTIME / 今日净利</span>
           </div>
           <div className="flex items-baseline gap-3">
-            <span className="text-white text-4xl font-black">¥ {value}</span>
+            <span className="text-white text-4xl font-black">¥{value}</span>
             <AntTooltip title={`昨日全天利润: ¥${daily[daily.length-2]?.profit_cny || 0}`}>
               <div className={`px-2 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-black flex items-center gap-1 cursor-help`}>
                 {isPositive ? <ArrowUpRight size={12} strokeWidth={3} /> : <div className="rotate-90"><ArrowUpRight size={12} strokeWidth={3} /></div>}
@@ -281,19 +281,19 @@ export default function StoreDataView_V5({ user }) {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 v5-scrollbar-hide">
         {/* KPI 矩阵 */}
-        <div className="grid grid-cols-12 gap-5">
-          <div className="col-span-12 xl:col-span-4"><MainProfitCard stats={stats} daily={daily} /></div>
-          <div className="col-span-12 xl:col-span-5 grid grid-cols-2 gap-4">
-             <KPIBlockMini label="净利润" value={`¥${fmt(stats?.total_profit ?? 0)}`} sub="CNY" colorClass="bg-emerald-50 border-emerald-100 text-emerald-700" delay={100} />
-             <KPIBlockMini label="订单件数" value={`${fmt(stats?.total_orders ?? 0)} 件`} sub="" colorClass="bg-blue-50 border-blue-100 text-blue-700" delay={200} />
-             <KPIBlockMini label="总 GMV" value={`$${fmt(stats?.total_gmv ?? 0)}`} sub="USD" colorClass="bg-indigo-50 border-indigo-100 text-indigo-700" delay={300} />
-             <KPIBlockMini label="平均利润率" value={`${stats?.total_margin ?? 0}%`} sub="AVG MARGIN" colorClass="bg-amber-50 border-amber-100 text-amber-700" delay={400} />
+        <div className="flex gap-5">
+          <div className="flex-1 min-w-0"><MainProfitCard stats={stats} daily={daily} /></div>
+          <div className="flex-[2] grid grid-cols-2 gap-4 min-w-0">
+             <KPIBlockMini label="本月利润" value={`¥${fmt(stats?.monthly_profit_dailystats ?? 0)}`} sub="CNY" colorClass="bg-emerald-50 border-emerald-100 text-emerald-700" delay={100} />
+             <KPIBlockMini label="今日订单" value={`${fmt(stats?.today_orders_dailystats ?? 0)} 件`} sub="" colorClass="bg-blue-50 border-blue-100 text-blue-700" delay={200} />
+             <KPIBlockMini label="今日总 GMV" value={`$${fmt(stats?.today_gmv_dailystats ?? 0)}`} sub="USD" colorClass="bg-indigo-50 border-indigo-100 text-indigo-700" delay={300} />
+             <KPIBlockMini label="平均利润率" value={`${(stats?.today_profit_dailystats && stats?.today_gmv_dailystats ? (stats.today_profit_dailystats / (stats.today_gmv_dailystats * 7) * 100).toFixed(1) : 0)}%`} sub="AVG MARGIN" colorClass="bg-amber-50 border-amber-100 text-amber-700" delay={400} />
           </div>
-          <div className="col-span-12 xl:col-span-3">
+          <div className="flex-1 min-w-0">
              <div className="h-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                 <div>
                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">取消率监控 <AntTooltip title="计算公式: 本期取消订单 / 本期总订单"><AlertCircle size={12} /></AntTooltip></div>
-                   <div className="text-[42px] font-black text-rose-600 leading-none mb-1">{stats ? ((stats.total_cancel_pre || 0) / (stats.total_orders || 1) * 100).toFixed(1) : 0}%</div>
+                   <div className="text-[42px] font-black text-rose-600 leading-none mb-1">{stats ? ((stats.today_cancel_rate_dailystats || 0) * 100).toFixed(1) : 0}%</div>
                 </div>
                 <div className="pt-4 border-t border-slate-50">
                    <div className="text-[12px] font-bold text-slate-500 flex items-center gap-1">低于类目阈值 <ArrowUpRight size={14} className="text-rose-500" strokeWidth={3} /></div>
@@ -350,22 +350,21 @@ export default function StoreDataView_V5({ user }) {
               </div>
               <div className="flex-1 min-h-0 chart-container flex items-center justify-center">
                  <div className="w-full h-full">
-                   <Pie 
-                    data={currentPieData} 
-                    angleField="value" 
-                    colorField="name" 
-                    radius={0.85} 
-                    innerRadius={0.65} 
+                   <Pie
+                    data={currentPieData}
+                    angleField="value"
+                    colorField="name"
+                    radius={0.9}
+                    innerRadius={0.55}
                     color={PIE_COLORS}
-                    padding={[0, 100, 0, 0]}
-                    legend={{ 
-                      position: 'right', 
+                    legend={{
+                      position: 'right',
                       layout: { justifyContent: 'center' },
-                      itemLabel: { style: { fontSize: 11, fontWeight: 700, fill: '#475569' } } 
+                      itemLabel: { style: { fontSize: 11, fontWeight: 700, fill: '#475569' } }
                     }}
-                    label={{ 
+                    label={{
                       text: (d) => d.percent > 0.05 ? `${(d.percent * 100).toFixed(0)}%` : '',
-                      position: 'inner',
+                      position: 'inside',
                       style: { fontSize: 10, fontWeight: 900, fill: '#fff', textAlign: 'center' }
                     }}
                     tooltip={{
@@ -387,7 +386,7 @@ export default function StoreDataView_V5({ user }) {
                       {
                         type: 'text',
                         style: {
-                          text: `¥${fmt(stats?.monthly_profit)}`,
+                          text: `¥${fmt(stats?.monthly_profit_dailystats)}`,
                           x: '50%',
                           y: '55%',
                           textAlign: 'center',

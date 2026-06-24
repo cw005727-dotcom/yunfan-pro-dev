@@ -55,7 +55,9 @@ export default function NotificationsView({ user }) {
   const [items, setItems] = useState([])
   useEffect(() => {
     const fn = () => {
-      fetch('/api/notifications/realtime?owner=' + encodeURIComponent(user?.username || ''))
+      // 所有人按 owner 拉：管理员拿到自己的假通知，其他人拿自己的真实
+      const ownerParam = user?.username ? `?owner=${encodeURIComponent(user.username)}` : ''
+      fetch('/api/notifications/realtime' + ownerParam)
         .then(r => r.json()).then(setItems).catch(() => {})
     }
     fn()

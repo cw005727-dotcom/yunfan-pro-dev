@@ -61,6 +61,7 @@ export default function ProductPerformanceView({ user }) {
       const params = new URLSearchParams({ sort, order, page, page_size: pageSize })
       if (issueFilter !== '全部') params.set('issue', issueFilter)
       if (siteFilter !== '全部') params.set('site_id', siteFilter)
+      // 所有人按 owner 过滤
       if (user?.username) params.set('owner', user.username)
 
       const res = await fetch(`/api/performance/list?${params}`, { signal: controller.signal })

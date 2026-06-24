@@ -671,27 +671,48 @@ class NewReq(BaseModel):
 
 # ── 路由─────────────────────────────────────────────────────────────────
 @router.get("/categories")
-def list_categories():
-    """返回前端类目选择列表，按站点动态加载"""
-    # site 参数通过 query 传递，前端 JS: /api/amazon/categories?site=BR
-    # FastAPI 自动从 request 中解析 query 参数
-    from fastapi import Request
-    # 这个技巧在依赖注入里用，但不在函数签名中，我们可以直接从请求对象取
-    # 实际上这里我们不用这个方法，改为用查询参数
-    site = "US"
-    try:
-        tree = _load_category_tree(site)
-    except Exception:
-        tree = []
-    result = []
-    for node in tree:
-        info = _get_category_info(site, node.get("nodeId", ""))
-        result.append({
-            "id": node.get("nodeId", ""),
-            "name": info.get("name", node.get("类目名称", "")),
-            "emoji": info.get("emoji", "📦"),
-        })
-    return result
+def list_categories(site: str = "US"):
+    """返回前端类目选择列表（从 amazon_products 表 unique big_category 取，不依赖 Sorftime）"""
+    from fastapi_server.db import get_db_connection
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT DISTINCT big_category, COUNT(*) as cnt FROM amazon_products "
+            "WHERE site = ? AND big_category IS NOT NULL AND big_category != '' "
+            "GROUP BY big_category ORDER BY cnt DESC",
+            (site.upper(),)
+        )
+        rows = cursor.fetchall()
+    emoji_map = [
+        (["Electronic", "Phone", "Camera", "Audio", "Comput"], "📱"),
+        (["Beauty", "Skin", "Hair"], "💄"),
+        (["Baby", "Kid", "Toy"], "👶"),
+        (["Home", "Kitchen", "Furniture", "Garden"], "🏠"),
+        (["Automotive", "Car", "Vehicle"], "🚗"),
+        (["Sport", "Outdoor", "Fitness"], "⚽"),
+        (["Pet", "Dog", "Cat"], "🐶"),
+        (["Toys", "Game", "Puzzle"], "🎮"),
+        (["Cloth", "Shoe", "Apparel", "Dress"], "👕"),
+        (["Grocery", "Food", "Snack", "Coffee"], "🍎"),
+        (["Book", "Music", "Video"], "📚"),
+        (["Health", "Medical", "Dental"], "💊"),
+        (["Office", "Stationery", "Pen"], "✏️"),
+        (["Tool", "Hardware"], "🔧"),
+    ]
+    def get_emoji(name):
+        for kws, e in emoji_map:
+            if any(kw.lower() in (name or "").lower() for kw in kws):
+                return e
+        return "📦"
+    return [
+        {
+            "id": (r[0] or "").replace(" ", "_"),
+            "name": r[0],
+            "emoji": get_emoji(r[0]),
+            "count": r[1],
+        }
+        for r in rows
+    ]
 
 @router.get("/categories/{site}")
 def list_categories_by_site(site: str):

@@ -171,6 +171,10 @@ function buildDataFromOperational(stats, daily, stores) {
       orders_trend: 0,
       units_trend: 0,
       aov: totalOrders > 0 ? (totalGmv / totalOrders).toFixed(2) : 0,
+      // 今日数据 — 严格只用 dailystats（顶栏故事）
+      today_gmv: Number(stats.today_gmv_dailystats) || 0,
+      today_orders: Number(stats.today_orders_dailystats) || 0,
+      today_profit: Number(stats.today_profit_dailystats) || 0,
     },
     trends: (daily.daily || []).map(d => ({
       date: d.date,
@@ -254,6 +258,10 @@ function buildDataFromOperational(stats, daily, stores) {
   const units = metrics.total_units || 0;
   const orders = metrics.total_orders || 0;
   const payout = metrics.actual_payout || 0;
+  // 今日数据（来自 daily_stats，跟顶栏一致）
+  const todayGmv = metrics.today_gmv ?? 0;
+  const todayOrders = metrics.today_orders ?? 0;
+  const todayProfit = metrics.today_profit ?? 0;
 
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
@@ -305,17 +313,27 @@ function buildDataFromOperational(stats, daily, stores) {
         </div>
       ) : (
         <>
-          {/* 1. Metrics Ribbon */}
+          {/* 1. Metrics Ribbon — 4 张卡片（前 2 张今日，后 2 张总数） */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
-              <Card hoverable>
+              <Card hoverable style={{ borderColor: '#10b981', borderWidth: 2 }}>
                 <Statistic
-                  title={<Space><DollarSign size={14} />总成交额 (GMV)</Space>}
-                  value={gmv}
+                  title={<Space><DollarSign size={14} />今日总成交 GMV</Space>}
+                  value={todayGmv}
                   prefix="$"
-                  precision={0}
-                  valueStyle={{ fontWeight: 700, fontSize: 28 }}
-                  suffix={<TrendBadge value={metrics.gmv_trend} />}
+                  precision={2}
+                  valueStyle={{ fontWeight: 700, fontSize: 28, color: '#10b981' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card hoverable style={{ borderColor: '#10b981', borderWidth: 2 }}>
+                <Statistic
+                  title={<Space><Wallet size={14} />今日净利（人民币）</Space>}
+                  value={todayProfit}
+                  prefix="¥"
+                  precision={2}
+                  valueStyle={{ fontWeight: 700, fontSize: 28, color: '#ef4444' }}
                 />
               </Card>
             </Col>
@@ -338,17 +356,6 @@ function buildDataFromOperational(stats, daily, stores) {
                   precision={0}
                   valueStyle={{ fontWeight: 700, fontSize: 28 }}
                   suffix={<TrendBadge value={metrics.units_trend} />}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card hoverable>
-                <Statistic
-                  title={<Space><Wallet size={14} />预计实收 (Net)</Space>}
-                  value={payout}
-                  prefix="$"
-                  precision={0}
-                  valueStyle={{ fontWeight: 700, fontSize: 28 }}
                 />
               </Card>
             </Col>
@@ -500,3 +507,4 @@ function buildDataFromOperational(stats, daily, stores) {
     </div>
   );
 }
+// BUILD_2026_06_08_1735

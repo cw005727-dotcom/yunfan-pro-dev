@@ -189,9 +189,9 @@ export default function LogisticsIntlView_V5() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 premium-scrollbar-hide">
-        <div className="grid grid-cols-12 gap-5">
-          <div className={'col-span-12 xl:col-span-4 cursor-pointer transition-all ' + (activeCard === 'delivered' ? 'ring-2 ring-emerald-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('delivered')}><MainIntlCard stats={stats} /></div>
-          <div className="col-span-12 xl:col-span-5 grid grid-cols-2 gap-4">
+        <div className="flex gap-5">
+          <div className={'flex-1 min-w-0 cursor-pointer transition-all ' + (activeCard === 'delivered' ? 'ring-2 ring-emerald-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('delivered')}><MainIntlCard stats={stats} /></div>
+          <div className="flex-[2] grid grid-cols-2 gap-4 min-w-0">
              <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'transit' ? 'ring-2 ring-blue-400' : 'opacity-80 hover:opacity-100') + ' bg-blue-50 border-blue-100'} onClick={() => setActiveCard('transit')}>
                 <div className="text-[10px] font-black text-blue-700 opacity-90 uppercase tracking-widest leading-none">运输中</div>
                 <div className="mt-2">
@@ -217,7 +217,7 @@ export default function LogisticsIntlView_V5() {
                 </div>
              </div>
           </div>
-          <div className={'col-span-12 xl:col-span-3 cursor-pointer transition-all ' + (activeCard === 'warning' ? 'ring-2 ring-rose-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('warning')}>
+          <div className={'flex-1 min-w-0 cursor-pointer transition-all ' + (activeCard === 'warning' ? 'ring-2 ring-rose-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('warning')}>
              <WarningIntlCard stats={stats} />
           </div>
         </div>

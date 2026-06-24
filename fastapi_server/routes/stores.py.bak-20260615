@@ -154,106 +154,6 @@ async def _do_auth(code: str, shop_id: str = "", decoded_state: dict = None):
             )
         conn.commit()
 
-    # 同时写一份到 single.db（让 single 站能看到自己授权的店）
-    try:
-        import sqlite3 as _sq2
-        from pathlib import Path as _P2
-        _single_db = _P2("/home/ubuntu/yunfan-pro-single/single.db")
-        if _single_db.exists():
-            with _sq2.connect(str(_single_db)) as _sc:
-                _sc.execute(
-                    """UPDATE stores SET
-                        access_token = ?,
-                        refresh_token = ?,
-                        token_expires_at = ?,
-                        site_id = ?,
-                        status = 'green',
-                        ml_user_id = ?
-                        WHERE user_id = ?""",
-                    (access_token, refresh_token, now_ts + expires_in, site_id, user_id_from_ml, int(shop_id))
-                )
-                _cur = _sc.execute(
-                    "SELECT 1 FROM stores WHERE user_id = ?",
-                    (int(shop_id),)
-                ).fetchone()
-                if not _cur:
-                    _sc.execute(
-                        """INSERT INTO stores
-                           (user_id, nickname, site_id, access_token, refresh_token, token_expires_at, status, ml_user_id)
-                           VALUES (?, ?, ?, ?, ?, ?, 'green', ?)""",
-                        (int(shop_id), store_nickname, site_id, access_token, refresh_token, now_ts + expires_in, user_id_from_ml)
-                    )
-                # 5 层校验：收集每层状态
-                _sync_levels = {"basic": True, "ml_api": False, "reputation": False}
-                _site_count = 0
-                # 直接调 ML API 拉声誉（用刚拿到的 access_token，写到 single.db）
-                try:
-                    import requests as _req
-                    from datetime import datetime as _dt
-                    _ml_url = "https://api.mercadolibre.com/global/users/seller_reputation"
-                    _r = _req.get(_ml_url, headers={"Authorization": f"Bearer {access_token}"}, timeout=15)
-                    if _r.status_code == 200:
-                        _sync_levels["ml_api"] = True
-                        _raw_list = _r.json().get("seller_reputation", [])
-                        _best = {}
-                        for _rep in _raw_list:
-                            _sid = _rep.get("site_id", "")
-                            if _sid not in ("MLM", "MLB", "MLA", "MCO", "MLC", "MLU"):
-                                continue
-                            _lt = _rep.get("logistic_type", "")
-                            if _lt == "fulfillment":
-                                continue
-                            if _sid not in _best:
-                                _best[_sid] = _rep
-                        _now_ts = int(__import__("time").time())
-                        _new_violations_total = 0
-                        for _sid, _rep in _best.items():
-                            _rd = _rep.get("seller_reputation", {})
-                            _metrics = _rd.get("metrics", {})
-                            _level = _rd.get("level_id", "")
-                            _complaints = _metrics.get("claims", {}).get("rate", 0)
-                            _delayed = _metrics.get("delayed_handling_time", {}).get("rate", 0)
-                            _cancels = _metrics.get("cancellations", {}).get("rate", 0)
-                            _new_claims = _metrics.get("claims", {}).get("value", 0) or 0
-                            _new_delayed = _metrics.get("delayed_handling_time", {}).get("value", 0) or 0
-                            _new_cancel = _metrics.get("cancellations", {}).get("value", 0) or 0
-                            _new_v = _new_claims + _new_delayed + _new_cancel
-                            _new_violations_total += _new_v
-                            _p = _sid.lower()
-                            _sc.execute(
-                                f"UPDATE stores SET {_p}_reputation_level=?, {_p}_complaints_rate=?, {_p}_delayed_rate=?, {_p}_cancellations_rate=?, {_p}_new_violations=?, {_p}_new_claims=?, {_p}_new_delayed=?, {_p}_new_cancel=? WHERE user_id=?",
-                                (_level, _complaints, _delayed, _cancels, _new_v, _new_claims, _new_delayed, _new_cancel, int(shop_id))
-                            )
-                        _sc.execute(
-                            "UPDATE stores SET new_violations=?, last_updated=? WHERE user_id=?",
-                            (_new_violations_total, _dt.fromtimestamp(_now_ts).isoformat(), int(shop_id))
-                        )
-                        _site_count = len(_best)
-                        _sc.commit()
-                        _sync_levels["reputation"] = True
-                        logger.info(f"[ML TOKEN] single.db 实时拉 ML 声誉完成 (shop_id={shop_id}, 站点数={len(_best)})")
-                    else:
-                        _ml_status_code = _r.status_code
-                        logger.warning(f"[ML TOKEN] 实时拉 ML 失败 status={_r.status_code}")
-                except Exception as _e:
-                    _ml_err = str(_e)
-                    _sync_levels["ml_api"] = False
-                    _sync_levels["reputation"] = False
-                    logger.warning(f"[ML TOKEN] 实时拉 ML 异常: {_e}")
-                logger.info(f"[ML TOKEN] 已同步到 single.db (shop_id={shop_id}, 站点数={_site_count})")
-    except Exception as e:
-        _sync_err = str(e)
-        logger.warning(f"[ML TOKEN] 同步到 single.db 失败: {e}")
-    if '_sync_levels' not in dir():
-        _sync_levels = {"basic": True, "ml_api": False, "reputation": False}
-        _site_count = 0
-    if '_ml_err' not in dir():
-        _ml_err = ""
-    if '_ml_status_code' not in dir():
-        _ml_status_code = 0
-    if '_sync_err' not in dir():
-        _sync_err = ""
-
     # 授权后异步拉取声誉
     import threading
     def _run_reputation():
@@ -271,42 +171,16 @@ async def _do_auth(code: str, shop_id: str = "", decoded_state: dict = None):
     threading.Thread(target=_run_reputation, daemon=True).start()
 
     # 4. 返回成功页面（3秒后自动跳转到首页）
-    main_url = "https://chensan.vip/single-test/"
-    _all_ok = _sync_levels.get("basic") and _sync_levels.get("ml_api") and _sync_levels.get("reputation")
-    _icon = "✅" if _all_ok else "⚠️"
-    _title_color = "#064E3B" if _all_ok else "#92400E"
-    _title = "店铺授权成功" if _all_ok else "授权部分完成"
-    _subtitle = "5 层校验全通过，6 站点声誉已拉取" if _all_ok else "部分环节异常，请检查下方详情"
-    _c3 = "#10B981" if _sync_levels.get("basic") else "#EF4444"
-    _s3 = "✓" if _sync_levels.get("basic") else "✗"
-    _c4 = "#10B981" if _sync_levels.get("ml_api") else "#EF4444"
-    _s4 = "✓ 200" if _sync_levels.get("ml_api") else "✗ 失败"
-    _c5 = "#10B981" if _sync_levels.get("reputation") else "#EF4444"
-    _s5 = f"✓ {_site_count} 站点" if _sync_levels.get("reputation") else "✗ 0 站点"
-    _errs = ""
-    if _ml_err:
-        _errs += f'<p style="margin:4px 0;color:#EF4444;font-size:11px">⚠️ ML 异常: {_ml_err}</p>'
-    if _ml_status_code:
-        _errs += f'<p style="margin:4px 0;color:#EF4444;font-size:11px">⚠️ ML API 状态码: {_ml_status_code}</p>'
-    if _sync_err:
-        _errs += f'<p style="margin:4px 0;color:#EF4444;font-size:11px">⚠️ 同步失败: {_sync_err}</p>'
+    main_url = "https://chensan.vip/"
     return HTMLResponse(
         content=f'''<html><body style="font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0fdf4">
 <div style="text-align:center;background:white;padding:40px;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,0.06)">
-<div style="font-size:48px;margin-bottom:16px">{_icon}</div>
-<h2 style="color:{_title_color};margin:0">{_title}</h2>
-<p style="color:#64748b;margin-top:12px">{_subtitle}</p>
-<div style="margin-top:16px;padding:14px;background:#f8fafc;border-radius:12px;text-align:left;font-size:13px">
-<p style="margin:4px 0;color:#334155"><strong>1. token 兑换:</strong> <span style="color:#10B981">✓</span></p>
-<p style="margin:4px 0;color:#334155"><strong>2. chensan.vip 库写入:</strong> <span style="color:#10B981">✓</span></p>
-<p style="margin:4px 0;color:#334155"><strong>3. single.db 同步:</strong> <span style="color:{_c3}">{_s3}</span></p>
-<p style="margin:4px 0;color:#334155"><strong>4. ML API 调通:</strong> <span style="color:{_c4}">{_s4}</span></p>
-<p style="margin:4px 0;color:#334155"><strong>5. 6 站点声誉:</strong> <span style="color:{_c5}">{_s5}</span></p>
-</div>
-<div style="margin-top:12px;padding:10px;background:#fff;border-radius:8px;text-align:left;border:1px solid #e2e8f0;font-size:12px">
-<p style="margin:2px 0;color:#64748b"><strong>店铺编号:</strong> {shop_id}</p>
-<p style="margin:2px 0;color:#64748b"><strong>Token 有效期:</strong> {expires_in // 3600} 小时</p>
-{_errs}
+<div style="font-size:48px;margin-bottom:16px">✅</div>
+<h2 style="color:#064E3B;margin:0">店铺授权成功</h2>
+<p style="color:#64748b;margin-top:12px">Token 已自动保存，刷新规则已就绪</p>
+<div style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:12px;text-align:left">
+<p style="margin:4px 0;font-size:13px;color:#334155"><strong>店铺编号:</strong> {shop_id}</p>
+<p style="margin:4px 0;font-size:13px;color:#334155"><strong>Token 有效期:</strong> {expires_in // 3600} 小时</p>
 </div>
 <p style="color:#94a3b8;font-size:12px;margin-top:16px"><span id="countdown">3</span> 秒后自动跳转...</p>
 </div>

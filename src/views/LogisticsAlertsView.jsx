@@ -212,6 +212,7 @@ export default function LogisticsAlertsView_V5({ user }) {
     setLoading(true);
     const params = new URLSearchParams();
     if (selectedSite) params.append('site', selectedSite);
+    if (user?.username) params.append('owner', user.username);
 
     fetch(`${API}/logistics/tracking?${params.toString()}`)
       .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
@@ -282,7 +283,7 @@ export default function LogisticsAlertsView_V5({ user }) {
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
-  }, [selectedSite]);
+  }, [selectedSite, user]);
 
   useEffect(() => {
     fetchData();
@@ -342,9 +343,9 @@ export default function LogisticsAlertsView_V5({ user }) {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 premium-scrollbar-hide">
         {/* KPI 矩阵 */}
-        <div className="grid grid-cols-12 gap-5">
-          <div className={'col-span-12 xl:col-span-4 cursor-pointer transition-all ' + (activeCard === 'yesterday' ? 'ring-2 ring-emerald-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('yesterday')}><MainLogisticsCard stats={stats} day="yesterday" title="昨日物流追踪" /></div>
-          <div className="col-span-12 xl:col-span-5 grid grid-cols-2 gap-4">
+        <div className="flex gap-5">
+          <div className={'flex-1 min-w-0 cursor-pointer transition-all ' + (activeCard === 'yesterday' ? 'ring-2 ring-emerald-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('yesterday')}><MainLogisticsCard stats={stats} day="yesterday" title="昨日物流追踪" /></div>
+          <div className="flex-[2] grid grid-cols-2 gap-4 min-w-0">
              <div className={'rounded-xl p-4 flex flex-col justify-between border shadow-sm cursor-pointer transition-all ' + (activeCard === 'daybefore' ? 'ring-2 ring-blue-400' : 'opacity-80 hover:opacity-100') + ' bg-blue-50 border-blue-100'} style={{ animation: 'fadeSlideUp 0.5s ease-out 100ms both' }} onClick={() => setActiveCard('daybefore')}>
                 <div className="text-[10px] font-black text-blue-700 opacity-90 uppercase tracking-widest leading-none font-black">前天物流追踪 <span className="text-[9px]">({stats?.daybefore_date || ''})</span></div>
                 <div className="mt-2">
@@ -380,7 +381,7 @@ export default function LogisticsAlertsView_V5({ user }) {
                 </div>
              </div>
           </div>
-          <div className={'col-span-12 xl:col-span-3 cursor-pointer transition-all ' + (activeCard === 'warning' ? 'ring-2 ring-rose-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('warning')}>
+          <div className={'flex-1 min-w-0 cursor-pointer transition-all ' + (activeCard === 'warning' ? 'ring-2 ring-rose-400 rounded-2xl' : 'opacity-80 hover:opacity-100')} onClick={() => setActiveCard('warning')}>
              <WarningCard stats={stats} />
           </div>
         </div>

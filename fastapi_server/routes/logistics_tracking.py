@@ -345,8 +345,222 @@ def compute_stage(t):
         return 1, '🏭', '云仓已贴单', '#f59e0b'
     trk = (t.get('logistics_1688_tracking') or '').strip()
     if trk and not any('一' <= c <= '鿿' for c in trk):
-        return 0, '🚚', '平台已发货', '#3b82f6'
+        return 0, '🚚', '平台已发货', '#3b82f1'
     return -1, '❌', '未发货', '#94a3b8'
+
+
+def _admin_generate_day_orders(date_str: str, total: int, ship_rate: float):
+    """
+    为 admin 生成某一天的假订单列表（detail table 用）。
+    ship_rate: 已发率（0.0-1.0）
+    返回 list，每个元素字段跟 logistics_tracking 一致
+    4 阶段分布（针对已发）：3(40%) / 2(30%) / 1(20%) / 0(10%)
+    """
+    import random
+    if total <= 0:
+        return []
+    shipped_count = int(total * ship_rate)
+    unshipped_count = total - shipped_count
+    orders = []
+    # 站点分布：admin 主要是拉美跨境
+    site_pool = ['MLM', 'MLB', 'MLA', 'MCO', 'MLC', 'MLU']
+    # 真实人名（admin 视角下用真实业务员工名）
+    salesperson_pool = ['韦正渊', '王春', '杨梅', '罗洪俊', '张滨麒', '王国宇', '陈伟', '马思博', '查佼佼']
+    # 真实商品图池（30 个 ML 真实 thumbnail，每次启动缓存到 module 级）
+    global _THUMBNAIL_POOL
+    try:
+        _THUMBNAIL_POOL
+    except NameError:
+        _THUMBNAIL_POOL = None
+    if not _THUMBNAIL_POOL:
+        try:
+            from pathlib import Path
+            pool_path = Path(__file__).resolve().parent.parent.parent / 'thumbnail_pool.json'
+            if pool_path.exists():
+                import json
+                _THUMBNAIL_POOL = json.loads(pool_path.read_text())
+            else:
+                _THUMBNAIL_POOL = []
+        except Exception:
+            _THUMBNAIL_POOL = []
+    # 真实西语买家名池
+    buyer_pool = [
+        'JUAN PEREZ', 'MARIA GARCIA', 'CARLOS LOPEZ', 'ANA MARTINEZ',
+        'PEDRO RODRIGUEZ', 'SOFIA HERNANDEZ', 'DIEGO SANCHEZ', 'LUCIA TORRES',
+        'MIGUEL RAMIREZ', 'ELENA FLORES', 'JOSE GONZALEZ', 'LAURA DIAZ',
+        'ANDRES MORALES', 'CAMILA CASTRO', 'FERNANDO RUIZ', 'VALENTINA ORTIZ',
+    ]
+    for i in range(total):
+        is_shipped = i < shipped_count
+        site = random.choice(site_pool)
+        # 时间在当天的随机时段
+        hour = random.randint(0, 23)
+        minute = random.randint(0, 59)
+        second = random.randint(0, 59)
+        order_dt = f"{date_str} {hour:02d}:{minute:02d}:{second:02d}"
+        if is_shipped:
+            # 已发：4 阶段随机分配
+            r = random.random()
+            if r < 0.40:
+                stage = 3  # 已发出
+            elif r < 0.70:
+                stage = 2  # 官方仓收货
+            elif r < 0.90:
+                stage = 1  # 云仓已贴单
+            else:
+                stage = 0  # 平台已发货
+        else:
+            stage = -1  # 未发货
+        # 4 阶段对应字段
+        ls1688_t = '' if stage == -1 else f"YT762{random.randint(1000000, 9999999)}"
+        if stage == 0 and not ls1688_t:
+            ls1688_t = f"YT762{random.randint(1000000, 9999999)}"
+        label_status = '已贴单' if stage >= 1 else '待贴单'
+        status = '已入库' if stage >= 2 else '入库中'
+        intl_tracking = f"LP008{random.randint(100000000, 999999999)}" if stage == 3 else ''
+        orders.append({
+            'order_number': f"20000{random.randint(10000000000, 99999999999)}",
+            'site': site,
+            'store_name': f"f{random.randint(1, 8)}店",
+            'order_date': order_dt,
+            'status': status,
+            'logistics_1688_order': '',
+            'logistics_1688_tracking': ls1688_t,
+            'label_status': label_status,
+            'warehouse_in_date': f"{date_str} {hour+random.randint(1,4):02d}:{minute:02d}:00" if stage >= 2 else '',
+            'international_tracking': intl_tracking,
+            'shipped_at': order_dt if is_shipped else '',
+            'thumbnail': random.choice(_THUMBNAIL_POOL) if _THUMBNAIL_POOL else '',
+            'salesperson': random.choice(salesperson_pool),
+            'amount_usd': round(random.uniform(8, 25), 2),
+            'profit': round(random.uniform(-3, 8), 2),
+            'buyer_name': random.choice(buyer_pool),
+            'city': '',
+            'is_ignored': 0,
+        })
+    return orders
+
+
+def _generate_admin_fake_data(site=None, search=None, limit=500):
+    """
+    admin = 美客多开挂指南 专用假数据生成器
+    数据来源：daily_stats.order_count（每天 9am cron 自动生成）
+    已发/未发比例：昨天 75-85%, 前天 80-90%, 三天前 90-95%
+    4 阶段分布（已发中）：3(40%) / 2(30%) / 1(20%) / 0(10%)
+    数字一致性：卡片数字 = detail list 数量 = daily_stats.order_count
+    """
+    import random
+    from collections import defaultdict
+
+    random.seed()  # 每次调用都用真实随机
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # 拿 day1=昨天 / day2=前天 / day3=三天前 的 order_count
+    now = datetime.now()
+    days = []
+    for offset in [1, 2, 3]:
+        d = (now - timedelta(days=offset)).strftime('%Y-%m-%d')
+        cur.execute("SELECT order_count FROM daily_stats WHERE date = ?", (d,))
+        row = cur.fetchone()
+        order_count = row[0] if row else 0
+        days.append({'offset': offset, 'date': d, 'order_count': order_count})
+
+    # 站点过滤
+    def _site_match(o):
+        return site is None or o['site'] == site
+    # 搜索过滤
+    def _search_match(o):
+        return search is None or search in o['order_number']
+
+    # 已发率：随天数变老递增
+    ship_rates = {1: random.uniform(0.75, 0.85), 2: random.uniform(0.80, 0.90), 3: random.uniform(0.90, 0.95)}
+
+    # 每天生成订单 detail
+    all_orders = []
+    day_results = {}
+    cloud_labeled_total = 0
+    warehouse_received_total = 0
+
+    for d in days:
+        orders = _admin_generate_day_orders(d['date'], d['order_count'], ship_rates[d['offset']])
+        all_orders.extend(orders)
+        # 站点过滤
+        filtered = [o for o in orders if _site_match(o) and _search_match(o)]
+        shipped = sum(1 for o in filtered if o['logistics_1688_tracking'])
+        unshipped = len(filtered) - shipped
+        day_results[d['offset']] = {
+            'date': d['date'],
+            'total': len(filtered),
+            'shipped': shipped,
+            'unshipped': unshipped,
+            '_all_orders': filtered,
+        }
+        # 累计小卡数字（所有订单）
+        cloud_labeled_total += sum(1 for o in orders if o['label_status'] == '已贴单')
+        warehouse_received_total += sum(1 for o in orders if o['warehouse_in_date'])
+
+    # 今天没在 daily_stats，不算
+    all_filtered = [o for o in all_orders if _site_match(o) and _search_match(o)]
+    # 限制 limit
+    all_filtered = all_filtered[:limit]
+
+    # 4 阶段最终统计（所有 detail list 中）
+    stats_shipped = sum(1 for o in all_filtered if o['logistics_1688_tracking'])
+    stats_unshipped = len(all_filtered) - stats_shipped
+    cloud_labeled = sum(1 for o in all_filtered if o['label_status'] == '已贴单')
+    warehouse_received = sum(1 for o in all_filtered if o['warehouse_in_date'])
+    air_shipped = sum(1 for o in all_filtered if o['international_tracking'])
+
+    # 红区预警 = 昨天的 unshipped（48h+）
+    over_48h_warning = day_results.get(1, {}).get('unshipped', 0)
+
+    # 给 detail 加 stage 信息（让前端渲染阶段图）
+    for o in all_filtered:
+        sc, icon, name, color = compute_stage(o)
+        o['stage_code'] = sc
+        o['stage_icon'] = icon
+        o['stage_name'] = name
+        o['stage_color'] = color
+
+    # orders_by_date（key = date，value = list）
+    orders_by_date = defaultdict(list)
+    for o in all_filtered:
+        d = o['order_date'][:10] if o['order_date'] else '未知'
+        orders_by_date[d].append(o)
+
+    conn.close()
+
+    return JSONResponse({
+        'today_total': 0,
+        'purchased_count': stats_shipped,
+        'stats_shipped': stats_shipped,
+        'stats_unshipped': stats_unshipped,
+        'cloud_labeled': cloud_labeled,
+        'pending_labeled': len(all_filtered) - cloud_labeled,
+        'warehouse_received': warehouse_received,
+        'air_shipped': air_shipped,
+        'orders_by_date': dict(sorted(orders_by_date.items(), reverse=True)),
+        # 三天时效
+        'yesterday_date': day_results.get(1, {}).get('date', ''),
+        'yesterday_total': day_results.get(1, {}).get('total', 0),
+        'yesterday_shipped': day_results.get(1, {}).get('shipped', 0),
+        'yesterday_unshipped': day_results.get(1, {}).get('unshipped', 0),
+        'daybefore_date': day_results.get(2, {}).get('date', ''),
+        'daybefore_total': day_results.get(2, {}).get('total', 0),
+        'daybefore_shipped': day_results.get(2, {}).get('shipped', 0),
+        'daybefore_unshipped': day_results.get(2, {}).get('unshipped', 0),
+        'thirdday_date': day_results.get(3, {}).get('date', ''),
+        'thirdday_total': day_results.get(3, {}).get('total', 0),
+        'thirdday_shipped': day_results.get(3, {}).get('shipped', 0),
+        'thirdday_unshipped': day_results.get(3, {}).get('unshipped', 0),
+        # 预警
+        'over_48h_warning': over_48h_warning,
+        # 兼容字段
+        'stats_24h': {'shipped': stats_shipped, 'unshipped': stats_unshipped},
+        'stats_48h': {'shipped': stats_shipped, 'unshipped': stats_unshipped},
+    })
 
 
 @router.get("/tracking")
@@ -358,6 +572,9 @@ def get_tracking(
     owner: str = None,
 ):
     """返回全链路追踪数据：按日期分组+统计"""
+    # admin = 美客多开挂指南：每天从 daily_stats 生成假数据，其他用户走真实数据
+    if owner == '美客多开挂指南':
+        return _generate_admin_fake_data(site=site, search=search, limit=limit)
     conn = get_conn()
     cur = conn.cursor()
 

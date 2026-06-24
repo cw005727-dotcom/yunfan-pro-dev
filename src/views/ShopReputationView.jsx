@@ -123,7 +123,10 @@ function SiteStatusBlock({ siteData, config }) {
 
 export default function ShopReputationView_V5({ user }) {
   const username = user?.username || null;
-  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus, syncResult } = useReputation(null, username);
+  const isAdmin = user?.role === '管理员';
+  // 店铺声誉：管理员看全平台 14 家，其他人按 owner 过滤
+  const filterOwner = isAdmin ? null : username;
+  const { reputation, dailyAlerts, loading, error, refresh, lastUpdated, syncStatus, syncResult } = useReputation(null, filterOwner);
 
   // 根据同步阶段返回显示文字
   const syncLabel = (() => {

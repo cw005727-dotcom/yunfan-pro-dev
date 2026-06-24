@@ -162,6 +162,55 @@ def get_stats(
         if m:
             try: webhook_gmv += float(m.group(1))
             except: pass
+
+    # 今日 daily_stats 数据（跟顶栏 /api/top-stats/today 一致）
+    # 如果传了 date_from/date_to，汇总区间内所有日期；否则只取今天
+    # 同时算本月累计利润（不管有没有筛选都算）
+    _c3 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
+    _c3.row_factory = _sq.Row
+    if date_from or date_to:
+        # 区间汇总 daily_stats
+        _ds_where = []
+        _ds_params = []
+        if date_from:
+            _ds_where.append("date >= ?")
+            _ds_params.append(date_from)
+        if date_to:
+            _ds_where.append("date <= ?")
+            _ds_params.append(date_to)
+        _ds_sql = f"SELECT COALESCE(SUM(order_count),0) as order_count, COALESCE(SUM(gmv_usd),0) as gmv_usd, COALESCE(SUM(profit_cny),0) as profit_cny, COALESCE(AVG(cancel_rate),0) as cancel_rate FROM daily_stats WHERE {' AND '.join(_ds_where)}"
+        _ds_row = _c3.execute(_ds_sql, _ds_params).fetchone()
+        ds_orders = int(_ds_row["order_count"] or 0)
+        ds_gmv = float(_ds_row["gmv_usd"] or 0)
+        ds_profit = float(_ds_row["profit_cny"] or 0)
+        ds_cancel_rate = float(_ds_row["cancel_rate"] or 0)
+    else:
+        # 单天：取今天
+        _today_str = __import__('datetime').date.today().strftime('%Y-%m-%d')
+        _ds_row = _c3.execute(
+            "SELECT order_count, gmv_usd, profit_cny, cancel_rate FROM daily_stats WHERE date = ?",
+            (_today_str,),
+        ).fetchone()
+        if _ds_row:
+            ds_orders = int(_ds_row["order_count"] or 0)
+            ds_gmv = float(_ds_row["gmv_usd"] or 0)
+            ds_profit = float(_ds_row["profit_cny"] or 0)
+            ds_cancel_rate = float(_ds_row["cancel_rate"] or 0)
+        else:
+            ds_orders = 0
+            ds_gmv = 0.0
+            ds_profit = 0.0
+            ds_cancel_rate = 0.0
+
+    # 本月累计利润（汇总本月所有日期的 daily_stats.profit_cny，不受 date_from/date_to 影响）
+    _month_start = __import__('datetime').date.today().replace(day=1).strftime('%Y-%m-%d')
+    _month_row = _c3.execute(
+        "SELECT COALESCE(SUM(profit_cny),0) as total FROM daily_stats WHERE date >= ?",
+        (_month_start,),
+    ).fetchone()
+    _c3.close()
+    monthly_profit_dailystats = float(_month_row["total"] or 0)
+
     return JSONResponse({
         "total_orders": total["count"], "total_gmv": total["gmv"],
         "total_profit": total["profit"], "total_purchase_cost": total["purchase_cost"],
@@ -175,6 +224,12 @@ def get_stats(
         "today_profit": daily["profit"], "today_purchase_cost": daily["purchase_cost"],
         "today_margin": margin(daily["profit"], daily["purchase_cost"]),
         "today_cancel_pre": daily["cancel_pre"], "today_cancel_post": daily["cancel_post"],
+        # 今日数据来自 daily_stats（顶栏故事）
+        "today_orders_dailystats": ds_orders,
+        "today_gmv_dailystats": ds_gmv,
+        "today_profit_dailystats": ds_profit,
+        "today_cancel_rate_dailystats": ds_cancel_rate,
+        "monthly_profit_dailystats": monthly_profit_dailystats,
     })
 
 
@@ -211,11 +266,31 @@ def get_daily(
         if m:
             try: webhook_gmv += float(m.group(1))
             except: pass
+
+    # daily 字典（用真实 operational_orders 数据作初值）
+    daily = {
+        r[0]: {"date": r[0], "order_count": r[1], "gmv_usd": round(r[2], 2), "profit_cny": round(r[3], 2)}
+        for r in rows
+    }
+
+    # 兜底：对于 daily_stats 里有的日期但 operational_orders 没有的（或为 0 的），用 daily_stats 补
+    _c3 = _sq.connect('/home/ubuntu/yunfan-pro-dev/mercadolibre.db')
+    _ds_rows = _c3.execute(
+        "SELECT date, order_count, gmv_usd, profit_cny FROM daily_stats"
+    ).fetchall()
+    _c3.close()
+    for r in _ds_rows:
+        d = r[0]
+        if d not in daily or daily[d]["order_count"] == 0:
+            daily[d] = {
+                "date": d,
+                "order_count": int(r[1] or 0),
+                "gmv_usd": round(float(r[2] or 0), 2),
+                "profit_cny": round(float(r[3] or 0), 2),
+            }
+
     return JSONResponse({
-        "daily": [
-            {"date": r[0], "order_count": r[1], "gmv_usd": round(r[2], 2), "profit_cny": round(r[3], 2)}
-            for r in rows
-        ]
+        "daily": sorted(daily.values(), key=lambda x: x["date"])
     })
 
 

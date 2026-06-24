@@ -37,7 +37,7 @@ async def upload_orders(file: UploadFile = File(...), owner: str = None):
 
     try:
         from upload.parse_orders import parse_and_import as parse_orders_excel
-        result = parse_orders_excel(tmp_path, source_file=file.filename, owner=owner)
+        result = parse_orders_excel(tmp_path, source_file=file.filename, owner=owner, db_path=str(DB_PATH))
         if result.get('error'):
             raise HTTPException(status_code=422, detail=result['error'])
         return result
@@ -108,9 +108,9 @@ async def upload_links(
 
         for row_idx, row in enumerate(ws.iter_rows(min_row=7, values_only=True), start=7):
             item_id_raw = row[0]
-            if not item_id_raw or not str(item_id_raw).isdigit():
+            if not item_id_raw or not str(item_id_raw).strip():
                 continue
-            item_id = str(item_id_raw)
+            item_id = str(item_id_raw).strip()
             item_ids.append(item_id)
 
             data = {'item_id': item_id, 'site_id': site_id, 'owner_username': owner or ''}

@@ -5,7 +5,7 @@ GET /api/stats_overview    - 数据概览（含趋势）
 GET /api/conversion_stats  - 转化统计
 """
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -166,24 +166,74 @@ async def stats_overview(
             "actual_payout": round(total_gmv * 0.6, 2),
         }
 
-        # 趋势图数据（每日聚合）
-        trend_sql = (
-            f"SELECT strftime('%Y-%m-%d', order_date) as day, "
-            f"SUM(amount) as gmv, SUM(quantity) as units "
-            f"FROM orders_v2{where_clause} GROUP BY day ORDER BY day ASC"
+        # 趋势图数据：优先用 daily_stats（确保 6/4-6/8 也有数据点），
+        # 如果 daily_stats 没数据再 fallback 到 orders_v2 真实聚合
+        trend_rows = {}
+        for i in range(days):
+            d_str = (datetime.now() - timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
+            trend_rows[d_str] = {"gmv": 0.0, "units": 0, "profit_cny": 0.0}
+
+        cursor.execute(
+            "SELECT date, gmv_usd, order_count, profit_cny FROM daily_stats "
+            "WHERE date >= ?",
+            ((datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d"),),
         )
-        cursor.execute(trend_sql, params)
-        trend_rows = {r['day']: r for r in cursor.fetchall()}
+        for r in cursor.fetchall():
+            d = r["date"]
+            if d in trend_rows:
+                trend_rows[d] = {
+                    "gmv": float(r["gmv_usd"] or 0),
+                    "units": int(r["order_count"] or 0),
+                    "profit_cny": float(r["profit_cny"] or 0),
+                }
+
+        # Fallback: 对于 daily_stats 没覆盖到的日期，从 orders_v2 取真实聚合
+        missing_dates = [d for d, v in trend_rows.items() if v["gmv"] == 0 and v["units"] == 0]
+        if missing_dates:
+            cursor.execute(
+                f"SELECT strftime('%Y-%m-%d', order_date) as day, "
+                f"SUM(amount) as gmv, SUM(quantity) as units "
+                f"FROM orders_v2{where_clause} GROUP BY day",
+                params,
+            )
+            for r in cursor.fetchall():
+                if r["day"] in missing_dates:
+                    trend_rows[r["day"]] = {
+                        "gmv": float(r["gmv"] or 0),
+                        "units": int(r["units"] or 0),
+                        "profit_cny": 0.0,
+                    }
 
         trends = []
         for i in range(days):
             d_str = (datetime.now() - timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
-            day_data = trend_rows.get(d_str, {"gmv": 0, "units": 0})
+            day_data = trend_rows.get(d_str, {"gmv": 0, "units": 0, "profit_cny": 0})
             trends.append({
                 "date": d_str,
-                "gmv": round(day_data['gmv'] or 0, 2),
-                "units": day_data['units'] or 0,
+                "gmv": round(day_data["gmv"] or 0, 2),
+                "units": day_data["units"] or 0,
+                "profit_cny": round(day_data["profit_cny"] or 0, 2),
             })
+
+        # 今日净利/GMV/件数（从 daily_stats 取，跟顶栏一致）
+        today_str = date.today().strftime("%Y-%m-%d")
+        today_row = cursor.execute(
+            "SELECT order_count, gmv_usd, profit_cny FROM daily_stats WHERE date = ?",
+            (today_str,),
+        ).fetchone()
+        if today_row:
+            today_profit = float(today_row["profit_cny"] or 0)
+            today_gmv_usd = float(today_row["gmv_usd"] or 0)
+            today_orders_count = int(today_row["order_count"] or 0)
+        else:
+            today_profit = 0.0
+            today_gmv_usd = 0.0
+            today_orders_count = 0
+
+        # 把今天数字也 merge 到 metrics（方便前端直接拿）
+        metrics["today_profit"] = round(today_profit, 2)
+        metrics["today_gmv"] = round(today_gmv_usd, 2)
+        metrics["today_orders"] = today_orders_count
 
         # 站点分布
         dist_sql = (

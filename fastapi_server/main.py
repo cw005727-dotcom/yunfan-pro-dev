@@ -62,6 +62,7 @@ app = FastAPI(
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+app.mount("/assets", StaticFiles(directory=str(BASE_DIR / "dist" / "assets")), name="admin_assets")
 app.mount("/app", StaticFiles(directory=str(BASE_DIR / "dist"), html=True), name="dist")
 
 
@@ -101,6 +102,8 @@ from .routes.auto_center import router as auto_center_router
 from .routes.logistics_tracking import router as logistics_tracking_router
 from .routes.logistics_intl import router as logistics_intl_router
 from .routes.alibaba1688 import router as alibaba1688_router
+from .routes.top_stats import router as top_stats_router
+from .routes.site_gate import router as site_gate_router
 
 app.include_router(stores.router)
 app.include_router(orders.router)
@@ -132,6 +135,8 @@ app.include_router(operational.router)
 app.include_router(logistics_tracking_router)
 app.include_router(logistics_intl_router)
 app.include_router(alibaba1688_router)
+app.include_router(top_stats_router)
+app.include_router(site_gate_router)
 
 
 @app.get("/api/proxy/image")
